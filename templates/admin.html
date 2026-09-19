@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideoLens — Private Owner & Admin Portal</title>
+    <title>LensYou — Private Owner &amp; Admin Portal</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <link rel="shortcut icon" href="/static/logo.svg">
     <link rel="stylesheet" href="/static/style.css">
@@ -82,9 +82,9 @@
         <aside class="admin-sidebar">
             <div class="admin-sidebar-header">
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <img src="/static/logo.svg" alt="VideoLens" width="32" height="32" style="filter: drop-shadow(0 0 8px rgba(124,92,252,0.6));">
+                    <img src="/static/logo.svg" alt="LensYou" width="32" height="32" style="filter: drop-shadow(0 0 8px rgba(124,92,252,0.6));">
                     <div>
-                        <h2 style="font-size: 16px; font-weight: 700; margin:0;">VideoLens</h2>
+                        <h2 style="font-size: 16px; font-weight: 700; margin:0;">LensYou</h2>
                         <span style="font-size: 10px; text-transform: uppercase; color: var(--accent-purple); letter-spacing: 1px; font-weight: 600;">Owner Portal</span>
                     </div>
                 </div>
@@ -401,7 +401,7 @@
                                 <h3 style="margin:0; font-size:16px; font-weight:700;">Buy Me a Coffee Dynamic Integration</h3>
                             </div>
                             <p style="font-size:12px; color:var(--text-muted); margin:0; line-height:1.5;">
-                                Updates the target link across all voluntary tip buttons, upgrade modals, headers, and footers throughout VideoLens without restarting the server.
+                                Updates the target link across all voluntary tip buttons, upgrade modals, headers, and footers throughout LensYou without restarting the server.
                             </p>
                         </div>
                         <span class="badge badge-purple">Dynamic SQLite Setting</span>
@@ -419,7 +419,7 @@
                         </div>
 
                         <div style="padding:12px 14px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:8px; font-size:12px; color:var(--text-muted); line-height:1.6;">
-                            💡 <strong>Tip for Indian Creators & Students:</strong> You can enter your direct <strong>UPI ID</strong> (e.g. <code>username@oksbi</code>, <code>mobile@paytm</code>, <code>name@ybl</code>) or a payment link (Buy Me a Coffee, Razorpay). If a UPI ID is entered, VideoLens automatically creates an <strong>instant QR code</strong>, <strong>1-click copy</strong>, and <strong>mobile UPI app launcher</strong> (GPay / PhonePe / Paytm / BHIM) so students can support directly in INR (₹) with zero fees and no foreign credit card requirement.
+                            💡 <strong>Tip for Indian Creators &amp; Students:</strong> You can enter your direct <strong>UPI ID</strong> (e.g. <code>username@oksbi</code>, <code>mobile@paytm</code>, <code>name@ybl</code>) or a payment link (Buy Me a Coffee, Razorpay). If a UPI ID is entered, LensYou automatically creates an <strong>instant QR code</strong>, <strong>1-click copy</strong>, and <strong>mobile UPI app launcher</strong> (GPay / PhonePe / Paytm / BHIM) so students can support directly in INR (₹) with zero fees and no foreign credit card requirement.
                         </div>
                     </div>
                 </div>
@@ -950,7 +950,7 @@
             if (!raw) return '#';
             if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('upi://')) return raw;
             if (raw.includes('@')) {
-                return `upi://pay?pa=${encodeURIComponent(raw)}&pn=VideoLens&cu=INR`;
+                return `upi://pay?pa=${encodeURIComponent(raw)}&pn=LensYou&cu=INR`;
             }
             return raw;
         }

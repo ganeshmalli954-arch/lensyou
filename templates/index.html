@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideoLens — AI Video Intelligence Platform</title>
+    <title>LensYou — AI Video Intelligence Platform</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <link rel="shortcut icon" href="/static/logo.svg">
     <link rel="apple-touch-icon" href="/static/logo.svg">
@@ -19,11 +19,11 @@
         <!-- Top Navigation Header -->
         <header class="top-nav">
             <div class="nav-brand" onclick="showScreen('landing')">
-                <div class="brand-logo" id="brandLogo" title="VideoLens AI">
-                    <img src="/static/logo.svg" alt="VideoLens Logo" width="32" height="32">
+                <div class="brand-logo" id="brandLogo" title="LensYou AI">
+                    <img src="/static/logo.svg" alt="LensYou Logo" width="32" height="32">
                 </div>
                 <div class="brand-text">
-                    <span class="brand-name">VideoLens</span>
+                    <span class="brand-name">LensYou</span>
                     <span class="brand-sub">INTELLIGENCE PLATFORM</span>
                 </div>
                 <span class="private-chip" data-tooltip="We don't store your videos">Privacy-first</span>
@@ -127,7 +127,7 @@
                 <section id="landingScreen" class="screen landing-screen">
                     <div class="hero-container">
                         
-                        <div class="hero-badge eyebrow"><img src="/static/logo.svg" alt="" width="14" height="14" style="vertical-align:middle; margin-right:8px; display:inline-block; opacity:0.9;">VideoLens • INTELLIGENCE PLATFORM</div>
+                        <div class="hero-badge eyebrow"><img src="/static/logo.svg" alt="" width="14" height="14" style="vertical-align:middle; margin-right:8px; display:inline-block; opacity:0.9;">LensYou • INTELLIGENCE PLATFORM</div>
                         <h1 class="hero-title">Understand any video in minutes.</h1>
                         <p class="hero-subtitle">Turn long-form video into structured knowledge, insights, timelines, study material and evidence-grounded conversations.</p>
 
@@ -237,7 +237,7 @@
                 </section>
 
 
-                <!-- SCREEN 3: Full VideoLens Platform Dashboard -->
+                <!-- SCREEN 3: Full LensYou Platform Dashboard -->
                 <section id="dashboardScreen" class="screen dashboard-screen" style="display:none;">
 
                     <!-- Top Video Overview Header -->
@@ -843,7 +843,7 @@
                         <div class="mode-pane" id="pane-copilot">
                             <div class="copilot-full-container glass-card">
                                 <div class="copilot-header">
-                                    <div class="copilot-badge">✦ VideoLens Grounded Copilot</div>
+                                    <div class="copilot-badge">✦ LensYou Grounded Copilot</div>
                                     <h3>Ask anything with verbatim evidence citations</h3>
                                     <div class="copilot-toggle-row">
                                         <label class="evidence-toggle-switch">
@@ -866,7 +866,7 @@
                                 <!-- Chat Stream -->
                                 <div class="copilot-chat-messages" id="copilotMessages">
                                     <div class="chat-msg ai-msg">
-                                        <div class="msg-author">✦ VideoLens Grounded Copilot</div>
+                                        <div class="msg-author">✦ LensYou Grounded Copilot</div>
                                         <div class="msg-content">
                                             <p class="chat-p">Hello! I have complete photographic recall of this entire video transcript, chapters, entities, and topics. Ask me any question, and with Evidence Mode enabled, I will provide grounded answers with exact <strong>[MM:SS]</strong> timestamp citations and verbatim transcript quotes.</p>
                                         </div>
@@ -893,9 +893,9 @@
                     <div class="modal-card">
                         <button class="modal-close" onclick="closeAuthModal()">×</button>
                         <div style="text-align:center; margin-bottom:12px;">
-                            <img src="/static/logo.svg" alt="VideoLens" width="56" height="56" style="filter:drop-shadow(0 0 12px rgba(124,92,252,0.6));">
+                            <img src="/static/logo.svg" alt="LensYou" width="56" height="56" style="filter:drop-shadow(0 0 12px rgba(124,92,252,0.6));">
                         </div>
-                        <h2 class="modal-title-center">Sign In to VideoLens</h2>
+                        <h2 class="modal-title-center">Sign In to LensYou</h2>
                         <p class="modal-subtitle-center" id="authModalReason">Continue to save your history and get more quota</p>
                         
                         <button class="oauth-btn btn-google" onclick="window.location.href='/auth/google'">
@@ -969,8 +969,8 @@
                 <div id="supportModal" class="modal-backdrop" onclick="if(event.target === this) closeSupportModal()">
                     <div class="modal-card" style="max-width: 440px;">
                         <button class="modal-close" onclick="closeSupportModal()">×</button>
-                        <h2 class="modal-title-center" style="text-align: left; font-size: 22px;">Support VideoLens</h2>
-                        <p class="modal-subtitle-center" style="text-align: left; margin-bottom: 20px;">VideoLens is free and open-source for students. Support the project to keep AI inference credits running.</p>
+                        <h2 class="modal-title-center" style="text-align: left; font-size: 22px;">Support LensYou</h2>
+                        <p class="modal-subtitle-center" style="text-align: left; margin-bottom: 20px;">LensYou is free and open-source for students. Support the project to keep AI inference credits running.</p>
                         
                         {% if is_upi %}
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid #222226; border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 16px;">
@@ -1024,10 +1024,10 @@
             <div class="footer-container">
                 <div class="footer-brand-col">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <img src="/static/logo.svg" alt="VideoLens" width="26" height="26">
-                        <div class="footer-logo-title">VideoLens</div>
+                        <img src="/static/logo.svg" alt="LensYou" width="26" height="26">
+                        <div class="footer-logo-title">LensYou</div>
                     </div>
-                    <div class="footer-subtitle">AI-powered Video Intelligence & Study Dashboard</div>
+                    <div class="footer-subtitle">AI-powered Video Intelligence &amp; Study Dashboard</div>
                 </div>
                 <div class="footer-links-row">
                     <a href="#" class="footer-link">About</a>
@@ -1038,7 +1038,7 @@
                     <a href="mailto:ganeshmalli954@gmail.com" class="footer-link">Contact</a>
                 </div>
                 <div class="footer-credit-col">
-                    <span>VideoLens • INTELLIGENCE PLATFORM</span>
+                    <span>LensYou • INTELLIGENCE PLATFORM</span>
                     <span class="footer-email">ganeshmalli954@gmail.com</span>
                 </div>
             </div>
@@ -1051,7 +1051,7 @@
             <div class="supporter-inner">
                 <div class="supporter-icon">☕</div>
                 <div class="supporter-content">
-                    <h4>VideoLens is free, forever.</h4>
+                    <h4>LensYou is free, forever.</h4>
                     {% if is_upi %}
                     <a class="supporter-cta-btn" href="javascript:void(0)" onclick="openSupportModal()">⚡ Support via UPI →</a>
                     {% else %}
@@ -1096,7 +1096,7 @@
             <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:260px;">
                 <span style="font-size:24px;">🍪</span>
                 <div style="font-size:12px; color:var(--text-secondary); line-height:1.4;">
-                    <strong style="color:var(--text-primary);">Privacy-First Cookies:</strong> VideoLens uses strictly essential cookies for secure session authentication, preferences, and account protection. No third-party tracking or advertising cookies are collected.
+                    <strong style="color:var(--text-primary);">Privacy-First Cookies:</strong> LensYou uses strictly essential cookies for secure session authentication, preferences, and account protection. No third-party tracking or advertising cookies are collected.
                 </div>
             </div>
             <div style="display:flex; gap:8px;">

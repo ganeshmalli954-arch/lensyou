@@ -56,7 +56,7 @@ class NumberedCanvas(canvas.Canvas):
         self.line(36, 32, 576, 32)
 
         # Footer text
-        footer_left = "VideoLens AI Intelligence Dossier - Personal & Local Analysis"
+        footer_left = "LensYou AI Intelligence Dossier - Personal & Local Analysis"
         footer_right = f"Page {self._pageNumber} of {page_count}"
         self.drawString(36, 20, footer_left)
         self.drawRightString(576, 20, footer_right)
@@ -64,7 +64,7 @@ class NumberedCanvas(canvas.Canvas):
         # Running header on page 2+
         if self._pageNumber > 1:
             self.line(36, 762, 576, 762)
-            self.drawString(36, 768, "VideoLens Video Intelligence Report")
+            self.drawString(36, 768, "LensYou Video Intelligence Report")
             self.drawRightString(576, 768, datetime.now().strftime("%B %d, %Y"))
 
         self.restoreState()
@@ -197,7 +197,7 @@ def generate_detailed_pdf(data: dict) -> io.BytesIO:
     # 1. TOP HEADER BANNER
     header_box = [
         [
-            Paragraph(f"<b>VIDEOLENS INTELLIGENCE DOSSIER</b> &nbsp;|&nbsp; <i>Personal & Local Analysis</i>", table_header_style),
+            Paragraph(f"<b>LENSYOU INTELLIGENCE DOSSIER</b> &nbsp;|&nbsp; <i>Personal &amp; Local Analysis</i>", table_header_style),
             Paragraph(f"<b>Generated:</b> {datetime.now().strftime('%Y-%m-%d %H:%M')}", ParagraphStyle('RightTH', parent=table_header_style, alignment=2))
         ]
     ]

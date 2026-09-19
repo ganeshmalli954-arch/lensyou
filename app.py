@@ -95,7 +95,7 @@ def inject_global_vars():
     url = str(BMC_URL).strip()
     is_upi = ('@' in url and not url.startswith('http')) or url.startswith('upi://')
     clean_upi = url.replace('upi://pay?pa=', '').split('&')[0] if url.startswith('upi://') else url
-    upi_intent = url if url.startswith('upi://') else f"upi://pay?pa={clean_upi}&pn=VideoLens&cu=INR"
+    upi_intent = url if url.startswith('upi://') else f"upi://pay?pa={clean_upi}&pn=LensYou&cu=INR"
     return {
         'bmc_url': BMC_URL,
         'is_upi': is_upi,
@@ -521,7 +521,7 @@ def chat():
     
     transcript_sample = prepare_transcript_for_analysis(client_snippets, max_chars=500000) if client_snippets else client_summary
     
-    copilot_prompt = f"""You are VideoLens Copilot, a world-class AI video researcher and investigative analyst with photographic recall of this entire video.
+    copilot_prompt = f"""You are LensYou Copilot, a world-class AI video researcher and investigative analyst with photographic recall of this entire video.
 VIDEO TITLE: {client_title}
 FULL TIMESTAMPED TRANSCRIPT:
 \"\"\"
@@ -576,7 +576,7 @@ def export_pdf():
         video_id = meta.get("video_id", "analysis")
         import re
         title_slug = re.sub(r'[^a-zA-Z0-9_-]', '_', meta.get("title", video_id))[:30]
-        filename = f"VideoLens_{title_slug}_Report.pdf"
+        filename = f"LensYou_{title_slug}_Report.pdf"
 
         return send_file(
             pdf_buf,
@@ -606,6 +606,6 @@ def find_available_port(preferred_port=5000):
 if __name__ == '__main__':
     port = int(os.getenv('PORT', find_available_port(5000)))
     print(f"\n==========================================================")
-    print(f" VideoLens v2 — AI YouTube Video Intelligence Platform")
+    print(f" LensYou v2 — AI YouTube Video Intelligence Platform")
     print(f" Local: http://localhost:{port}")
     serve(app, host='0.0.0.0', port=port, threads=8)

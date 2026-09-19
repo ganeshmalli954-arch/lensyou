@@ -387,8 +387,8 @@ class TestVideoLensPartA(unittest.TestCase):
         readable = format_secret_readable(secret)
         self.assertEqual(len(readable.split()), 4)
 
-        uri = get_totp_uri(secret, account="Admin", issuer="VideoLens")
-        self.assertTrue(uri.startswith("otpauth://totp/VideoLens:Admin?"))
+        uri = get_totp_uri(secret, account="Admin", issuer="LensYou")
+        self.assertTrue(uri.startswith("otpauth://totp/LensYou:Admin?"))
         self.assertIn(f"secret={secret}", uri)
 
         # 2. RFC 6238 TOTP Code Generation & Verification

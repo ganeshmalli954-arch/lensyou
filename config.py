@@ -19,7 +19,7 @@ def get_bmc_url() -> str:
             return val.strip()
     except Exception:
         pass
-    return os.getenv('BMC_URL', 'https://www.buymeacoffee.com/videolens')
+    return os.getenv('BMC_URL', 'https://www.buymeacoffee.com/lensyou')
 
 class _DynamicBMCUrl(str):
     def __str__(self):
@@ -27,7 +27,7 @@ class _DynamicBMCUrl(str):
     def __repr__(self):
         return get_bmc_url()
 
-BMC_URL = _DynamicBMCUrl('https://www.buymeacoffee.com/videolens')
+BMC_URL = _DynamicBMCUrl('https://www.buymeacoffee.com/lensyou')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', '')
 SECRET_KEY = os.getenv('FLASK_SECRET_KEY', '')
 

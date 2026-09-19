@@ -93,7 +93,7 @@ def admin_login():
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>VideoLens — Admin Portal Login</title>
+        <title>LensYou — Admin Portal Login</title>
         <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
         <link rel="stylesheet" href="/static/style.css">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -116,9 +116,9 @@ def admin_login():
     </head>
     <body>
         <div class="login-card">
-            <img src="/static/logo.svg" alt="VideoLens" width="40" height="40" style="margin-bottom: 12px;">
+            <img src="/static/logo.svg" alt="LensYou" width="40" height="40" style="margin-bottom: 12px;">
             <h2>Admin Portal</h2>
-            <p class="sub">Owner authentication & system management</p>
+            <p class="sub">Owner authentication &amp; system management</p>
             
             <div style="margin-bottom: 16px;">
                 {"<span class='badge-2fa badge-active'>● 2FA Protected (Google Authenticator)</span>" if two_fa_active else "<span class='badge-2fa badge-inactive'>○ Password Only (2FA Optional)</span>"}
@@ -136,7 +136,7 @@ def admin_login():
             </form>
             
             <div style="margin-top: 24px; font-size: 11px; color: #52525B;">
-                VideoLens Intelligence Platform • <a href="/" style="color: #71717A; text-decoration: none;">Public Website</a>
+                LensYou Intelligence Platform • <a href="/" style="color: #71717A; text-decoration: none;">Public Website</a>
             </div>
         </div>
     </body>
@@ -179,7 +179,7 @@ def setup_2fa():
 
     secret = session['pending_totp_secret']
     formatted_secret = format_secret_readable(secret)
-    totp_uri = get_totp_uri(secret, account="Admin", issuer="VideoLens")
+    totp_uri = get_totp_uri(secret, account="Admin", issuer="LensYou")
     encoded_uri = urllib.parse.quote(totp_uri)
     qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data={encoded_uri}"
     qr_fallback = f"https://chart.googleapis.com/chart?chs=220x220&cht=qr&chl={encoded_uri}"
@@ -202,7 +202,7 @@ def setup_2fa():
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Setup Google Authenticator — VideoLens</title>
+        <title>Setup Google Authenticator — LensYou</title>
         <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
         <link rel="stylesheet" href="/static/style.css">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -225,7 +225,7 @@ def setup_2fa():
     </head>
     <body>
         <div class="setup-card">
-            <img src="/static/logo.svg" alt="VideoLens" width="36" height="36" style="margin-bottom: 10px;">
+            <img src="/static/logo.svg" alt="LensYou" width="36" height="36" style="margin-bottom: 10px;">
             <h2>Google Authenticator 2FA</h2>
             <p class="sub">Add two-factor authentication (TOTP) to protect your private Owner and Admin Portal.</p>
 
@@ -240,7 +240,7 @@ def setup_2fa():
             <div class="step-box">
                 <div><strong>Option 1 (Scan):</strong> Open <strong>Google Authenticator</strong> on your phone, tap <strong>+</strong> &rarr; <strong>Scan a QR code</strong>.</div>
                 <div style="margin-top: 10px;"><strong>Option 2 (Manual Setup Key):</strong> If you cannot scan:</div>
-                <div style="font-size: 11px; color: #71717A; margin-top: 4px;">In app, tap <strong>+</strong> &rarr; <strong>Enter a setup key</strong> &rarr; Account: <code>VideoLens:Admin</code> &rarr; Key:</div>
+                <div style="font-size: 11px; color: #71717A; margin-top: 4px;">In app, tap <strong>+</strong> &rarr; <strong>Enter a setup key</strong> &rarr; Account: <code>LensYou:Admin</code> &rarr; Key:</div>
                 <div class="code-box">
                     <span id="secretKeyText" style="letter-spacing: 2px;">{secret}</span>
                     <button type="button" class="copy-btn" onclick="navigator.clipboard.writeText('{secret}'); this.textContent='Copied!';">Copy Key</button>

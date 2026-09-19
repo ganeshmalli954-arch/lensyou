@@ -1,4 +1,4 @@
-// ===== VideoLens Master Intelligence Platform Controller =====
+// ===== LensYou Master Intelligence Platform Controller =====
 // Direction: Quiet luxury + advanced AI interface (Bloomberg-density data platform)
 
 let currentAnalysis = null;
@@ -515,7 +515,7 @@ async function startAnalysis(url) {
         setAnalyzeButtonLoading(false);
         const isNetworkErr = err.message.includes('Failed to fetch') || err.message.includes('NetworkError');
         const friendlyMsg = isNetworkErr
-            ? `Unable to connect to VideoLens server (${window.location.origin}). Please ensure the backend is running.`
+            ? `Unable to connect to LensYou server (${window.location.origin}). Please ensure the backend is running.`
             : err.message;
         showPipelineError(friendlyMsg);
         showToast('❌ ' + friendlyMsg, 'error');
@@ -1865,7 +1865,7 @@ function appendCopilotMessage(role, content, isHtml = false) {
     msg.className = `chat-msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
     const bodyHtml = isHtml ? content : escapeHtml(content);
     msg.innerHTML = `
-        <div class="msg-author">${role === 'user' ? '👤 You' : '✦ VideoLens Grounded Copilot'}</div>
+        <div class="msg-author">${role === 'user' ? '👤 You' : '✦ LensYou Grounded Copilot'}</div>
         <div class="msg-content">${bodyHtml}</div>
     `;
     container.appendChild(msg);
@@ -2157,7 +2157,7 @@ async function exportDetailedPDF() {
 
         const title = currentAnalysis._meta?.title || 'analysis';
         const cleanTitle = title.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
-        a.download = `VideoLens_${cleanTitle}_Report.pdf`;
+        a.download = `LensYou_${cleanTitle}_Report.pdf`;
 
         document.body.appendChild(a);
         a.click();
@@ -2178,7 +2178,7 @@ function copyShareableSummary(btn = null) {
     if (!currentAnalysis) return;
     const title = currentAnalysis._meta?.title || 'Video';
     const summary = currentAnalysis.video_overview?.summary || '';
-    const text = `🎬 ${title}\n\n✦ AI Executive Summary:\n${summary}\n\nAnalyzed with VideoLens Video Intelligence Platform.`;
+    const text = `🎬 ${title}\n\n✦ AI Executive Summary:\n${summary}\n\nAnalyzed with LensYou Video Intelligence Platform.`;
     copyWithFeedback(text, btn, 'Executive summary copied to clipboard!');
 }
 

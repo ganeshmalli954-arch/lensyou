@@ -29,7 +29,7 @@ MODELS = PRIORITY_MODELS
 MAX_RETRIES = 3
 RETRY_DELAY = 1.5
 
-VIDEOLENS_PROMPT = """You are VideoLens, an elite video intelligence platform analyst. Analyze this entire video thoroughly across all dimensions.
+VIDEOLENS_PROMPT = """You are LensYou, an elite video intelligence platform analyst. Analyze this entire video thoroughly across all dimensions.
 
 VIDEO TITLE: {title}
 CHANNEL: {author}

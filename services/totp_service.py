@@ -18,7 +18,7 @@ def format_secret_readable(secret: str) -> str:
     clean = (secret or '').replace(' ', '').upper()
     return ' '.join(clean[i:i+4] for i in range(0, len(clean), 4))
 
-def get_totp_uri(secret: str, account: str = "Admin", issuer: str = "VideoLens") -> str:
+def get_totp_uri(secret: str, account: str = "Admin", issuer: str = "LensYou") -> str:
     """Generate an otpauth:// URI recognized by Google Authenticator."""
     import urllib.parse
     clean_secret = (secret or '').replace(' ', '').upper()
