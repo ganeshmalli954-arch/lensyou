@@ -10,7 +10,7 @@ def format_seconds(seconds: float) -> str:
         return f"{h:02d}:{m:02d}:{s:02d}"
     return f"{m:02d}:{s:02d}"
 
-def prepare_transcript_for_analysis(segments: list, max_chars: int = 120000) -> str:
+def prepare_transcript_for_analysis(segments: list, max_chars: int = 500000) -> str:
     """
     Format transcript for analysis, guaranteeing 100% full-timeline coverage for ANY video length.
     """
@@ -38,7 +38,7 @@ def prepare_transcript_for_analysis(segments: list, max_chars: int = 120000) -> 
 
     return "\n".join(sampled)
 
-def prepare_ui_transcript_sample(segments: list, max_snippets: int = 600) -> list:
+def prepare_ui_transcript_sample(segments: list, max_snippets: int = 2500) -> list:
     """Prepare transcript snippets for UI split view spanning the whole video."""
     if len(segments) <= max_snippets:
         return segments

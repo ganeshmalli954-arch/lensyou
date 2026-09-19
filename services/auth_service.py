@@ -72,7 +72,7 @@ PLAN_CONFIG = {
         'history_limit': 5,
         'price': 0,
         'price_display': 'Free',
-        'features': ['Standard 9-stage analysis', '3 free analyses', '5 history items']
+        'features': ['Standard 9-stage analysis', '3 free analyses', '5 history items', 'Unlimited video length (lectures & podcasts)']
     },
     'free': {
         'name': 'Free Tier',
@@ -80,7 +80,7 @@ PLAN_CONFIG = {
         'history_limit': 10,
         'price': 0,
         'price_display': 'Free',
-        'features': ['Google Account Sync', '5 video analyses', '10 history items', 'PDF summary export']
+        'features': ['Google Account Sync', '5 video analyses', '10 history items', 'PDF summary export', 'Unlimited video length (1-4+ hr lectures)']
     },
     'pack10': {
         'name': '10-Video Pack',
@@ -88,7 +88,7 @@ PLAN_CONFIG = {
         'history_limit': 50,
         'price': 50,
         'price_display': '₹50',
-        'features': ['15 video analyses (+10 extra)', '50 history items', 'Priority model inference', 'Full PDF dossier export']
+        'features': ['15 video analyses (+10 extra)', '50 history items', 'Priority model inference', 'Full PDF dossier export', 'Unlimited video length (1-4+ hr lectures)']
     },
     'pack50': {
         'name': '50-Video Pack',
@@ -96,7 +96,7 @@ PLAN_CONFIG = {
         'history_limit': 100,
         'price': 70,
         'price_display': '₹70',
-        'features': ['55 video analyses (+50 extra)', '100 history items', 'Priority model inference', 'Deep Copilot evidence mode']
+        'features': ['55 video analyses (+50 extra)', '100 history items', 'Priority model inference', 'Deep Copilot evidence mode', 'Unlimited video length (1-4+ hr lectures)']
     },
     'unlimited': {
         'name': 'Unlimited Pro',
@@ -104,7 +104,7 @@ PLAN_CONFIG = {
         'history_limit': 500,
         'price': 99,
         'price_display': '₹99/mo',
-        'features': ['Unlimited analyses', 'Full 500-item history retention', 'Priority Gemini Intelligence', 'Unlimited PDF dossiers', 'Grounded Copilot Evidence Mode']
+        'features': ['Unlimited analyses', 'Full 500-item history retention', 'Priority Gemini Intelligence', 'Unlimited PDF dossiers', 'Grounded Copilot Evidence Mode', 'Unlimited video length (1-4+ hr lectures)']
     }
 }
 

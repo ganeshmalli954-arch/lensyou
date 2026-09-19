@@ -48,6 +48,40 @@ def get_video_oembed(video_id: str) -> dict:
         print(f"  [Warning] oEmbed lookup failed: {e}", flush=True)
     return {}
 
+def get_video_duration_seconds(video_id: str) -> int:
+    """Fetch exact video duration in seconds using android-client yt-dlp, with HTML fallback."""
+    import subprocess
+    try:
+        cmd = [
+            'yt-dlp',
+            '--print', '%(duration)s',
+            '--no-playlist',
+            '--extractor-args', 'youtube:player_client=android,web',
+            f'https://www.youtube.com/watch?v={video_id}'
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        for line in res.stdout.strip().split('\n'):
+            line = line.strip()
+            if line.isdigit() and int(line) > 0:
+                return int(line)
+    except Exception as e:
+        print(f"  [Warning] yt-dlp duration lookup note: {e}", flush=True)
+
+    # Fallback to scraping watch page for lengthSeconds
+    try:
+        import urllib.request
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            html = resp.read().decode('utf-8', errors='ignore')
+            m = re.search(r'"lengthSeconds":\s*"(\d+)"', html)
+            if m and int(m.group(1)) > 0:
+                return int(m.group(1))
+    except Exception:
+        pass
+
+    return 0
+
 def search_youtube(query: str, limit: int = 6) -> list:
     """Search YouTube for a query string and return top matching video records."""
     if not query:

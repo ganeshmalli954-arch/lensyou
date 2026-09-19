@@ -500,7 +500,7 @@ def chat():
     client_title = data.get("title", "")
     client_snippets = data.get("snippets", [])
     
-    transcript_sample = prepare_transcript_for_analysis(client_snippets, max_chars=120000) if client_snippets else client_summary
+    transcript_sample = prepare_transcript_for_analysis(client_snippets, max_chars=500000) if client_snippets else client_summary
     
     copilot_prompt = f"""You are VideoLens Copilot, a world-class AI video researcher and investigative analyst with photographic recall of this entire video.
 VIDEO TITLE: {client_title}

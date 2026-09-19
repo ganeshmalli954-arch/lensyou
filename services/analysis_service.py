@@ -322,14 +322,14 @@ You must produce a rich, ultra-structured JSON response with EXACTLY this struct
 }}
 
 CRITICAL INSTRUCTIONS:
-1. Divide the video into 4 to 8 realistic chapters and at least 6 to 10 timeline moments that span across the ENTIRE duration ({duration}) from 00:00 to the very end.
+1. Divide the video into realistic chapters (5 to 12 for standard, 8 to 20 for long university lectures) and key timeline moments that span across the ENTIRE duration ({duration}) from 00:00 to the very end.
 2. In key_takeaways, mark the most important points as 'CRITICAL' and others as 'HIGH' or 'MEDIUM'.
 3. In claims, classify each as 'Fact', 'Opinion', 'Prediction', 'Statistic', or 'Speculation' with confidence 'High', 'Medium', or 'Low'.
 4. In repetitions, identify concepts or phrases reiterated across multiple timestamps.
-5. In learning, provide at least 3-5 key definitions, 3-5 study note sections, 4-6 flashcards, and 3-5 multiple-choice quiz questions with correct_index (0-3).
-6. In creator_repurposing, provide 3-5 high-potential viral clip segments with exact timestamps, titles, and viral hooks, plus complete social posts and raw YouTube chapters.
-7. In visual_moments, provide 3-6 key visual moments with scene_type ('Slide', 'Chart', 'Demo', 'Screen', 'Speaker', 'Diagram') and what on-screen content or OCR text was displayed.
-8. In knowledge_graph, provide 6-10 interconnected concept nodes and directional links.
+5. In learning, provide at least 4-8 key definitions, 4-8 in-depth study note sections (structured with key concepts, mechanisms, and exam-grade explanations ideal for university students), 6-12 flashcards, and 4-6 multiple-choice quiz questions with correct_index (0-3).
+6. In creator_repurposing, provide 3-6 high-potential viral clip segments with exact timestamps, titles, and viral hooks, plus complete social posts and raw YouTube chapters.
+7. In visual_moments, provide 3-8 key visual moments with scene_type ('Slide', 'Chart', 'Demo', 'Screen', 'Speaker', 'Diagram') and what on-screen content or OCR text was displayed.
+8. In knowledge_graph, provide 6-12 interconnected concept nodes and directional links.
 9. Make every timestamp accurate and realistic based on transcript progression spanning the whole duration up to {duration}.
 10. Return ONLY valid JSON, with no wrapping markdown fences.
 11. Return clean text values in all JSON fields. NEVER include raw markdown bold asterisks (**) inside JSON string values."""
@@ -435,7 +435,7 @@ def _ensure_complete_schema(data: dict, duration_str: str, video_title: str, aut
     return data
 
 def run_videolens_analysis(segments: list, duration_str: str, video_title: str, author_name: str, key_pool=None, is_paid=False) -> dict:
-    max_chars = 140000 if is_paid else 95000
+    max_chars = 600000 if is_paid else 500000
     transcript_sample = prepare_transcript_for_analysis(segments, max_chars=max_chars)
     
     extra_instructions = ""

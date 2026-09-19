@@ -142,12 +142,13 @@ def get_transcript_tier2(video_id: str) -> dict:
             '--write-auto-sub',
             '--skip-download',
             '--sub-format', 'vtt',
-            '--sub-lang', 'en,en-US,en-GB,en.*,all,auto',
+            '--sub-lang', 'en,en-orig,en-US,en-GB,hi',
+            '--no-playlist',
             '--extractor-args', 'youtube:player_client=android,web',
             '-o', f'{tmp_id}.%(ext)s',
             f'https://www.youtube.com/watch?v={video_id}'
         ]
-        subprocess.run(cmd, capture_output=True, text=True, timeout=25)
+        subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         
         vtt_file = None
         for f in os.listdir('.'):
@@ -259,14 +260,14 @@ def get_transcript_tier4_metadata(video_id: str) -> dict:
     """
     try:
         import urllib.request
-        from services.metadata_service import get_video_oembed
+        from services.metadata_service import get_video_oembed, get_video_duration_seconds
         
         oembed = get_video_oembed(video_id)
         title = oembed.get("title", f"YouTube Video ({video_id})")
         author = oembed.get("author_name", "YouTube Creator")
 
         desc = ""
-        duration_secs = 600
+        duration_secs = get_video_duration_seconds(video_id) or 600
 
         # Scrape YouTube watch page for description, length, and chapters
         try:

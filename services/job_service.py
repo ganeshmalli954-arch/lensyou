@@ -119,6 +119,22 @@ def run_analysis_job(job_id, video_id, user_id, session_key, key_pool):
             return
 
         duration_str = transcript_res.get("formatted_duration", "N/A")
+        duration_secs = transcript_res.get("duration_seconds", 0)
+
+        # Ensure accurate video duration for long student lectures & podcasts
+        if duration_str in ["N/A", "10:00", "00:00", ""] or duration_secs in [0, 600]:
+            try:
+                from services.metadata_service import get_video_duration_seconds
+                real_secs = get_video_duration_seconds(video_id)
+                if real_secs > 0:
+                    from utils.time_utils import format_seconds
+                    duration_secs = real_secs
+                    duration_str = format_seconds(real_secs)
+                    transcript_res["duration_seconds"] = real_secs
+                    transcript_res["formatted_duration"] = duration_str
+            except Exception as e_dur:
+                print(f"  [Duration check] note: {e_dur}", flush=True)
+
         update_job_stage(job_id, 4)
 
         analysis = run_videolens_analysis(
@@ -148,7 +164,7 @@ def run_analysis_job(job_id, video_id, user_id, session_key, key_pool):
         }
 
         from utils.time_utils import prepare_ui_transcript_sample
-        analysis["_transcript_sample"] = prepare_ui_transcript_sample(transcript_res["segments"], max_snippets=600)
+        analysis["_transcript_sample"] = prepare_ui_transcript_sample(transcript_res["segments"], max_snippets=2500)
 
         update_job_stage(job_id, 9)
         save_analysis(video_id, video_title, author_name, duration_str, analysis, user_id, session_key)
