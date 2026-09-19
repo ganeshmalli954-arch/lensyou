@@ -3,7 +3,7 @@ import sys
 import secrets
 import hashlib
 from datetime import timedelta
-from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for, send_from_directory, Response
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 from waitress import serve
@@ -96,11 +96,13 @@ def inject_global_vars():
     is_upi = ('@' in url and not url.startswith('http')) or url.startswith('upi://')
     clean_upi = url.replace('upi://pay?pa=', '').split('&')[0] if url.startswith('upi://') else url
     upi_intent = url if url.startswith('upi://') else f"upi://pay?pa={clean_upi}&pn=LensYou&cu=INR"
+    site_url = (os.getenv('RENDER_EXTERNAL_URL') or 'https://lensyou.onrender.com').rstrip('/')
     return {
         'bmc_url': BMC_URL,
         'is_upi': is_upi,
         'clean_upi': clean_upi,
-        'upi_intent': upi_intent
+        'upi_intent': upi_intent,
+        'site_url': site_url
     }
 
 # --- View Routes ---
@@ -124,6 +126,36 @@ def favicon():
 @app.route("/manifest.json")
 def manifest():
     return send_from_directory(app.static_folder, "manifest.json", mimetype="application/manifest+json")
+
+@app.route("/robots.txt")
+def robots_txt():
+    site_url = (os.getenv('RENDER_EXTERNAL_URL') or 'https://lensyou.onrender.com').rstrip('/')
+    content = f"""User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: {site_url}/sitemap.xml
+"""
+    return Response(content, mimetype="text/plain")
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    site_url = (os.getenv('RENDER_EXTERNAL_URL') or 'https://lensyou.onrender.com').rstrip('/')
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>{site_url}/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>{site_url}/history</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>"""
+    return Response(xml, mimetype="application/xml")
 
 # --- Auth Routes ---
 
@@ -516,20 +548,60 @@ def chat():
 
     question = data["question"].strip()
     client_summary = data.get("summary", "")
-    client_title = data.get("title", "")
+    client_title = data.get("title", "Video")
+    client_thesis = data.get("thesis", "")
+    client_takeaways = data.get("takeaways", [])
+    client_concepts = data.get("concepts", [])
+    client_chapters = data.get("chapters", [])
+    client_applications = data.get("applications", [])
     client_snippets = data.get("snippets", [])
     
-    transcript_sample = prepare_transcript_for_analysis(client_snippets, max_chars=500000) if client_snippets else client_summary
+    # Assemble comprehensive intelligence context
+    context_sections = []
+    if client_thesis:
+        context_sections.append(f"CORE THESIS & MISSION:\n{client_thesis}")
+    if client_summary:
+        context_sections.append(f"EXECUTIVE SUMMARY:\n{client_summary}")
+    if client_takeaways:
+        t_lines = [f"• {t.get('takeaway', t) if isinstance(t, dict) else t}" for t in client_takeaways[:12]]
+        context_sections.append("KEY TAKEAWAYS & PRINCIPLES:\n" + "\n".join(t_lines))
+    if client_concepts:
+        c_lines = [f"• {c.get('concept', '')}: {c.get('explanation', '')}" for c in client_concepts[:10] if isinstance(c, dict)]
+        if c_lines:
+            context_sections.append("CORE CONCEPTS & MECHANISMS:\n" + "\n".join(c_lines))
+    if client_chapters:
+        ch_lines = [f"• [{ch.get('timestamp', '')}] {ch.get('point', ch.get('title', ''))}" for ch in client_chapters[:16] if isinstance(ch, dict)]
+        if ch_lines:
+            context_sections.append("VIDEO CHAPTERS & TIMELINE:\n" + "\n".join(ch_lines))
+    if client_applications:
+        app_lines = [f"• {a.get('framework', a.get('point', a)) if isinstance(a, dict) else a}" for a in client_applications[:10]]
+        if app_lines:
+            context_sections.append("PRACTICAL APPLICATIONS & PROTOCOLS:\n" + "\n".join(app_lines))
+
+    analysis_context = "\n\n".join(context_sections)
+    transcript_sample = prepare_transcript_for_analysis(client_snippets, max_chars=400000) if client_snippets else client_summary
     
-    copilot_prompt = f"""You are LensYou Copilot, a world-class AI video researcher and investigative analyst with photographic recall of this entire video.
+    copilot_prompt = f"""You are LensYou Copilot, an elite AI video intelligence researcher, executive analyst, and master tutor with comprehensive knowledge of this video and subject matter.
+
 VIDEO TITLE: {client_title}
-FULL TIMESTAMPED TRANSCRIPT:
+
+{analysis_context}
+
+TIMESTAMPED TRANSCRIPT & EVIDENCE:
 \"\"\"
 {transcript_sample}
 \"\"\"
+
 USER QUESTION:
 {question}
-CRITICAL INSTRUCTIONS: Answer based strictly on the transcript. Quote exact timestamps [MM:SS]."""
+
+CRITICAL RESPONSE GUIDELINES:
+1. Deliver comprehensive, rich, authoritative, and actionable answers.
+2. When the user asks for a step-by-step implementation guide, habits, daily routines, protocols, or breakdown: produce an impeccably structured, multi-phase action plan (e.g. Morning Routine, Focus/Work Protocols, Evening Routine, Mindset Shifts) with exact actionable steps, biological/practical reasoning, and relevant timestamps [MM:SS].
+3. Reference timestamps [MM:SS] whenever relevant to ground your points in the video timeline.
+4. NEVER refuse to answer or output disclaimer excuses such as "the transcript is brief" or "specific habits are not elaborated upon". Use the video concepts, takeaways, and your deep expert knowledge to provide the most thorough, helpful guide possible.
+5. Format with beautiful, readable markdown: clear subheadings, numbered lists, and bold key terms.
+"""
 
     try:
         key_pool = get_key_pool()

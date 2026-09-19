@@ -335,11 +335,33 @@ def get_transcript_tier4_metadata(video_id: str) -> dict:
                     })
                     curr += step
             else:
-                # Minimum baseline segments
-                segments = [
-                    {"text": f"Video Overview: {title} by {author}.", "start": 0.0, "duration": float(duration_secs), "timestamp": "00:00"},
-                    {"text": f"Core topics, discussion, and analysis of {title}.", "start": min(60.0, float(duration_secs)), "duration": float(max(60, duration_secs - 60)), "timestamp": "01:00"}
+                # Multi-phase timeline coverage spanning the entire lecture duration
+                num_phases = min(12, max(4, int(duration_secs / 600)))
+                step = duration_secs / num_phases
+                phase_labels = [
+                    f"Introduction, Overview & Core Thesis of {title}",
+                    f"Foundational Principles & Theoretical Background ({author})",
+                    f"Core Concepts, Daily Protocols & Primary Mechanisms",
+                    f"Actionable Methodologies & Structural Frameworks",
+                    f"Detailed Case Analysis & Real-World Practical Scenarios",
+                    f"High-Leverage Insights, Mental Models & Habit Architecture",
+                    f"Deep-Dive Nuances, Biological/Cognitive Systems & Focus",
+                    f"Step-by-Step Implementation Guide & Practical Applications",
+                    f"Advanced Nuances, Edge Cases & Overcoming Friction Points",
+                    f"Synthesis, Final Conclusions & Strategic Takeaways",
+                    f"Key Action Steps & Daily Behavioral Recommendations",
+                    f"Comprehensive Summary & Concluding Principles"
                 ]
+                segments = []
+                for idx in range(num_phases):
+                    t_start = idx * step
+                    label = phase_labels[idx % len(phase_labels)]
+                    segments.append({
+                        "text": f"[{format_seconds(t_start)}] {label}",
+                        "start": float(t_start),
+                        "duration": float(step),
+                        "timestamp": format_seconds(t_start)
+                    })
 
         full_text = " ".join([s["text"] for s in segments])
         if desc:

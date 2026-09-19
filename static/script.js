@@ -1842,6 +1842,11 @@ async function handleCopilotSubmit(e) {
                 title: currentAnalysis._meta?.title || '',
                 video_id: currentAnalysis._meta?.video_id || '',
                 summary: currentAnalysis.video_overview?.summary || '',
+                thesis: currentAnalysis.video_overview?.key_thesis || '',
+                takeaways: currentAnalysis.core_takeaways || [],
+                concepts: currentAnalysis.deep_dive_concepts || [],
+                chapters: currentAnalysis.timestamped_breakdown || currentAnalysis.chronological_narrative || [],
+                applications: currentAnalysis.practical_applications || currentAnalysis.actionable_frameworks || [],
                 snippets: currentAnalysis._transcript_sample || []
             })
         });

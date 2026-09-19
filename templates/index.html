@@ -3,15 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LensYou — AI Video Intelligence Platform</title>
+    <title>LensYou — AI Video Intelligence & Study Platform | Summaries, Notes & Flashcards</title>
+    
+    <!-- Primary SEO Meta Tags -->
+    <meta name="title" content="LensYou — AI Video Intelligence & Study Platform">
+    <meta name="description" content="LensYou is an AI-powered YouTube video intelligence platform for students and researchers. Instantly transform any video into timestamped executive notes, grounded copilot Q&A, mindmaps, and interactive flashcards.">
+    <meta name="keywords" content="LensYou, AI video summarizer, YouTube note taker, video intelligence platform, study dashboard, lecture notes AI, video to notes, Andrew Huberman notes, YouTube transcript summarizer, AI flashcards, video mindmap, grounded AI copilot">
+    <meta name="author" content="LensYou">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <link rel="canonical" href="{{ site_url }}/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ site_url }}/">
+    <meta property="og:site_name" content="LensYou">
+    <meta property="og:title" content="LensYou — AI Video Intelligence & Study Platform">
+    <meta property="og:description" content="Turn any YouTube lecture or podcast into timestamped executive summaries, interactive study cards, visual mindmaps, and a grounded AI copilot in seconds.">
+    <meta property="og:image" content="{{ site_url }}/static/logo.svg">
+
+    <!-- Twitter / X -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ site_url }}/">
+    <meta property="twitter:title" content="LensYou — AI Video Intelligence & Study Platform">
+    <meta property="twitter:description" content="Turn any YouTube lecture or podcast into timestamped executive summaries, interactive study cards, visual mindmaps, and a grounded AI copilot in seconds.">
+    <meta property="twitter:image" content="{{ site_url }}/static/logo.svg">
+
+    <!-- Progressive Web App & Icons -->
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <link rel="shortcut icon" href="/static/logo.svg">
     <link rel="apple-touch-icon" href="/static/logo.svg">
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
+
+    <!-- Typography & Styles -->
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Schema.org JSON-LD Structured Data for Google Rich Results -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "{{ site_url }}/#webapp",
+          "name": "LensYou",
+          "alternateName": ["LensYou AI", "LensYou Video Intelligence"],
+          "url": "{{ site_url }}/",
+          "applicationCategory": "EducationalApplication, ProductivityApplication",
+          "operatingSystem": "All",
+          "description": "Enterprise-grade AI YouTube video intelligence and study dashboard. Generate timestamped executive notes, grounded copilot Q&A, interactive flashcards, and concept mindmaps in seconds.",
+          "browserRequirements": "Requires JavaScript. Requires HTML5.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "INR"
+          },
+          "featureList": [
+            "AI YouTube Executive Summaries",
+            "Grounded Video Copilot Q&A",
+            "3D Interactive Flashcards & Quizzes",
+            "Timestamped Chapter Breakdown",
+            "Evidence Grounding & Deep-Dive Concepts",
+            "Multi-Hour Lecture Analysis (1-4+ hours)"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "{{ site_url }}/#website",
+          "url": "{{ site_url }}/",
+          "name": "LensYou",
+          "description": "AI-powered YouTube video intelligence platform for students and researchers",
+          "publisher": {
+            "@type": "Organization",
+            "name": "LensYou",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "{{ site_url }}/static/logo.svg"
+            }
+          }
+        }
+      ]
+    }
+    </script>
 </head>
 <body class="dark-theme">
     <div class="app-shell">
