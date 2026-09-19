@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoLens — AI Video Intelligence Platform</title>
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="shortcut icon" href="/static/logo.svg">
+    <link rel="apple-touch-icon" href="/static/logo.svg">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#7C5CFC">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+    <div class="app-shell">
+
+        <!-- Top Navigation Header -->
+        <header class="top-nav">
+            <div class="nav-brand" onclick="showScreen('landing')">
+                <div class="brand-logo" id="brandLogo" title="VideoLens AI">
+                    <img src="/static/logo.svg" alt="VideoLens Logo" width="32" height="32" style="filter: drop-shadow(0 0 8px rgba(124,92,252,0.6));">
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">VideoLens</span>
+                    <span class="brand-sub">INTELLIGENCE PLATFORM</span>
+                </div>
+                <span class="private-chip" data-tooltip="We don't store your videos">Privacy-first</span>
+            </div>
+
+            <!-- Center URL bar -->
+            <div class="nav-center-zone hidden" id="navCenterZone">
+                <form id="quickAnalyzeForm" class="header-url-bar" onsubmit="event.preventDefault(); handleQuickAnalyze(); return false;">
+                    <input type="text" id="quickYoutubeUrl" placeholder="Analyze another video link..." spellcheck="false" autocomplete="off">
+                    <button type="submit" class="header-analyze-btn">Analyze →</button>
+                </form>
+            </div>
+
+            <div class="nav-actions">
+                <button class="action-btn cmd-k-btn" onclick="openCommandPalette()">⌘K</button>
+                <a href="/history" class="action-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                    <span>📜</span> My History
+                </a>
+                <button class="action-btn" onclick="toggleHistoryDrawer()">Drawer <span id="historyBadge" class="history-badge">0</span></button>
+                <button class="action-btn" onclick="openCompareModal()">Compare</button>
+                <button class="action-btn" onclick="exportDetailedPDF()">Export</button>
+                <button class="support-amber-btn" onclick="openSupportModal()">☕ Support</button>
+                <div id="navUserSlot" style="display:inline-flex; align-items:center;">
+                    <button class="action-btn" onclick="openAuthModal()">Sign In</button>
+                </div>
+                <button class="new-analysis-cta" onclick="startNewAnalysis()">+ New Analysis</button>
+            </div>
+        </header>
+
+        <!-- Main Body Area -->
+        <div class="main-layout">
+
+            <!-- Sidebar Navigation (Active when a video is loaded) -->
+            <aside class="sidebar" id="sidebar" style="display:none;">
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">CORE MODES</div>
+                    <nav class="sidebar-nav">
+                        <button class="side-nav-btn active" data-mode="understand" onclick="switchMainMode('understand')">
+                            <span class="nav-icon">✦</span> Understand Mode
+                        </button>
+                        <button class="side-nav-btn" data-mode="research" onclick="switchMainMode('research')">
+                            <span class="nav-icon">🔍</span> Research Mode
+                        </button>
+                        <button class="side-nav-btn" data-mode="learn" onclick="switchMainMode('learn')">
+                            <span class="nav-icon">📚</span> Learn Mode
+                        </button>
+                        <button class="side-nav-btn" data-mode="create" onclick="switchMainMode('create')">
+                            <span class="nav-icon">⚡</span> Create / Act Mode
+                        </button>
+                        <button class="side-nav-btn" data-mode="compare" onclick="switchMainMode('compare')">
+                            <span class="nav-icon">⚖️</span> Compare Mode
+                        </button>
+                    </nav>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">TOOLS & COPILOT</div>
+                    <nav class="sidebar-nav">
+                        <button class="side-nav-btn" onclick="scrollToElement('section-videomap')">
+                            <span class="nav-icon">🕸️</span> Video Map Graph
+                        </button>
+                        <button class="side-nav-btn" onclick="scrollToElement('section-multitrack')">
+                            <span class="nav-icon">⏳</span> Multi-Track Timeline
+                        </button>
+                        <button class="side-nav-btn" onclick="scrollToElement('section-transcript')">
+                            <span class="nav-icon">📝</span> Split Transcript
+                        </button>
+                        <button class="side-nav-btn" data-mode="copilot" onclick="switchMainMode('copilot')">
+                            <span class="nav-icon">💬</span> Ask Video & Evidence
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- History Mini Widget in Sidebar -->
+                
+                <div class="sidebar-section history-section">
+                    <div class="sidebar-heading">RECENT VIDEOS</div>
+                    <div id="sidebarHistoryList" class="history-mini-list">
+                        <div class="empty-history-note">No recent analyses</div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-bottom-section">
+                    <div class="quota-indicator" id="sidebarQuota">
+                        <div class="quota-text"><span id="quotaUsed">0</span>/<span id="quotaTotal">3</span> used</div>
+                        <div class="progress-track"><div class="progress-fill" id="quotaFill" style="width: 0%"></div></div>
+                    </div>
+                    <div class="user-info-panel" id="userInfoPanel">
+                        <button class="login-btn" onclick="openAuthModal('Sign in to access more features')">Sign in</button>
+                    </div>
+                    <button class="collapse-toggle" onclick="toggleSidebar()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Center Content Canvas -->
+            <main class="content-canvas">
+
+                <!-- SCREEN 1: Hero Landing Page (Blueprint Section 28) -->
+                <section id="landingScreen" class="screen landing-screen">
+                    <div class="hero-container">
+                        
+                        <div class="hero-badge eyebrow"><img src="/static/logo.svg" alt="" width="15" height="15" style="vertical-align:middle; margin-right:8px; display:inline-block; filter:drop-shadow(0 0 4px rgba(124,92,252,0.8));">AI VIDEO INTELLIGENCE • POWERED BY GEMINI</div>
+                        <h1 class="hero-title">Understand any video in minutes.</h1>
+                        <p class="hero-subtitle">Turn long videos into searchable knowledge, multi-track timelines, interactive study flashcards, and verified claims.</p>
+
+                        <div class="url-input-card">
+                            <form id="analyzeForm" class="hero-form" style="display:flex; width:100%; align-items:center;">
+                                <input type="text" id="youtubeUrl" placeholder="Paste YouTube link or search query (e.g. Interstellar, Oppenheimer, Dune)..." autocomplete="off" spellcheck="false" required>
+                                <button type="submit" id="analyzeSubmitBtn" class="analyze-lg-btn">
+                                    <span id="analyzeBtnText">Analyze or Search</span>
+                                </button>
+                            </form>
+                        </div>
+                        <div id="landingErrorBox" class="landing-error-box" style="display: none;"></div>
+
+                        <!-- Live Search Results Grid (Keywords & Topics) -->
+                        <div id="searchResultsZone" class="search-results-zone" style="display:none; margin-top:24px; width:100%;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                                <h3 style="margin:0; font-size:16px; font-weight:600; color:#F8FAFC;" id="searchQueryHeading">Matching Content</h3>
+                                <button onclick="clearSearchResults()" style="background:transparent; border:1px solid #242B42; color:#8E9AAF; cursor:pointer; font-size:12px; padding:4px 10px; border-radius:6px;">✕ Clear</button>
+                            </div>
+                            <div id="searchResultsGrid" class="search-results-grid"></div>
+                        </div>
+
+                        <div class="capabilities-grid">
+                            <div class="cap-card" onclick="handleCapCardClick('understand')">
+                                <div class="cap-icon">✦</div>
+                                <div class="cap-title">Understand</div>
+                                <div class="cap-desc">Summary • Chapters • Timeline</div>
+                                <div class="cap-chips"><span class="cap-chip">Overview</span><span class="cap-chip">Highlights</span></div>
+                            </div>
+                            <div class="cap-card" onclick="handleCapCardClick('research')">
+                                <div class="cap-icon">🔍</div>
+                                <div class="cap-title">Research</div>
+                                <div class="cap-desc">Claims • Entities • Contradictions</div>
+                                <div class="cap-chips"><span class="cap-chip">Fact-check</span><span class="cap-chip">People</span></div>
+                            </div>
+                            <div class="cap-card" onclick="handleCapCardClick('learn')">
+                                <div class="cap-icon">📚</div>
+                                <div class="cap-title">Learn</div>
+                                <div class="cap-desc">Notes • Flashcards • Quiz</div>
+                                <div class="cap-chips"><span class="cap-chip">Study</span><span class="cap-chip">Test</span></div>
+                            </div>
+                            <div class="cap-card" onclick="handleCapCardClick('create')">
+                                <div class="cap-icon">⚡</div>
+                                <div class="cap-title">Create</div>
+                                <div class="cap-desc">Shorts • Hooks • Socials</div>
+                                <div class="cap-chips"><span class="cap-chip">Clips</span><span class="cap-chip">Viral</span></div>
+                            </div>
+                            <div class="cap-card" onclick="handleCapCardClick('compare')">
+                                <div class="cap-icon">⚖️</div>
+                                <div class="cap-title">Compare</div>
+                                <div class="cap-desc">Cross-Video Synthesis</div>
+                                <div class="cap-chips"><span class="cap-chip">Matrix</span><span class="cap-chip">Debate</span></div>
+                            </div>
+                            <div class="cap-card" onclick="handleCapCardClick('copilot')">
+                                <div class="cap-icon">💬</div>
+                                <div class="cap-title">Copilot</div>
+                                <div class="cap-desc">Evidence Grounded AI Chat</div>
+                                <div class="cap-chips"><span class="cap-chip">Q&A</span><span class="cap-chip">Sources</span></div>
+                            </div>
+                        </div>
+
+                        <div class="quick-examples">
+                            <span class="example-label">Quick sample videos:</span>
+                            <button class="chip-btn" onclick="pasteQuickUrl('https://youtu.be/LqY6hFLMEJw')">🎙️ AI Podcast (Raj Shamani)</button>
+                            <button class="chip-btn" onclick="pasteQuickUrl('https://www.youtube.com/watch?v=aircAruvnKk')">🧠 Neural Networks (3Blue1Brown)</button>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- SCREEN 2: Multi-Step Analysis Loading Pipeline -->
+                <section id="loadingScreen" class="screen loading-screen" style="display:none;">
+                    <div class="loading-card">
+                        <div class="spinner-container">
+                            <div class="pulse-ring"></div>
+                            <div class="spinner-icon">✦</div>
+                        </div>
+                        <h2 class="loading-title">Extracting Video Intelligence</h2>
+                        <div class="loading-video-title" id="loadingVideoTitle">Initializing pipeline...</div>
+                        <div class="loading-time">Elapsed time: <span id="elapsedTime">00:00</span></div>
+                        
+                        <div class="progress-track">
+                            <div class="progress-fill" id="progressBarFill"></div>
+                        </div>
+                        
+                        <div class="pipeline-stages">
+                            <div class="pipeline-stage"><div class="stage-indicator" id="pStep1">○</div><div class="stage-label">Fetching video metadata</div></div>
+                            <div class="pipeline-stage"><div class="stage-indicator" id="pStep2">○</div><div class="stage-label">Extracting transcript</div></div>
+                            <div class="pipeline-stage"><div class="stage-indicator" id="pStep3">○</div><div class="stage-label">Detecting timeline & chapters</div></div>
+                            <div class="pipeline-stage"><div class="stage-indicator" id="pStep4">○</div><div class="stage-label">Extracting claims & entities</div></div>
+                            <div class="pipeline-stage"><div class="stage-indicator" id="pStep5">○</div><div class="stage-label">Synthesizing study notes</div></div>
+                            <div class="pipeline-stage"><div class="stage-indicator" id="pStep6">○</div><div class="stage-label">Curating viral clips</div></div>
+                            <div class="pipeline-stage"><div class="stage-indicator" id="pStep7">○</div><div class="stage-label">Generating Video Map</div></div>
+                            <div class="pipeline-stage"><div class="stage-indicator" id="pStep8">○</div><div class="stage-label">Evaluating engagement curve</div></div>
+                            <div class="pipeline-stage"><div class="stage-indicator" id="pStep9">○</div><div class="stage-label">Finalizing dossier</div></div>
+                        </div>
+                        
+                        <div id="pipelineErrorContainer" class="error-card" style="display:none; margin-top: 24px;">
+                            <h3>Analysis Failed</h3>
+                            <p id="pipelineErrorMessage"></p>
+                            <div class="error-btns">
+                                <button class="btn-primary" onclick="retryLastAnalysis()">Try Again</button>
+                                <button class="btn-secondary" onclick="returnToLanding()">Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- SCREEN 3: Full VideoLens Platform Dashboard -->
+                <section id="dashboardScreen" class="screen dashboard-screen" style="display:none;">
+
+                    <!-- Top Video Overview Header -->
+                    <div class="video-hero-card">
+                        <div class="video-hero-left">
+                            <div class="thumbnail-wrapper" onclick="openVideoPlayer()">
+                                <img id="dashThumbnail" src="" alt="Thumbnail" class="hero-thumb-img">
+                                <div class="thumb-play-overlay">
+                                    <span class="play-triangle">▶</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="video-hero-right">
+                            <div class="hero-meta-row">
+                                <span class="badge category-badge" id="dashCategory">Technology</span>
+                                <span class="badge type-badge" id="dashContentType">Podcast (94% conf)</span>
+                                <span class="badge tone-badge" id="dashTone">Informative</span>
+                            </div>
+
+                            <h1 class="hero-video-title" id="dashTitle">Video Title</h1>
+                            <div class="hero-channel-line">
+                                <span class="author-name" id="dashAuthor">Channel Name</span>
+                                <span class="dot-sep">•</span>
+                                <span class="duration-tag" id="dashDuration">42:18</span>
+                            </div>
+
+                            <div class="hero-action-buttons">
+                                <a id="dashWatchBtn" href="#" target="_blank" class="btn-hero btn-primary-hero">
+                                    <span>▶ Watch on YouTube</span>
+                                </a>
+                                <button class="btn-hero btn-accent-hero" onclick="exportDetailedPDF()" title="Download publication-grade PDF dossier">
+                                    <span>📑 Export PDF</span>
+                                </button>
+                                <button class="btn-hero btn-secondary-hero" onclick="printReportPreview()" title="Printable preview">
+                                    <span>🖨️ Print</span>
+                                </button>
+                                <button class="btn-hero btn-secondary-hero" onclick="copyShareableSummary(this)">
+                                    <span>🔗 Copy Summary</span>
+                                </button>
+                                <button class="btn-hero btn-secondary-hero" onclick="openCommandPalette()">
+                                    <span>⌘K Commands</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Key Metrics Strip -->
+                    <div class="metrics-strip">
+                        <div class="metric-card">
+                            <div class="metric-value" id="metricDuration">--:--</div>
+                            <div class="metric-label">Duration</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="metricTopics">0</div>
+                            <div class="metric-label">Topics</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="metricChapters">0</div>
+                            <div class="metric-label">Chapters</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="metricKeyPoints">0</div>
+                            <div class="metric-label">Key Points</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value text-accent" id="metricQuality">88/100</div>
+                            <div class="metric-label">Quality Score</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value text-sentiment" id="metricSentiment">Positive</div>
+                            <div class="metric-label">Tone & Sentiment</div>
+                        </div>
+                    </div>
+
+                    <!-- 5-MODE PRIMARY SELECTOR BAR -->
+                    <div class="mode-selector-bar">
+                        <button class="mode-tab-btn active" data-mode="understand" onclick="switchMainMode('understand')">
+                            <span class="tab-icon">✦</span>
+                            <span class="tab-title">Understand Mode</span>
+                            <span class="tab-sub">Overview • Timeline • Score</span>
+                        </button>
+                        <button class="mode-tab-btn" data-mode="research" onclick="switchMainMode('research')">
+                            <span class="tab-icon">🔍</span>
+                            <span class="tab-title">Research Mode</span>
+                            <span class="tab-sub">Claims • Entities • Contradictions</span>
+                        </button>
+                        <button class="mode-tab-btn" data-mode="learn" onclick="switchMainMode('learn')">
+                            <span class="tab-icon">📚</span>
+                            <span class="tab-title">Learn Mode</span>
+                            <span class="tab-sub">Notes • Flashcards • Quiz</span>
+                        </button>
+                        <button class="mode-tab-btn" data-mode="create" onclick="switchMainMode('create')">
+                            <span class="tab-icon">⚡</span>
+                            <span class="tab-title">Create / Act Mode</span>
+                            <span class="tab-sub">Shorts • Socials • Newsletter</span>
+                        </button>
+                        <button class="mode-tab-btn" data-mode="compare" onclick="switchMainMode('compare')">
+                            <span class="tab-icon">⚖️</span>
+                            <span class="tab-title">Compare Mode</span>
+                            <span class="tab-sub">Cross-Video Matrix</span>
+                        </button>
+                        <button class="mode-tab-btn" data-mode="copilot" onclick="switchMainMode('copilot')">
+                            <span class="tab-icon">💬</span>
+                            <span class="tab-title">Ask Video</span>
+                            <span class="tab-sub">Evidence Grounded AI</span>
+                        </button>
+                    </div>
+
+                    <!-- MODE PANES CONTAINER -->
+                    <div class="mode-panes-wrapper">
+
+                        <!-- ========================================== -->
+                        <!-- MODE 1: UNDERSTAND MODE -->
+                        <!-- ========================================== -->
+                        <div class="mode-pane active" id="pane-understand">
+
+                            <!-- Executive Summary Card -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3><span class="accent-sparkle">✦</span> AI Executive Summary</h3>
+                                    <span class="pill-tag">High-Level Synthesis</span>
+                                </div>
+                                <div class="card-content-body">
+                                    <div class="executive-summary-text" id="overviewSummaryText">
+                                        Summary will appear here...
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quality Scorecard & Engagement Curve (Blueprint Section 15 & 16) -->
+                            <div class="scorecard-engagement-grid mb-24">
+                                <!-- Quality Scorecard Card -->
+                                <div class="glass-card">
+                                    <div class="card-title-bar">
+                                        <h3>📊 Video Quality Scorecard</h3>
+                                        <span class="pill-tag" id="scorecardOverallBadge">Overall: 88/100</span>
+                                    </div>
+                                    <div class="scorecard-bars" id="scorecardBars">
+                                        <!-- Score meters dynamically injected -->
+                                    </div>
+                                    <div class="strengths-weaknesses-box mt-16">
+                                        <h4>Strengths & Highlights:</h4>
+                                        <ul id="scorecardStrengths" class="bullet-list-sm"></ul>
+                                        <h4 class="mt-12">Critique & Limitations:</h4>
+                                        <ul id="scorecardWeaknesses" class="bullet-list-sm text-muted"></ul>
+                                    </div>
+                                </div>
+
+                                <!-- Engagement Curve Card -->
+                                <div class="glass-card">
+                                    <div class="card-title-bar">
+                                        <h3>📈 Engagement Curve</h3>
+                                        <span class="pill-tag">Attention & Turning Points</span>
+                                    </div>
+                                    <div class="engagement-curve-box" id="engagementCurveBox">
+                                        <svg id="engagementSvg" class="engagement-svg" viewBox="0 0 500 160" preserveAspectRatio="none">
+                                            <!-- Interactive SVG Curve -->
+                                        </svg>
+                                    </div>
+                                    <div class="peak-moment-card mt-12" id="peakMomentCard">
+                                        <strong>Peak Moment:</strong> <span id="peakMomentText">Identified turning point...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Key Takeaways Section -->
+                            <div class="section-title-row">
+                                <h2>Key Strategic Takeaways</h2>
+                                <span class="section-subtitle">Ranked by importance (Critical • High • Medium) with evidence confidence</span>
+                            </div>
+                            <div class="takeaways-grid" id="takeawaysGrid">
+                                <!-- Takeaways cards dynamically injected -->
+                            </div>
+
+                            <!-- Multi-Track Timeline Explorer (Blueprint Section 3) -->
+                            <div class="glass-card mt-24" id="section-multitrack">
+                                <div class="card-title-bar">
+                                    <h3>⏳ Multi-Track Timeline Explorer</h3>
+                                    <div class="track-layer-toggles">
+                                        <label class="track-toggle-label"><input type="checkbox" id="toggleTopics" checked onchange="toggleTimelineTrack('topics')"> Topics</label>
+                                        <label class="track-toggle-label"><input type="checkbox" id="toggleSpeakers" checked onchange="toggleTimelineTrack('speakers')"> Speakers</label>
+                                        <label class="track-toggle-label"><input type="checkbox" id="toggleClaims" checked onchange="toggleTimelineTrack('claims')"> Claims</label>
+                                        <label class="track-toggle-label"><input type="checkbox" id="toggleScenes" checked onchange="toggleTimelineTrack('scenes')"> Scenes</label>
+                                    </div>
+                                </div>
+
+                                <div class="multitrack-container">
+                                    <!-- Time Axis Labels -->
+                                    <div class="timeline-axis-labels">
+                                        <span id="timelineStartLabel">00:00</span>
+                                        <span id="timelineMidLabel">--:--</span>
+                                        <span id="timelineEndLabel">--:--</span>
+                                    </div>
+
+                                    <!-- Tracks Stack -->
+                                    <div class="multitrack-stack" id="multitrackStack">
+                                        <div class="track-row" id="track-topics-row">
+                                            <div class="track-row-label">Topics</div>
+                                            <div class="track-canvas" id="track-topics-canvas"></div>
+                                        </div>
+                                        <div class="track-row" id="track-speakers-row">
+                                            <div class="track-row-label">Speakers</div>
+                                            <div class="track-canvas" id="track-speakers-canvas"></div>
+                                        </div>
+                                        <div class="track-row" id="track-claims-row">
+                                            <div class="track-row-label">Claims</div>
+                                            <div class="track-canvas" id="track-claims-canvas"></div>
+                                        </div>
+                                        <div class="track-row" id="track-scenes-row">
+                                            <div class="track-row-label">Scenes</div>
+                                            <div class="track-canvas" id="track-scenes-canvas"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Active Moment Inspector Card -->
+                                <div class="active-moment-card mt-16" id="activeMomentCard">
+                                    <div class="moment-header">
+                                        <span class="moment-badge" id="activeMomentTime">00:00</span>
+                                        <h4 id="activeMomentTitle">Select a moment on the timeline tracks above</h4>
+                                    </div>
+                                    <p id="activeMomentDesc">Click on any marker on the timeline to inspect the context and jump to that point in the video.</p>
+                                    <div class="moment-actions">
+                                        <button class="btn-hero btn-primary-hero btn-sm" id="activeMomentPlayBtn" onclick="playCurrentMoment()">
+                                            ▶ Play on YouTube from this moment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Chapters Breakdown Accordion -->
+                            <div class="glass-card mt-24">
+                                <div class="card-title-bar">
+                                    <h3>📑 Automatic Chapter Division</h3>
+                                    <span class="pill-tag" id="chaptersCountBadge">0 Chapters</span>
+                                </div>
+                                <div class="chapters-accordion" id="chaptersList">
+                                    <!-- Chapters dynamically injected -->
+                                </div>
+                            </div>
+
+                            <!-- Video Map / Knowledge Graph (Blueprint Section 4) -->
+                            <div class="glass-card mt-24" id="section-videomap">
+                                <div class="card-title-bar">
+                                    <h3>🕸️ Video Map & Knowledge Graph</h3>
+                                    <span class="pill-tag">Interactive Concept Network</span>
+                                </div>
+                                <p class="section-instruction">Click any concept node to inspect timestamps, recurring mentions, and related themes across the video.</p>
+                                <div class="video-map-container" id="videoMapContainer">
+                                    <svg id="videoMapSvg" class="video-map-svg" viewBox="0 0 700 350">
+                                        <!-- Connected nodes dynamically rendered -->
+                                    </svg>
+                                </div>
+                                <div class="concept-detail-box" id="conceptDetailBox" style="display:none;">
+                                    <div class="concept-detail-header">
+                                        <h4 id="selectedConceptTitle">Concept Name</h4>
+                                        <span class="pill-tag" id="selectedConceptCount">Mentioned 5 times</span>
+                                    </div>
+                                    <div class="concept-timestamps-row" id="conceptTimestampsRow"></div>
+                                </div>
+                            </div>
+
+                            <!-- Visual & Scene Moments Index (Blueprint Section 9 & 10) -->
+                            <div class="glass-card mt-24">
+                                <div class="card-title-bar">
+                                    <h3>🖼️ Visual Moments & On-Screen OCR Index</h3>
+                                    <span class="pill-tag">Slides • Charts • Demos</span>
+                                </div>
+                                <div class="visual-moments-grid" id="visualMomentsGrid">
+                                    <!-- Visual moment cards injected dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Split-Screen Transcript Explorer -->
+                            <div class="glass-card mt-24" id="section-transcript">
+                                <div class="card-title-bar">
+                                    <h3>📝 Interactive Split-Screen Transcript</h3>
+                                    <span class="pill-tag">Search & Synchronized Analysis</span>
+                                </div>
+                                <div class="split-transcript-layout">
+                                    <div class="transcript-left-col">
+                                        <div class="transcript-search-bar">
+                                            <span class="search-icon">🔍</span>
+                                            <input type="text" id="transcriptSearchInput" placeholder="Search spoken words or phrases..." oninput="filterTranscript(this.value)">
+                                        </div>
+                                        <div class="transcript-scroll-area" id="transcriptScrollArea">
+                                            <!-- Lines injected dynamically -->
+                                        </div>
+                                    </div>
+                                    <div class="transcript-right-col">
+                                        <div class="context-insight-header">✦ Line Grounded Analysis</div>
+                                        <div class="context-insight-body" id="contextInsightBody">
+                                            <div class="empty-context-state">
+                                                <span class="empty-icon">👆</span>
+                                                <p>Click any sentence on the transcript to jump to that timestamp and view deeper AI analysis.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                        <!-- ========================================== -->
+                        <!-- MODE 2: RESEARCH MODE (Blueprint Section 13) -->
+                        <!-- ========================================== -->
+                        <div class="mode-pane" id="pane-research">
+
+                            <!-- Claims & Fact Intelligence (Blueprint Section 7) -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>🔍 Claims & Assertions Intelligence</h3>
+                                    <div class="claims-filter-tabs">
+                                        <button class="claim-filter-btn active" onclick="filterClaims('all')">All (<span id="claimsTotalBadge">0</span>)</button>
+                                        <button class="claim-filter-btn" onclick="filterClaims('fact')">Facts</button>
+                                        <button class="claim-filter-btn" onclick="filterClaims('opinion')">Opinions</button>
+                                        <button class="claim-filter-btn" onclick="filterClaims('prediction')">Predictions</button>
+                                        <button class="claim-filter-btn" onclick="filterClaims('statistic')">Statistics</button>
+                                    </div>
+                                </div>
+                                <div class="claims-list" id="claimsList">
+                                    <!-- Claims injected dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Entities Explorer: People, Companies, Tools -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>🏷️ Entity Intelligence</h3>
+                                    <span class="pill-tag">People • Companies • Software</span>
+                                </div>
+                                <div class="entities-three-col">
+                                    <div class="entity-col">
+                                        <h4>👤 People Mentioned</h4>
+                                        <div id="entitiesPeopleList" class="entity-items-list"></div>
+                                    </div>
+                                    <div class="entity-col">
+                                        <h4>🏢 Companies & Organizations</h4>
+                                        <div id="entitiesCompaniesList" class="entity-items-list"></div>
+                                    </div>
+                                    <div class="entity-col">
+                                        <h4>🛠️ Tools, Software & Books</h4>
+                                        <div id="entitiesToolsList" class="entity-items-list"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Repetition Detector (Blueprint Section 17) -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>🔁 Repetition Detector</h3>
+                                    <span class="pill-tag">Core Ideas Re-Emphasized</span>
+                                </div>
+                                <p class="section-instruction">Ideas and phrases reiterated across multiple timestamps throughout the video:</p>
+                                <div class="repetitions-list" id="repetitionsList">
+                                    <!-- Repetitions injected dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Contradiction Detector (Blueprint Section 18) -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>⚠ Contradiction & Nuance Detector</h3>
+                                    <span class="pill-tag">Possible Tension / Evolving Stances</span>
+                                </div>
+                                <p class="section-instruction">Nuanced or conflicting statements made across different timestamps in the video:</p>
+                                <div class="contradictions-list" id="contradictionsList">
+                                    <!-- Contradictions injected dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Speaker Dynamics & Balance -->
+                            <div class="glass-card">
+                                <div class="card-title-bar">
+                                    <h3>🎙️ Speaker Dynamics & Balance</h3>
+                                    <span class="pill-tag">Dialogue Share</span>
+                                </div>
+                                <div class="speakers-cards-grid" id="speakersGrid">
+                                    <!-- Speaker cards injected dynamically -->
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                        <!-- ========================================== -->
+                        <!-- MODE 3: LEARN MODE (Blueprint Section 12) -->
+                        <!-- ========================================== -->
+                        <div class="mode-pane" id="pane-learn">
+
+                            <!-- Key Definitions Dictionary -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>📖 Key Definitions & Concepts Dictionary</h3>
+                                    <span class="pill-tag">Foundational Terminology</span>
+                                </div>
+                                <div class="definitions-grid" id="definitionsGrid">
+                                    <!-- Definitions injected dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Structured Study Notes -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>📝 Structured AI Study Notes</h3>
+                                    <button class="btn-hero btn-secondary-hero btn-sm" onclick="copyStudyNotes(this)">📋 Copy Notes</button>
+                                </div>
+                                <div class="study-notes-container" id="studyNotesContainer">
+                                    <!-- Study notes injected dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Interactive 3D Flip Flashcards -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>🃏 Interactive Revision Flashcards</h3>
+                                    <span class="pill-tag" id="flashcardCounterBadge">Card 1 of 5</span>
+                                </div>
+                                <div class="flashcard-deck-wrapper">
+                                    <div class="flashcard-scene" onclick="flipCurrentFlashcard()">
+                                        <div class="flashcard-card" id="activeFlashcard">
+                                            <div class="flashcard-face flashcard-front">
+                                                <div class="flashcard-tag" id="flashcardConceptTag">Concept</div>
+                                                <div class="flashcard-text" id="flashcardFrontText">Question will appear here...</div>
+                                                <div class="flashcard-hint">Click card to reveal answer ↺</div>
+                                            </div>
+                                            <div class="flashcard-face flashcard-back">
+                                                <div class="flashcard-tag">Answer & Explanation</div>
+                                                <div class="flashcard-text" id="flashcardBackText">Answer will appear here...</div>
+                                                <div class="flashcard-hint">Click card to flip back ↻</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flashcard-controls mt-16">
+                                        <button class="btn-hero btn-secondary-hero btn-sm" onclick="prevFlashcard()">← Previous</button>
+                                        <button class="btn-hero btn-primary-hero btn-sm" onclick="nextFlashcard()">Next Card →</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Interactive Quiz -->
+                            <div class="glass-card">
+                                <div class="card-title-bar">
+                                    <h3>🎯 Video Mastery Quiz</h3>
+                                    <span class="pill-tag" id="quizScoreBadge">Score: 0/0</span>
+                                </div>
+                                <div class="quiz-container" id="quizContainer">
+                                    <!-- Quiz questions injected dynamically -->
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                        <!-- ========================================== -->
+                        <!-- MODE 4: CREATE / ACT MODE (Blueprint Section 14) -->
+                        <!-- ========================================== -->
+                        <div class="mode-pane" id="pane-create">
+
+                            <!-- Viral Shorts / Clips Finder -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>✂️ Viral Shorts & Reels Clip Suggestions</h3>
+                                    <span class="pill-tag">Curated Segments with Hooks</span>
+                                </div>
+                                <p class="section-instruction">High-impact segments optimized for short-form clips with viral hooks and confidence ratings:</p>
+                                <div class="viral-clips-grid" id="viralClipsGrid">
+                                    <!-- Viral clips injected dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Social Posts Repurposing -->
+                            <div class="social-repurpose-grid mb-24">
+                                <!-- Twitter Thread Card -->
+                                <div class="glass-card">
+                                    <div class="card-title-bar">
+                                        <h3>🧵 Twitter / X Thread Draft</h3>
+                                        <button class="btn-hero btn-secondary-hero btn-sm" onclick="copyTwitterThread(this)">📋 Copy Thread</button>
+                                    </div>
+                                    <div class="thread-preview-box" id="twitterThreadBox">
+                                        <!-- Tweets injected dynamically -->
+                                    </div>
+                                </div>
+
+                                <!-- LinkedIn Post Card -->
+                                <div class="glass-card">
+                                    <div class="card-title-bar">
+                                        <h3>💼 LinkedIn Professional Post</h3>
+                                        <button class="btn-hero btn-secondary-hero btn-sm" onclick="copyLinkedInPost(this)">📋 Copy Post</button>
+                                    </div>
+                                    <div class="linkedin-preview-box" id="linkedinPostBox">
+                                        <!-- Post injected dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Newsletter Draft & Raw Chapters -->
+                            <div class="social-repurpose-grid">
+                                <!-- Newsletter Draft Card -->
+                                <div class="glass-card">
+                                    <div class="card-title-bar">
+                                        <h3>📰 Executive Newsletter Edition</h3>
+                                        <button class="btn-hero btn-secondary-hero btn-sm" onclick="copyNewsletterDraft(this)">📋 Copy Newsletter</button>
+                                    </div>
+                                    <div class="newsletter-preview-box" id="newsletterDraftBox">
+                                        <!-- Newsletter injected dynamically -->
+                                    </div>
+                                </div>
+
+                                <!-- YouTube Chapters Description Card -->
+                                <div class="glass-card">
+                                    <div class="card-title-bar">
+                                        <h3>⏱️ YouTube Description Chapters</h3>
+                                        <button class="btn-hero btn-secondary-hero btn-sm" onclick="copyYouTubeChapters(this)">📋 Copy Chapters</button>
+                                    </div>
+                                    <pre class="raw-chapters-box" id="rawChaptersBox">00:00 Introduction</pre>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                        <!-- ========================================== -->
+                        <!-- MODE 5: COMPARE MODE (Blueprint Section 20) -->
+                        <!-- ========================================== -->
+                        <div class="mode-pane" id="pane-compare">
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>⚖️ Side-by-Side Video Comparator</h3>
+                                    <span class="pill-tag">Cross-Video Intelligence</span>
+                                </div>
+                                <div class="compare-selection-bar">
+                                    <div class="compare-select-col">
+                                        <label>Video A (Current Video):</label>
+                                        <div class="current-video-chip" id="compareCurrentVideoName">Analyzing Video...</div>
+                                    </div>
+                                    <div class="compare-vs-badge">VS</div>
+                                    <div class="compare-select-col">
+                                        <label>Video B (Choose from History):</label>
+                                        <select id="compareSelectVideoB" class="compare-dropdown">
+                                            <option value="">-- Select a second video from history --</option>
+                                        </select>
+                                    </div>
+                                    <button class="primary-analyze-btn btn-sm" onclick="runVideoComparison()">Compare Videos →</button>
+                                </div>
+                            </div>
+
+                            <!-- Comparison Results Container -->
+                            <div id="compareResultsContainer" style="display:none;">
+                                <!-- Comparison Matrix Card -->
+                                <div class="glass-card mb-24">
+                                    <div class="card-title-bar">
+                                        <h3>📊 Comparative Matrix</h3>
+                                        <span class="pill-tag">Side-by-Side Breakdown</span>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="compare-matrix-table" id="compareMatrixTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Dimension</th>
+                                                    <th id="thVideoA">Video A</th>
+                                                    <th id="thVideoB">Video B</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="compareMatrixBody"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Common Themes & Divergence Grid -->
+                                <div class="compare-insights-grid mb-24">
+                                    <div class="glass-card">
+                                        <div class="card-title-bar">
+                                            <h3>🤝 Shared Themes & Consensus</h3>
+                                        </div>
+                                        <ul id="compareCommonThemesList" class="bullet-list-sm"></ul>
+                                    </div>
+                                    <div class="glass-card">
+                                        <div class="card-title-bar">
+                                            <h3>⚡ Key Divergences & Disagreements</h3>
+                                        </div>
+                                        <div id="compareDisagreementsList" class="disagreements-list"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Synthesis Verdict -->
+                                <div class="glass-card">
+                                    <div class="card-title-bar">
+                                        <h3>🎯 Synthesis Verdict</h3>
+                                        <span class="pill-tag">Recommendation</span>
+                                    </div>
+                                    <p class="verdict-p" id="compareVerdictText"></p>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- ========================================== -->
+                        <!-- MODE 6: ASK VIDEO & EVIDENCE COPILOT -->
+                        <!-- ========================================== -->
+                        <div class="mode-pane" id="pane-copilot">
+                            <div class="copilot-full-container glass-card">
+                                <div class="copilot-header">
+                                    <div class="copilot-badge">✦ VideoLens Grounded Copilot</div>
+                                    <h3>Ask anything with verbatim evidence citations</h3>
+                                    <div class="copilot-toggle-row">
+                                        <label class="evidence-toggle-switch">
+                                            <input type="checkbox" id="evidenceModeToggle" checked>
+                                            <span class="switch-slider"></span>
+                                            <span class="switch-label">📋 Evidence Mode (Verbatim Quotes & Confidence)</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Suggested Questions Chips -->
+                                <div class="copilot-suggested-prompts">
+                                    <button class="copilot-chip" onclick="askCopilot('What specific tools, software, or frameworks were recommended?')">🛠️ Tools & Frameworks</button>
+                                    <button class="copilot-chip" onclick="askCopilot('What are the 3 strongest arguments and turning points in this video?')">💡 Core Arguments</button>
+                                    <button class="copilot-chip" onclick="askCopilot('What specific numbers, statistics, pricing, or metrics were quoted?')">📊 Metrics & Numbers</button>
+                                    <button class="copilot-chip" onclick="askCopilot('Give me a step-by-step implementation guide based on this video.')">📋 Step-by-Step Guide</button>
+                                    <button class="copilot-chip" onclick="askCopilot('Compare the main arguments across the first half and second half of the video.')">⚖️ Compare Halves</button>
+                                </div>
+
+                                <!-- Chat Stream -->
+                                <div class="copilot-chat-messages" id="copilotMessages">
+                                    <div class="chat-msg ai-msg">
+                                        <div class="msg-author">✦ VideoLens Grounded Copilot</div>
+                                        <div class="msg-content">
+                                            <p class="chat-p">Hello! I have complete photographic recall of this entire video transcript, chapters, entities, and topics. Ask me any question, and with Evidence Mode enabled, I will provide grounded answers with exact <strong>[MM:SS]</strong> timestamp citations and verbatim transcript quotes.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Input Box -->
+                                <form id="copilotForm" class="copilot-input-row" onsubmit="handleCopilotSubmit(event)">
+                                    <input type="text" id="copilotQueryInput" placeholder="Ask anything about this video (e.g. 'What was said about scaling laws?')..." autocomplete="off" required>
+                                    <button type="submit" id="copilotSendBtn" class="primary-analyze-btn btn-sm">
+                                        <span>Ask AI</span>
+                                        <span class="btn-arrow">↑</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+            
+                <!-- Modals -->
+                <div id="authModal" class="modal-backdrop" onclick="if(event.target === this) closeAuthModal()">
+                    <div class="modal-card">
+                        <button class="modal-close" onclick="closeAuthModal()">×</button>
+                        <div style="text-align:center; margin-bottom:12px;">
+                            <img src="/static/logo.svg" alt="VideoLens" width="56" height="56" style="filter:drop-shadow(0 0 12px rgba(124,92,252,0.6));">
+                        </div>
+                        <h2 class="modal-title-center">Sign In to VideoLens</h2>
+                        <p class="modal-subtitle-center" id="authModalReason">Continue to save your history and get more quota</p>
+                        
+                        <button class="oauth-btn btn-google" onclick="window.location.href='/auth/google'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px; vertical-align:middle;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                            Continue with Google
+                        </button>
+                        <button class="oauth-btn btn-x" onclick="showToast('X / Twitter sign-in is coming soon. Please use Google.', 'info')">Continue with X</button>
+                        <button class="oauth-btn btn-fb" onclick="showToast('Facebook sign-in is coming soon. Please use Google.', 'info')">Continue with Facebook</button>
+
+                        <div style="margin-top:20px; border-top:1px solid #242B42; padding-top:14px;">
+                            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#8E9AAF; margin-bottom:10px; text-align:center;">Local Multi-Account Simulator (Fast Switch)</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <a href="/auth/dev-login?email=user_alpha%40gmail.com&name=User+Alpha" class="oauth-btn" style="text-decoration:none; justify-content:center; font-size:12px; padding:8px;">👤 User A (Google)</a>
+                                <a href="/auth/dev-login?email=user_beta%40gmail.com&name=User+Beta" class="oauth-btn" style="text-decoration:none; justify-content:center; font-size:12px; padding:8px;">👤 User B (Google)</a>
+                            </div>
+                            <a href="/auth/dev-login?email=ganeshmalli954%40gmail.com&name=Owner" class="oauth-btn" style="text-decoration:none; justify-content:center; font-size:12px; padding:8px; margin-top:8px; color:#22D3EE; border-color:rgba(34,211,238,0.3);">👑 Platform Owner Login</a>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div id="upgradeModal" class="modal-backdrop" onclick="if(event.target === this) closeUpgradeModal()">
+                    <div class="modal-card" style="max-width: 580px;">
+                        <button class="modal-close" onclick="closeUpgradeModal()">×</button>
+                        <h2 class="modal-title-center">Select Intelligence Tier</h2>
+                        <p class="modal-subtitle-center" style="margin-bottom:20px;">Enforced server-side quotas with permanent history retention</p>
+                        <div class="upgrade-plans-grid" style="grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                            <div class="glass-card upgrade-plan-card">
+                                <div class="upgrade-plan-name">10-Video Pack</div>
+                                <div class="upgrade-plan-price">₹50</div>
+                                <div style="font-size:11px; color:#8E9AAF; margin: 8px 0;">+10 Extra Analyses<br>50 History Retention<br>Priority AI Inference</div>
+                                <button onclick="initiatePlanPurchase('pack10')" class="upgrade-plan-btn btn-warning-plan" style="cursor:pointer; border:none; width:100%;">Upgrade ₹50</button>
+                            </div>
+                            <div class="glass-card upgrade-plan-card featured">
+                                <div class="upgrade-plan-name">50-Video Pack</div>
+                                <div class="upgrade-plan-price">₹70</div>
+                                <div style="font-size:11px; color:#8E9AAF; margin: 8px 0;">+50 Extra Analyses<br>100 History Retention<br>Priority AI Inference</div>
+                                <button onclick="initiatePlanPurchase('pack50')" class="upgrade-plan-btn btn-primary-plan" style="cursor:pointer; border:none; width:100%;">Upgrade ₹70</button>
+                            </div>
+                            <div class="glass-card upgrade-plan-card">
+                                <div class="upgrade-plan-name">Unlimited Pro</div>
+                                <div class="upgrade-plan-price">₹99</div>
+                                <div style="font-size:11px; color:#8E9AAF; margin: 8px 0;">Unlimited Analyses<br>500 History Retention<br>Grounded Copilot<br>PDF Dossiers</div>
+                                <button onclick="initiatePlanPurchase('unlimited')" class="upgrade-plan-btn btn-gradient-plan" style="cursor:pointer; border:none; width:100%;">Upgrade ₹99/mo</button>
+                            </div>
+                        </div>
+
+                        <!-- Voluntary Buy Me a Coffee Support Link -->
+                        <div style="margin-top:20px; padding:12px 16px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                            <div style="font-size:12px; color:#FDE68A;">
+                                ☕ <strong>Voluntary Project Support</strong><br>
+                                <span style="color:#D4D4D8; font-size:11px;">Keep AI credits active without purchasing a subscription</span>
+                            </div>
+                            <a href="{{ bmc_url }}" target="_blank" style="padding:6px 14px; background:#F59E0B; color:#000; font-size:11px; font-weight:700; border-radius:6px; text-decoration:none;">Buy Me a Coffee →</a>
+                        </div>
+
+                        <div class="upgrade-redeem-box" style="margin-top:16px;">
+                            <p class="upgrade-redeem-label">Have a VIP voucher or code? Enter below:</p>
+                            <div class="upgrade-redeem-row">
+                                <input type="text" id="redeemCodeInput" class="upgrade-redeem-input" placeholder="e.g. VIP-UNLIMITED, OWNER-ACCESS-2026">
+                                <button class="btn-primary" onclick="redeemCode()">Redeem Code</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="supportModal" class="modal-backdrop" onclick="if(event.target === this) closeSupportModal()">
+                    <div class="modal-card">
+                        <button class="modal-close" onclick="closeSupportModal()">×</button>
+                        <h2 class="modal-title-center" style="text-align: left; font-size: 22px;">Support VideoLens</h2>
+                        <p class="modal-subtitle-center" style="text-align: left; margin-bottom: 20px;">VideoLens is free and open-source. Support the project to keep AI inference credits running.</p>
+                        <a href="{{ bmc_url }}" target="_blank" class="support-cta-gradient">☕ Support on Buy Me a Coffee →</a>
+                        <p class="support-secure-note">No account needed • Secure via Stripe</p>
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- Bottom Nav for Mobile -->
+            <nav class="bottom-nav" style="display:none;">
+                <button class="bottom-nav-tab" data-mode="understand">✦</button>
+                <button class="bottom-nav-tab" data-mode="research">🔍</button>
+                <button class="bottom-nav-tab" data-mode="learn">📚</button>
+                <button class="bottom-nav-tab" data-mode="create">⚡</button>
+                <button class="bottom-nav-tab" data-mode="copilot">💬</button>
+            </nav>
+
+        </div>
+
+        <footer class="site-footer">
+            <div class="footer-container">
+                <div class="footer-brand-col">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="/static/logo.svg" alt="VideoLens" width="26" height="26" style="filter: drop-shadow(0 0 6px rgba(124,92,252,0.6));">
+                        <div class="footer-logo-title">VideoLens</div>
+                    </div>
+                    <div class="footer-subtitle">AI-powered Video Intelligence & Study Dashboard</div>
+                </div>
+                <div class="footer-links-row">
+                    <a href="#" class="footer-link">About</a>
+                    <a href="#" class="footer-link">How it works</a>
+                    <a href="#" class="footer-link">Reliability</a>
+                    <a href="#" class="footer-link">Privacy</a>
+                    <a href="#" class="footer-link">Terms</a>
+                    <a href="mailto:ganeshmalli954@gmail.com" class="footer-link">Contact</a>
+                </div>
+                <div class="footer-credit-col">
+                    <span>Created by <strong>MOLLI MALLIKHARJUN</strong></span>
+                    <span class="footer-email">ganeshmalli954@gmail.com</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+        <!-- Phase 3: Supporter Info Section -->
+        <div class="supporter-section" id="supporterSection" style="display:none;">
+            <button class="supporter-close-btn" onclick="closeSupporterBanner()">✕</button>
+            <div class="supporter-inner">
+                <div class="supporter-icon">☕</div>
+                <div class="supporter-content">
+                    <h4>VideoLens is free, forever.</h4>
+                    <p><span id="usageCount">0</span> analyses completed. If this saves you time, a coffee helps keep the AI credits running.</p>
+                    <a class="supporter-cta-btn" href="{{ bmc_url }}" target="_blank" rel="noopener">Buy Me a Coffee →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- COMMAND PALETTE (CTRL+K / CMD+K) (Section 24) -->
+        <!-- ========================================== -->
+        <div class="cmd-palette-backdrop" id="cmdPaletteBackdrop" onclick="closeCommandPalette(event)">
+            <div class="cmd-palette-box" onclick="event.stopPropagation()">
+                <div class="cmd-input-row">
+                    <span class="cmd-search-icon">🔍</span>
+                    <input type="text" id="cmdPaletteInput" placeholder="Type a command or search (e.g. 'quiz', 'timeline', 'export', 'claims')..." autocomplete="off" oninput="filterCommandPalette(this.value)">
+                    <span class="cmd-esc-tag" onclick="closeCommandPalette()">ESC</span>
+                </div>
+                <div class="cmd-results-list" id="cmdResultsList">
+                    <!-- Dynamic command items -->
+                </div>
+            </div>
+        </div>
+
+        <!-- History Drawer Slideout -->
+        <div class="drawer-overlay" id="drawerOverlay" onclick="toggleHistoryDrawer()"></div>
+        <div class="history-drawer" id="historyDrawer">
+            <div class="drawer-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <h3>📜 Analysis History</h3>
+                    <a href="/history" style="font-size:12px; color:var(--purple-primary); text-decoration:none; font-weight:600;">Full Page ↗</a>
+                </div>
+                <button class="drawer-close-btn" onclick="toggleHistoryDrawer()">✕</button>
+            </div>
+            <div class="drawer-body" id="drawerHistoryList">
+                <div class="empty-history-note">No saved analyses yet.</div>
+            </div>
+        </div>
+
+        <div id="cookieConsentBanner" class="cookie-banner" style="display:none; position:fixed; bottom:20px; left:20px; right:20px; max-width:680px; margin:0 auto; background:#101522; border:1px solid #242B42; border-radius:12px; padding:16px 20px; z-index:9999; box-shadow:0 12px 40px rgba(0,0,0,0.8); align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:260px;">
+                <span style="font-size:24px;">🍪</span>
+                <div style="font-size:12px; color:#CBD5E1; line-height:1.4;">
+                    <strong style="color:#F8FAFC;">Privacy-First Cookies:</strong> VideoLens uses strictly essential cookies for secure session authentication, preferences, and account protection. No third-party tracking or advertising cookies are collected.
+                </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button onclick="acceptCookieConsent()" style="padding:8px 18px; background:linear-gradient(135deg, #7C3AED, #5B5FEF); border:none; border-radius:8px; color:#fff; font-weight:600; font-size:12px; cursor:pointer;">Accept Essential</button>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastNotification" class="toast-popup" style="display:none;"></div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

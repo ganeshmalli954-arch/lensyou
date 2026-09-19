@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Analysis History — VideoLens Intelligence Platform</title>
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="shortcut icon" href="/static/logo.svg">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .history-page-layout {
+            min-height: 100vh;
+            background: #080A12;
+            color: #F8FAFC;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+        .history-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+            flex: 1;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .history-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .history-title-zone h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0 0 6px 0;
+            background: linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .history-subtitle {
+            font-size: 13px;
+            color: #8E9AAF;
+            margin: 0;
+        }
+        .stats-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .stat-card-hist {
+            background: #101522;
+            border: 1px solid #242B42;
+            border-radius: 12px;
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card-hist::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #7C5CFC, #22D3EE);
+            opacity: 0.7;
+        }
+        .stat-card-num {
+            font-size: 28px;
+            font-weight: 700;
+            color: #F8FAFC;
+        }
+        .stat-card-lbl {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #8E9AAF;
+        }
+        .filters-toolbar {
+            background: #101522;
+            border: 1px solid #242B42;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-input-box {
+            flex: 1;
+            min-width: 260px;
+            position: relative;
+        }
+        .search-input-box input {
+            width: 100%;
+            box-sizing: border-box;
+            background: #151C2B;
+            border: 1px solid #242B42;
+            border-radius: 8px;
+            padding: 10px 14px 10px 36px;
+            color: #F8FAFC;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-input-box input:focus {
+            border-color: #7C5CFC;
+        }
+        .search-icon-pos {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            color: #8E9AAF;
+        }
+        .filter-select {
+            background: #151C2B;
+            border: 1px solid #242B42;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #F8FAFC;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+        .filter-select:focus {
+            border-color: #7C5CFC;
+        }
+        .history-table-card {
+            background: #101522;
+            border: 1px solid #242B42;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .history-table th {
+            background: #151C2B;
+            padding: 14px 18px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #8E9AAF;
+            border-bottom: 1px solid #242B42;
+        }
+        .history-table td {
+            padding: 16px 18px;
+            border-bottom: 1px solid #1C2333;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+        .history-table tr:hover td {
+            background: rgba(124, 92, 252, 0.04);
+        }
+        .badge-action {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-search {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60A5FA;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .badge-process {
+            background: rgba(124, 92, 252, 0.15);
+            color: #A78BFA;
+            border: 1px solid rgba(124, 92, 252, 0.3);
+        }
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .status-success {
+            background: rgba(34, 197, 94, 0.12);
+            color: #22C55E;
+        }
+        .status-failed {
+            background: rgba(239, 68, 68, 0.12);
+            color: #EF4444;
+        }
+        .status-pending {
+            background: rgba(245, 158, 11, 0.12);
+            color: #F59E0B;
+        }
+        .content-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .content-thumb {
+            width: 52px;
+            height: 36px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #1C2333;
+            border: 1px solid #242B42;
+            flex-shrink: 0;
+        }
+        .content-info {
+            min-width: 0;
+        }
+        .content-title-link {
+            color: #F8FAFC;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+            display: block;
+            margin-bottom: 3px;
+            transition: color 0.2s;
+        }
+        .content-title-link:hover {
+            color: #7C5CFC;
+        }
+        .content-query-sub {
+            font-size: 11px;
+            color: #8E9AAF;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .pagination-row {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #151C2B;
+            border-top: 1px solid #242B42;
+            font-size: 12px;
+            color: #8E9AAF;
+        }
+        .btn-page {
+            background: #101522;
+            border: 1px solid #242B42;
+            color: #F8FAFC;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-page:hover:not(:disabled) {
+            background: #242B42;
+        }
+        .btn-page:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .guest-notice-banner {
+            background: linear-gradient(135deg, rgba(124, 92, 252, 0.12), rgba(34, 211, 238, 0.12));
+            border: 1px solid rgba(124, 92, 252, 0.3);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .guest-notice-text h4 {
+            margin: 0 0 4px 0;
+            font-size: 14px;
+            color: #F8FAFC;
+        }
+        .guest-notice-text p {
+            margin: 0;
+            font-size: 12px;
+            color: #CBD5E1;
+        }
+        .btn-google-sm {
+            background: #FFFFFF;
+            color: #1E293B;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn-google-sm:hover {
+            background: #F1F5F9;
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <div class="history-page-layout">
+
+        <!-- Top Navigation -->
+        <header class="top-nav">
+            <div class="nav-brand" onclick="window.location.href='/'">
+                <div class="brand-logo">
+                    <img src="/static/logo.svg" alt="VideoLens" width="32" height="32" style="filter: drop-shadow(0 0 8px rgba(124,92,252,0.6));">
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">VideoLens</span>
+                    <span class="brand-sub">INTELLIGENCE PLATFORM</span>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <a href="/" class="action-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    <span>←</span> Analyzer
+                </a>
+                <button class="support-amber-btn" onclick="window.open('{{ bmc_url }}', '_blank')">☕ Support</button>
+                <div id="authContainer">
+                    <button class="action-btn" onclick="window.location.href='/auth/google'">Sign In</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main History Content -->
+        <main class="history-container">
+
+            <!-- Guest notice (hidden when logged in) -->
+            <div id="guestNotice" class="guest-notice-banner" style="display:none;">
+                <div class="guest-notice-text">
+                    <h4>Viewing Guest Session Activity</h4>
+                    <p>Sign in with your Google account to associate your searches and video dossiers permanently across all your devices.</p>
+                </div>
+                <a href="/auth/google" class="btn-google-sm">
+                    <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                    Sign in with Google
+                </a>
+            </div>
+
+            <!-- Page Title Row -->
+            <div class="history-header-row">
+                <div class="history-title-zone">
+                    <h1>My Personal Activity & History</h1>
+                    <p class="history-subtitle">Complete account-specific log of your video searches and AI intelligence analyses</p>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-page" onclick="loadHistoryData()">↻ Refresh</button>
+                    <a href="/" class="btn-page" style="text-decoration:none; background:linear-gradient(135deg, #7C3AED, #5B5FEF); color:#fff; border:none; font-weight:600;">+ Analyze New Video</a>
+                </div>
+            </div>
+
+            <!-- Metrics Summary Cards -->
+            <div class="stats-grid-4">
+                <div class="stat-card-hist">
+                    <div class="stat-card-lbl">Total Searches</div>
+                    <div class="stat-card-num" id="statSearches">0</div>
+                </div>
+                <div class="stat-card-hist">
+                    <div class="stat-card-lbl">Total Processed</div>
+                    <div class="stat-card-num" id="statProcessed">0</div>
+                </div>
+                <div class="stat-card-hist">
+                    <div class="stat-card-lbl">Current Plan</div>
+                    <div class="stat-card-num" id="statPlan" style="font-size:20px; text-transform:capitalize;">Free</div>
+                </div>
+                <div class="stat-card-hist">
+                    <div class="stat-card-lbl">History Limit</div>
+                    <div class="stat-card-num" id="statRetention">10 items</div>
+                </div>
+            </div>
+
+            <!-- Filter & Search Toolbar -->
+            <div class="filters-toolbar">
+                <div class="search-input-box">
+                    <span class="search-icon-pos">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search by video title, ID, or search keyword..." oninput="handleSearchInput(this.value)">
+                </div>
+
+                <select id="actionFilter" class="filter-select" onchange="applyFilters()">
+                    <option value="all">All Actions</option>
+                    <option value="search">Searches Only</option>
+                    <option value="process">Processed Analyses Only</option>
+                </select>
+
+                <select id="statusFilter" class="filter-select" onchange="applyFilters()">
+                    <option value="all">All Statuses</option>
+                    <option value="success">Successful</option>
+                    <option value="failed">Failed</option>
+                    <option value="completed">Completed</option>
+                </select>
+
+                <select id="sortFilter" class="filter-select" onchange="applyFilters()">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="most_searched">Most Searched</option>
+                    <option value="most_processed">Most Processed</option>
+                </select>
+            </div>
+
+            <!-- History Table Card -->
+            <div class="history-table-card">
+                <div style="overflow-x:auto;">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Content</th>
+                                <th>Type</th>
+                                <th>Action</th>
+                                <th>Status</th>
+                                <th>Plan Used</th>
+                                <th>Date & Time</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align:center; padding:48px 20px; color:#8E9AAF;">
+                                    <div style="font-size:24px; margin-bottom:8px;">⏳</div>
+                                    <div>Loading your personal activity history...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-row">
+                    <div>
+                        Showing <span id="showingStart">0</span> to <span id="showingEnd">0</span> of <span id="totalCount">0</span> records
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button id="prevBtn" class="btn-page" onclick="changePage(-1)" disabled>← Previous</button>
+                        <button id="nextBtn" class="btn-page" onclick="changePage(1)" disabled>Next →</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer" style="margin-top:auto;">
+            <div class="footer-container">
+                <div class="footer-brand-col">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="/static/logo.svg" alt="VideoLens" width="24" height="24">
+                        <div class="footer-logo-title">VideoLens</div>
+                    </div>
+                    <div class="footer-subtitle">Account-Specific Video Intelligence History</div>
+                </div>
+                <div class="footer-credit-col">
+                    <span>Created by <strong>MOLLI MALLIKHARJUN</strong></span>
+                    <span class="footer-email">ganeshmalli954@gmail.com</span>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const pageSize = 20;
+        let searchDebounce = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkUserAuth();
+            loadHistoryData();
+        });
+
+        async function checkUserAuth() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) return;
+                const data = await res.json();
+                const container = document.getElementById('authContainer');
+                const notice = document.getElementById('guestNotice');
+
+                if (data.logged_in && data.user) {
+                    const u = data.user;
+                    const initial = (u.name || u.email || 'U')[0].toUpperCase();
+                    container.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${u.avatar_url 
+                                ? `<img src="${escHtml(u.avatar_url)}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid #242B42;" alt="Avatar">`
+                                : `<div style="width:28px; height:28px; border-radius:50%; background:#7C5CFC; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff;">${initial}</div>`
+                            }
+                            <span style="font-size:13px; font-weight:600; color:#F8FAFC;">${escHtml(u.name || u.email)}</span>
+                            ${u.is_owner ? `<a href="/admin" class="action-btn" style="text-decoration:none; padding:4px 8px; font-size:11px; background:rgba(124,92,252,0.2); color:#A78BFA; border:1px solid #7C5CFC;">Owner Portal</a>` : ''}
+                            <a href="/auth/logout" class="action-btn" style="text-decoration:none; padding:4px 8px; font-size:12px;" title="Sign out">Sign Out</a>
+                        </div>
+                    `;
+                    if (notice) notice.style.display = 'none';
+                    document.getElementById('statPlan').textContent = u.plan || 'Free';
+                    document.getElementById('statRetention').textContent = (u.history_limit < 0 ? 'Unlimited' : u.history_limit + ' items');
+                } else {
+                    if (notice) notice.style.display = 'flex';
+                    document.getElementById('statPlan').textContent = 'Guest';
+                    document.getElementById('statRetention').textContent = '5 items';
+                }
+            } catch (e) {
+                console.warn('Auth check error:', e);
+            }
+        }
+
+        async function loadHistoryData() {
+            const action = document.getElementById('actionFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const sort = document.getElementById('sortFilter').value;
+            const q = document.getElementById('searchInput').value.trim();
+
+            const offset = (currentPage - 1) * pageSize;
+            const url = `/api/history?action=${encodeURIComponent(action)}&status=${encodeURIComponent(status)}&sort=${encodeURIComponent(sort)}&q=${encodeURIComponent(q)}&limit=${pageSize}&offset=${offset}`;
+
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Failed to load history');
+                const data = await res.json();
+                renderTable(data);
+            } catch (e) {
+                document.getElementById('historyTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:48px 20px; color:#EF4444;">
+                            <div style="font-size:24px; margin-bottom:8px;">❌</div>
+                            <div>Failed to load history records. Please refresh the page.</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('historyTableBody');
+            const items = data.items || [];
+            const total = data.total || 0;
+
+            // Update stats from real database account summary
+            const summary = data.summary || {};
+            document.getElementById('statSearches').textContent = summary.total_searches ?? items.filter(i => i.action === 'search').length;
+            document.getElementById('statProcessed').textContent = summary.total_processing ?? items.filter(i => i.action === 'process').length;
+
+            if (data.plan_limit) {
+                document.getElementById('statRetention').textContent = data.plan_limit < 0 ? 'Unlimited' : (data.plan_limit + ' items');
+            }
+            if (data.plan) {
+                document.getElementById('statPlan').textContent = data.plan;
+            }
+
+            // Pagination info
+            const start = total > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+            const end = Math.min(total, currentPage * pageSize);
+            document.getElementById('showingStart').textContent = start;
+            document.getElementById('showingEnd').textContent = end;
+            document.getElementById('totalCount').textContent = total;
+
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = end >= total;
+
+            if (!items.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:54px 20px; color:#8E9AAF;">
+                            <div style="font-size:32px; margin-bottom:10px;">📜</div>
+                            <div style="font-weight:600; font-size:15px; color:#F8FAFC; margin-bottom:6px;">No activity records found</div>
+                            <div style="font-size:13px;">No searches or analyses matching your criteria were found.</div>
+                            <a href="/" style="display:inline-block; margin-top:16px; padding:8px 18px; background:linear-gradient(135deg, #7C3AED, #5B5FEF); color:#fff; border-radius:8px; text-decoration:none; font-size:13px; font-weight:600;">+ Analyze a Video</a>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = items.map(item => {
+                const vidId = escHtml(item.content_id || '');
+                const title = escHtml(item.content_title || item.query || 'YouTube Video');
+                const isYouTube = vidId && vidId.length === 11 && !vidId.includes(' ');
+                const thumb = isYouTube 
+                    ? `https://img.youtube.com/vi/${vidId}/mqdefault.jpg`
+                    : '/static/logo.svg';
+
+                const actionBadge = item.action === 'search'
+                    ? '<span class="badge-action badge-search">Search</span>'
+                    : '<span class="badge-action badge-process">Processed</span>';
+
+                let statusBadge = '<span class="badge-status status-success">✓ Success</span>';
+                if (item.status === 'failed') {
+                    statusBadge = `<span class="badge-status status-failed" title="${escHtml(item.error_info || 'Error')}">✕ Failed</span>`;
+                } else if (item.status === 'pending') {
+                    statusBadge = '<span class="badge-status status-pending">● Processing</span>';
+                } else if (item.status === 'completed') {
+                    statusBadge = '<span class="badge-status status-success">✓ Completed</span>';
+                }
+
+                const ts = item.created_at ? item.created_at.slice(0, 16).replace('T', ' ') : '—';
+                const planLabel = escHtml(item.plan_at_time || 'Free');
+
+                const actionBtn = isYouTube
+                    ? `<a href="/?v=${vidId}" style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:#151C2B; border:1px solid #242B42; color:#7C5CFC; text-decoration:none; border-radius:6px; font-size:12px; font-weight:600;">View →</a>`
+                    : `<a href="/?q=${encodeURIComponent(item.query || '')}" style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:#151C2B; border:1px solid #242B42; color:#60A5FA; text-decoration:none; border-radius:6px; font-size:12px; font-weight:600;">Search →</a>`;
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="content-cell">
+                                <img src="${thumb}" class="content-thumb" alt="Thumbnail" onerror="this.src='/static/logo.svg'">
+                                <div class="content-info">
+                                    ${isYouTube ? `<a href="/?v=${vidId}" class="content-title-link">${title}</a>` : `<div class="content-title-link">${title}</div>`}
+                                    <div class="content-query-sub">Query: ${escHtml(item.query || vidId)}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color:#8E9AAF; font-size:12px;">${escHtml(item.content_type || 'YouTube Video')}</td>
+                        <td>${actionBadge}</td>
+                        <td>${statusBadge}</td>
+                        <td><span style="font-size:11px; padding:3px 8px; background:#151C2B; border:1px solid #242B42; border-radius:4px; text-transform:uppercase;">${planLabel}</span></td>
+                        <td style="color:#8E9AAF; font-size:12px;">${ts}</td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function handleSearchInput(val) {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                currentPage = 1;
+                loadHistoryData();
+            }, 300);
+        }
+
+        function applyFilters() {
+            currentPage = 1;
+            loadHistoryData();
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            loadHistoryData();
+        }
+
+        function escHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function checkCookieConsent() {
+            try {
+                if (!localStorage.getItem('videolens_cookie_consent')) {
+                    const banner = document.getElementById('cookieConsentBanner');
+                    if (banner) banner.style.display = 'flex';
+                }
+            } catch (e) {}
+        }
+
+        function acceptCookieConsent() {
+            try {
+                localStorage.setItem('videolens_cookie_consent', 'accepted');
+                const banner = document.getElementById('cookieConsentBanner');
+                if (banner) banner.style.display = 'none';
+            } catch (e) {}
+        }
+    </script>
+
+    <!-- Cookie Consent Banner -->
+    <div id="cookieConsentBanner" class="cookie-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#101522; border:1px solid #242B42; padding:14px 20px; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.8); z-index:9999; align-items:center; gap:16px; max-width:540px; width:90%; box-sizing:border-box;">
+        <span style="font-size:20px;">🍪</span>
+        <div style="font-size:12px; color:#CBD5E1; line-height:1.4; flex:1;">
+            VideoLens uses secure, legitimate application cookies only for authentication and session state. No third-party ad tracking.
+        </div>
+        <button onclick="acceptCookieConsent()" style="padding:6px 14px; background:linear-gradient(135deg, #7C3AED, #5B5FEF); border:none; border-radius:6px; color:#fff; font-size:12px; font-weight:600; cursor:pointer;">Accept</button>
+    </div>
+</body>
+</html>

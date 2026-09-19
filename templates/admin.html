@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoLens — Private Owner & Admin Portal</title>
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="shortcut icon" href="/static/logo.svg">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #080A12;
+            --bg-card: #101522;
+            --bg-elevated: #151C2B;
+            --border-ui: #242B42;
+            --border-subtle: #1C2333;
+            --text-main: #F8FAFC;
+            --text-muted: #8E9AAF;
+            --accent-purple: #7C5CFC;
+            --accent-cyan: #22D3EE;
+            --accent-green: #22C55E;
+            --accent-red: #EF4444;
+            --accent-amber: #F59E0B;
+        }
+        body { margin: 0; background: var(--bg-base); color: var(--text-main); font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .admin-sidebar { width: 250px; background: #0B0E17; border-right: 1px solid var(--border-ui); display: flex; flex-direction: column; flex-shrink: 0; }
+        .admin-sidebar-header { padding: 24px 20px 20px; border-bottom: 1px solid var(--border-subtle); }
+        .admin-sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+        .side-nav-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; transition: all 0.2s; }
+        .side-nav-btn:hover { background: var(--bg-elevated); color: var(--text-main); }
+        .side-nav-btn.active { background: rgba(124, 92, 252, 0.15); border-color: rgba(124, 92, 252, 0.4); color: #fff; font-weight: 600; }
+        .admin-content { flex: 1; padding: 32px; overflow-y: auto; max-width: calc(100vw - 250px); box-sizing: border-box; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* Stats Grids */
+        .stats-grid-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border-ui); border-radius: 12px; padding: 20px; position: relative; overflow: hidden; }
+        .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, var(--accent-purple), var(--accent-cyan)); }
+        .stat-val { font-size: 30px; font-weight: 700; color: var(--text-main); margin-top: 6px; }
+        .stat-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); }
+        .stat-sub { font-size: 12px; color: var(--accent-purple); margin-top: 6px; }
+
+        /* Tables & Cards */
+        .glass-card { background: var(--bg-card); border: 1px solid var(--border-ui); border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .admin-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        .admin-table th { background: var(--bg-elevated); padding: 12px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); border-bottom: 1px solid var(--border-ui); }
+        .admin-table td { padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+        .admin-table tr:hover td { background: rgba(124, 92, 252, 0.03); }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-green { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); border: 1px solid rgba(34, 197, 94, 0.3); }
+        .badge-purple { background: rgba(124, 92, 252, 0.15); color: #A78BFA; border: 1px solid rgba(124, 92, 252, 0.3); }
+        .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* Modal Inspector */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--bg-card); border: 1px solid var(--border-ui); border-radius: 16px; width: 100%; max-width: 900px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-ui); display: flex; align-items: center; justify-content: space-between; }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .modal-close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
+        .modal-close:hover { color: #fff; }
+
+        .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .log-stream { background: #05070D; border: 1px solid var(--border-ui); color: #CBD5E1; font-family: 'JetBrains Mono', monospace; padding: 16px; border-radius: 8px; height: 420px; overflow-y: auto; font-size: 12px; }
+        .log-error { color: var(--accent-red); }
+        .log-warning { color: var(--accent-amber); }
+        .log-info { color: #94A3B8; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="admin-sidebar-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <img src="/static/logo.svg" alt="VideoLens" width="32" height="32" style="filter: drop-shadow(0 0 8px rgba(124,92,252,0.6));">
+                    <div>
+                        <h2 style="font-size: 16px; font-weight: 700; margin:0;">VideoLens</h2>
+                        <span style="font-size: 10px; text-transform: uppercase; color: var(--accent-purple); letter-spacing: 1px; font-weight: 600;">Owner Portal</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px;">
+                    <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--accent-green);">
+                        <span class="pulse-dot"></span>
+                        <span>Live SQLite</span>
+                    </div>
+                    <button onclick="loadAdminDashboard()" style="background:var(--bg-elevated); border:1px solid var(--border-ui); color:var(--text-muted); font-size:11px; cursor:pointer; padding:3px 8px; border-radius:4px;" title="Refresh now">↻ Refresh</button>
+                </div>
+            </div>
+
+            <nav class="admin-sidebar-nav">
+                <button class="side-nav-btn active" onclick="switchAdminTab('overview', this)">📊 Overview</button>
+                <button class="side-nav-btn" onclick="switchAdminTab('users', this)">👥 Users & History</button>
+                <button class="side-nav-btn" onclick="switchAdminTab('search', this)">🔍 Search Analytics</button>
+                <button class="side-nav-btn" onclick="switchAdminTab('content', this)">🎬 Content Analytics</button>
+                <button class="side-nav-btn" onclick="switchAdminTab('videos', this)">📺 Analyzed Videos</button>
+                <button class="side-nav-btn" onclick="switchAdminTab('payments', this)">💳 Payments & Plans</button>
+                <button class="side-nav-btn" onclick="switchAdminTab('keys', this)">🔑 API Key Status</button>
+                <button class="side-nav-btn" onclick="switchAdminTab('codes', this)">🎟️ Promo Codes</button>
+                <button class="side-nav-btn" onclick="switchAdminTab('logs', this)">📜 System Logs</button>
+            </nav>
+
+            <div style="padding: 16px 20px; border-top: 1px solid var(--border-subtle); display:flex; flex-direction:column; gap:8px;">
+                <a href="/" target="_blank" style="color:var(--text-muted); text-decoration:none; font-size:12px; display:flex; align-items:center; gap:6px;">
+                    <span>↗</span> Public Website
+                </a>
+                <a href="/admin/logout" style="color:#EF4444; text-decoration:none; font-size:12px; display:flex; align-items:center; gap:6px;">
+                    <span>⎋</span> Sign Out
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="admin-content">
+
+            <!-- 1. OVERVIEW TAB -->
+            <div id="tab-overview" class="panel active">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                    <div>
+                        <h1 style="font-size:24px; font-weight:700; margin:0 0 4px 0;">Platform Executive Overview</h1>
+                        <p style="font-size:13px; color:var(--text-muted); margin:0;">Real-time metrics calculated strictly from live production database records.</p>
+                    </div>
+                    <div id="lastUpdated" style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono', monospace;">Updated: Just now</div>
+                </div>
+
+                <!-- User & Traffic Metrics -->
+                <div class="stats-grid-top">
+                    <div class="stat-card">
+                        <div class="stat-lbl">Total Registered Users</div>
+                        <div class="stat-val" id="statUsers">0</div>
+                        <div class="stat-sub"><span id="statGoogleUsers">0</span> Google-authenticated</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Active Users (7d)</div>
+                        <div class="stat-val" id="statActiveWeek">0</div>
+                        <div class="stat-sub"><span id="statTodayUsers">0</span> joined today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Total Searches</div>
+                        <div class="stat-val" id="statSearches">0</div>
+                        <div class="stat-sub"><span id="statUniqueSearchContent">0</span> unique content searched</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Total Video Analyses</div>
+                        <div class="stat-val" id="statProcessing">0</div>
+                        <div class="stat-sub" style="color:var(--accent-green);"><span id="statProcSuccess">0</span> success / <span id="statProcFailed" style="color:var(--accent-red);">0</span> failed</div>
+                    </div>
+                </div>
+
+                <div class="stats-grid-top">
+                    <div class="stat-card">
+                        <div class="stat-lbl">Verified Revenue</div>
+                        <div class="stat-val" id="statRevenue">₹0</div>
+                        <div class="stat-sub"><span id="statPayingUsers">0</span> paying customers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Plans Breakdown</div>
+                        <div class="stat-val" id="statFreeUsers" style="font-size:20px;">Free: 0</div>
+                        <div class="stat-sub">₹50: <span id="statPack10Users">0</span> | ₹99: <span id="statUnlimitedUsers">0</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">System Health</div>
+                        <div class="stat-val" id="statHealth" style="color:var(--accent-green); font-size:22px;">Good</div>
+                        <div class="stat-sub">CPU <span id="cpuVal">0%</span> | RAM <span id="ramVal">0%</span> | Disk <span id="diskVal">0%</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Promo Redemptions</div>
+                        <div class="stat-val" id="statRedemptions">0</div>
+                        <div class="stat-sub">VIP access codes applied</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. USERS & ACCOUNT HISTORY TAB -->
+            <div id="tab-users" class="panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <div>
+                        <h2 style="margin:0 0 4px 0;">User Accounts & History Inspection</h2>
+                        <p style="font-size:13px; color:var(--text-muted); margin:0;">Click any user row to inspect their account-specific search and content history.</p>
+                    </div>
+                    <input type="text" id="userSearchInput" placeholder="Filter users by name or email..." oninput="filterUsersTable(this.value)" style="background:var(--bg-elevated); border:1px solid var(--border-ui); border-radius:8px; padding:8px 14px; color:#fff; font-size:13px; width:260px;">
+                </div>
+
+                <div class="glass-card" style="padding:0; overflow-x:auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Plan</th>
+                                <th>Quota Used</th>
+                                <th>Logins</th>
+                                <th>Registered</th>
+                                <th>Last Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. SEARCH ANALYTICS TAB -->
+            <div id="tab-search" class="panel">
+                <div style="margin-bottom:20px;">
+                    <h2 style="margin:0 0 4px 0;">Search Analytics & Query Stream</h2>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0;">Real user search frequency, most searched content, and query trends.</p>
+                </div>
+
+                <div class="stats-grid-top">
+                    <div class="stat-card">
+                        <div class="stat-lbl">Searches Today</div>
+                        <div class="stat-val" id="searchTodayVal">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Searches This Week</div>
+                        <div class="stat-val" id="searchWeekVal">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Searches This Month</div>
+                        <div class="stat-val" id="searchMonthVal">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Unique Searchers</div>
+                        <div class="stat-val" id="searchUniqueUsersVal">0</div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div class="glass-card">
+                        <h3 style="margin-top:0; font-size:15px;">🔥 Most Searched Content</h3>
+                        <table class="admin-table">
+                            <thead><tr><th>Content</th><th>Searches</th><th>Unique Searchers</th></tr></thead>
+                            <tbody id="mostSearchedBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="glass-card">
+                        <h3 style="margin-top:0; font-size:15px;">⚡ Recent Search Events</h3>
+                        <table class="admin-table">
+                            <thead><tr><th>Query</th><th>User</th><th>Timestamp</th></tr></thead>
+                            <tbody id="recentSearchesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. CONTENT ANALYTICS TAB -->
+            <div id="tab-content" class="panel">
+                <div style="margin-bottom:20px;">
+                    <h2 style="margin:0 0 4px 0;">Content-Level Aggregate Analytics</h2>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0;">Aggregated statistics per content item across all users, with user interaction breakdown.</p>
+                </div>
+
+                <div class="glass-card" style="padding:0; overflow-x:auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Content Title / Video ID</th>
+                                <th>Total Searches</th>
+                                <th>Unique Users</th>
+                                <th>Processing Requests</th>
+                                <th>Success / Failed</th>
+                                <th>Last Interacted</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contentAnalyticsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. ANALYZED VIDEOS TAB -->
+            <div id="tab-videos" class="panel">
+                <div style="margin-bottom:20px;">
+                    <h2 style="margin:0 0 4px 0;">Analyzed Videos Dossier</h2>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0;">Full record of processed video transcripts, intelligence models, and results.</p>
+                </div>
+                <div class="glass-card" style="padding:0; overflow-x:auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Video</th>
+                                <th>Creator</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                                <th>Analyzed Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="videosTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 6. PAYMENTS & PLANS TAB -->
+            <div id="tab-payments" class="panel">
+                <div style="margin-bottom:20px;">
+                    <h2 style="margin:0 0 4px 0;">Payments & Subscription Status</h2>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0;">Verified transactions for ₹50 and ₹99 paid tiers.</p>
+                </div>
+
+                <div class="stats-grid-top">
+                    <div class="stat-card">
+                        <div class="stat-lbl">Total Verified Revenue</div>
+                        <div class="stat-val" id="payTotalRev">₹0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Paying Customers</div>
+                        <div class="stat-val" id="payPayingCustomers">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Verified Transactions</div>
+                        <div class="stat-val" id="payTxnCount">0</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding:0; overflow-x:auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Payment ID</th>
+                                <th>Customer</th>
+                                <th>Plan</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Provider</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 7. API KEYS TAB -->
+            <div id="tab-keys" class="panel">
+                <div style="margin-bottom:20px;">
+                    <h2 style="margin:0 0 4px 0;">Gemini AI Keys Pool Monitor</h2>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0;">Daily quotas, requests, and health status per API key.</p>
+                </div>
+                <div class="glass-card" style="padding:0;">
+                    <table class="admin-table">
+                        <thead><tr><th>Key Prefix</th><th>Status</th><th>Requests Today</th><th>Last Used</th></tr></thead>
+                        <tbody id="keysTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 8. PROMO CODES TAB -->
+            <div id="tab-codes" class="panel">
+                <div style="margin-bottom:20px;">
+                    <h2 style="margin:0 0 4px 0;">Generate Promo & VIP Access Codes</h2>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0;">Create redeemable vouchers for ₹50 starter, ₹70 pack, or ₹99 unlimited.</p>
+                </div>
+                <div class="glass-card" style="display:flex; gap:16px; align-items:center;">
+                    <select id="codePlan" style="padding:10px 14px; border-radius:8px; background:var(--bg-elevated); border:1px solid var(--border-ui); color:#fff;">
+                        <option value="10">10-Video Pack (₹50)</option>
+                        <option value="50">50-Video Pack (₹70)</option>
+                        <option value="unlimited">Unlimited Pro (₹99)</option>
+                    </select>
+                    <input type="number" id="codeCount" value="5" min="1" max="50" style="padding:10px; border-radius:8px; width:70px; background:var(--bg-elevated); border:1px solid var(--border-ui); color:#fff;">
+                    <button class="btn-primary" onclick="generateCodes()" style="padding:10px 18px; border-radius:8px; background:linear-gradient(135deg, var(--accent-purple), var(--accent-cyan)); border:none; color:#fff; font-weight:600; cursor:pointer;">Generate Codes</button>
+                </div>
+                <div id="generatedCodesList" style="margin-top:20px; font-family:'JetBrains Mono', monospace;"></div>
+            </div>
+
+            <!-- 9. SYSTEM LOGS TAB -->
+            <div id="tab-logs" class="panel">
+                <div style="margin-bottom:20px;">
+                    <h2 style="margin:0 0 4px 0;">Live System Logs</h2>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0;">In-memory and persisted application audit trail.</p>
+                </div>
+                <div class="log-stream" id="logStream"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- User Account History Inspection Modal -->
+    <div id="userInspectModal" class="modal-overlay" onclick="if(event.target === this) closeUserModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div id="inspectUserAvatar"></div>
+                    <div>
+                        <h3 id="inspectUserName" style="margin:0; font-size:16px;">User History</h3>
+                        <p id="inspectUserEmail" style="margin:2px 0 0 0; font-size:12px; color:var(--text-muted);"></p>
+                    </div>
+                </div>
+                <button class="modal-close" onclick="closeUserModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="stats-grid-top" style="margin-bottom:20px;">
+                    <div class="stat-card" style="padding:14px;">
+                        <div class="stat-lbl">Searches</div>
+                        <div class="stat-val" id="inspectUserSearches" style="font-size:22px;">0</div>
+                    </div>
+                    <div class="stat-card" style="padding:14px;">
+                        <div class="stat-lbl">Unique Content</div>
+                        <div class="stat-val" id="inspectUserUnique" style="font-size:22px;">0</div>
+                    </div>
+                    <div class="stat-card" style="padding:14px;">
+                        <div class="stat-lbl">Analyses</div>
+                        <div class="stat-val" id="inspectUserProc" style="font-size:22px;">0</div>
+                    </div>
+                    <div class="stat-card" style="padding:14px;">
+                        <div class="stat-lbl">Success / Failed</div>
+                        <div class="stat-val" id="inspectUserSuccessRate" style="font-size:18px; color:var(--accent-green);">0 / 0</div>
+                    </div>
+                </div>
+
+                <h4 style="margin:0 0 12px 0; font-size:14px;">Account-Specific Activity Log</h4>
+                <div style="max-height: 380px; overflow-y:auto; border:1px solid var(--border-ui); border-radius:8px;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Content</th>
+                                <th>Action</th>
+                                <th>Status</th>
+                                <th>Plan</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inspectUserTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Interaction Modal -->
+    <div id="contentInspectModal" class="modal-overlay" onclick="if(event.target === this) closeContentModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div>
+                    <h3 id="inspectContentTitle" style="margin:0; font-size:16px;">Content Analytics</h3>
+                    <p id="inspectContentId" style="margin:2px 0 0 0; font-size:12px; color:var(--text-muted); font-family:'JetBrains Mono', monospace;"></p>
+                </div>
+                <button class="modal-close" onclick="closeContentModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="stats-grid-top" style="margin-bottom:20px;">
+                    <div class="stat-card" style="padding:14px;">
+                        <div class="stat-lbl">Total Searches</div>
+                        <div class="stat-val" id="inspectContentSearches" style="font-size:22px;">0</div>
+                    </div>
+                    <div class="stat-card" style="padding:14px;">
+                        <div class="stat-lbl">Unique Searchers</div>
+                        <div class="stat-val" id="inspectContentUsers" style="font-size:22px;">0</div>
+                    </div>
+                    <div class="stat-card" style="padding:14px;">
+                        <div class="stat-lbl">Processing Requests</div>
+                        <div class="stat-val" id="inspectContentProc" style="font-size:22px;">0</div>
+                    </div>
+                    <div class="stat-card" style="padding:14px;">
+                        <div class="stat-lbl">Success Rate</div>
+                        <div class="stat-val" id="inspectContentSuccess" style="font-size:20px; color:var(--accent-green);">100%</div>
+                    </div>
+                </div>
+
+                <h4 style="margin:0 0 12px 0; font-size:14px;">User Interactions Breakdown (Independent Accounts)</h4>
+                <div style="max-height: 380px; overflow-y:auto; border:1px solid var(--border-ui); border-radius:8px;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>User Account</th>
+                                <th>Email</th>
+                                <th>Searched Count</th>
+                                <th>Processed Count</th>
+                                <th>Last Interacted</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inspectContentUsersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allUsersData = [];
+
+        function switchAdminTab(tabId, btn) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.side-nav-btn').forEach(b => b.classList.remove('active'));
+            const target = document.getElementById('tab-' + tabId);
+            if (target) target.classList.add('active');
+            if (btn) btn.classList.add('active');
+        }
+
+        async function loadAdminDashboard() {
+            try {
+                const [statsRes, healthRes, usersRes, videosRes, searchRes, contentRes, payRes, keysRes, logsRes] = await Promise.all([
+                    fetch('/admin/api/stats').then(r => r.json()).catch(() => ({})),
+                    fetch('/admin/api/health').then(r => r.json()).catch(() => ({})),
+                    fetch('/admin/api/users').then(r => r.json()).catch(() => ([])),
+                    fetch('/admin/api/videos').then(r => r.json()).catch(() => ([])),
+                    fetch('/admin/api/search-stats').then(r => r.json()).catch(() => ({})),
+                    fetch('/admin/api/content-analytics').then(r => r.json()).catch(() => ([])),
+                    fetch('/admin/api/payments').then(r => r.json()).catch(() => ({})),
+                    fetch('/admin/api/api-keys').then(r => r.json()).catch(() => ([])),
+                    fetch('/admin/api/logs').then(r => r.json()).catch(() => ([]))
+                ]);
+
+                renderOverview(statsRes, healthRes);
+                renderUsers(usersRes);
+                renderVideos(videosRes);
+                renderSearchAnalytics(searchRes);
+                renderContentAnalytics(contentRes);
+                renderPayments(payRes);
+                renderKeys(keysRes);
+                renderLogs(logsRes);
+
+                const now = new Date();
+                document.getElementById('lastUpdated').textContent = 'Updated: ' + now.toLocaleTimeString();
+            } catch (e) {
+                console.warn('Admin load error:', e);
+            }
+        }
+
+        function renderOverview(stats, health) {
+            document.getElementById('statUsers').textContent = stats.total_users ?? 0;
+            document.getElementById('statGoogleUsers').textContent = stats.google_users ?? 0;
+            document.getElementById('statActiveWeek').textContent = stats.active_users_week ?? 0;
+            document.getElementById('statTodayUsers').textContent = stats.today_users ?? 0;
+
+            document.getElementById('statSearches').textContent = stats.total_searches ?? 0;
+            document.getElementById('statUniqueSearchContent').textContent = stats.unique_search_content ?? 0;
+
+            document.getElementById('statProcessing').textContent = stats.total_processing ?? 0;
+            document.getElementById('statProcSuccess').textContent = stats.processing_success ?? 0;
+            document.getElementById('statProcFailed').textContent = stats.processing_failed ?? 0;
+
+            document.getElementById('statRevenue').textContent = '₹' + (stats.verified_revenue ?? 0);
+            document.getElementById('statPayingUsers').textContent = stats.paying_users ?? 0;
+
+            const plans = stats.plan_breakdown || {};
+            document.getElementById('statFreeUsers').textContent = 'Free: ' + (plans['free'] || 0);
+            document.getElementById('statPack10Users').textContent = plans['pack10'] || 0;
+            document.getElementById('statUnlimitedUsers').textContent = plans['unlimited'] || 0;
+
+            document.getElementById('statRedemptions').textContent = stats.total_redemptions ?? 0;
+
+            if (health) {
+                document.getElementById('cpuVal').textContent = (health.cpu_percent || 0) + '%';
+                document.getElementById('ramVal').textContent = (health.ram_percent || 0) + '%';
+                document.getElementById('diskVal').textContent = (health.disk_percent || 0) + '%';
+            }
+        }
+
+        function renderUsers(users) {
+            allUsersData = users || [];
+            filterUsersTable(document.getElementById('userSearchInput')?.value || '');
+        }
+
+        function filterUsersTable(filterVal) {
+            const query = (filterVal || '').toLowerCase().trim();
+            const tbody = document.getElementById('usersTableBody');
+            const filtered = allUsersData.filter(u => {
+                const name = (u.name || '').toLowerCase();
+                const email = (u.email || '').toLowerCase();
+                return name.includes(query) || email.includes(query);
+            });
+
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:32px;">No users match your filter</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(u => {
+                const planBadge = u.plan === 'unlimited' ? 'badge-purple' : (u.plan === 'pack10' ? 'badge-blue' : '');
+                const tsJoined = u.created_at ? u.created_at.slice(0, 10) : '—';
+                const tsActive = u.last_active ? u.last_active.slice(0, 16).replace('T', ' ') : '—';
+                return `
+                    <tr>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                ${u.avatar_url ? `<img src="${escHtml(u.avatar_url)}" style="width:26px; height:26px; border-radius:50%; object-fit:cover;">` : '<span style="font-size:16px;">👤</span>'}
+                                <strong>${escHtml(u.name || 'User')}</strong>
+                            </div>
+                        </td>
+                        <td>${escHtml(u.email || '—')}</td>
+                        <td><span class="badge ${planBadge}">${escHtml(u.plan || 'free')}</span></td>
+                        <td>${u.quota_used ?? 0} / ${u.quota_limit < 0 ? '∞' : (u.quota_limit ?? 5)}</td>
+                        <td>${u.login_count ?? 1}</td>
+                        <td style="color:var(--text-muted); font-size:12px;">${tsJoined}</td>
+                        <td style="color:var(--text-muted); font-size:12px;">${tsActive}</td>
+                        <td>
+                            <button onclick="inspectUser('${u.id}')" style="padding:4px 10px; background:var(--bg-elevated); border:1px solid var(--border-ui); color:var(--accent-purple); border-radius:6px; cursor:pointer; font-weight:600; font-size:11px;">Inspect History →</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function inspectUser(userId) {
+            try {
+                const res = await fetch(`/admin/api/user/${userId}/history`);
+                if (!res.ok) throw new Error('Failed to fetch user history');
+                const data = await res.json();
+                const history = data.history?.items || [];
+                const summary = data.summary || {};
+
+                // Find user info
+                const user = allUsersData.find(u => u.id === userId) || {};
+                document.getElementById('inspectUserName').textContent = user.name || 'User Details';
+                document.getElementById('inspectUserEmail').textContent = user.email || userId;
+                document.getElementById('inspectUserAvatar').innerHTML = user.avatar_url 
+                    ? `<img src="${escHtml(user.avatar_url)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">`
+                    : '<div style="width:36px; height:36px; border-radius:50%; background:var(--accent-purple); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;">U</div>';
+
+                document.getElementById('inspectUserSearches').textContent = summary.total_searches ?? 0;
+                document.getElementById('inspectUserUnique').textContent = summary.unique_content ?? 0;
+                document.getElementById('inspectUserProc').textContent = summary.total_processing ?? 0;
+                document.getElementById('inspectUserSuccessRate').textContent = `${summary.successful_processing ?? 0} / ${summary.failed_processing ?? 0}`;
+
+                const tbody = document.getElementById('inspectUserTableBody');
+                if (!history.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">No activity records for this account yet.</td></tr>';
+                } else {
+                    tbody.innerHTML = history.map(item => `
+                        <tr>
+                            <td>
+                                <div><strong>${escHtml(item.content_title || item.content_id)}</strong></div>
+                                <div style="font-size:11px; color:var(--text-muted); font-family:monospace;">${escHtml(item.query || item.content_id)}</div>
+                            </td>
+                            <td><span class="badge ${item.action === 'search' ? 'badge-blue' : 'badge-purple'}">${escHtml(item.action)}</span></td>
+                            <td><span class="badge ${item.status === 'success' || item.status === 'completed' ? 'badge-green' : 'badge-red'}">${escHtml(item.status)}</span></td>
+                            <td><span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">${escHtml(item.plan_at_time || 'free')}</span></td>
+                            <td style="font-size:11px; color:var(--text-muted);">${(item.created_at || '').slice(0, 16).replace('T', ' ')}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                document.getElementById('userInspectModal').classList.add('open');
+            } catch (e) {
+                alert('Could not load user activity history.');
+            }
+        }
+
+        function closeUserModal() {
+            document.getElementById('userInspectModal').classList.remove('open');
+        }
+
+        function renderSearchAnalytics(data) {
+            document.getElementById('searchTodayVal').textContent = data.searches_today ?? 0;
+            document.getElementById('searchWeekVal').textContent = data.searches_week ?? 0;
+            document.getElementById('searchMonthVal').textContent = data.searches_month ?? 0;
+            document.getElementById('searchUniqueUsersVal').textContent = data.unique_searchers ?? 0;
+
+            const mostBody = document.getElementById('mostSearchedBody');
+            const most = data.most_searched || [];
+            if (!most.length) {
+                mostBody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">No search data yet</td></tr>';
+            } else {
+                mostBody.innerHTML = most.map(m => `
+                    <tr>
+                        <td>
+                            <div><strong>${escHtml(m.content_title || m.content_id)}</strong></div>
+                            <div style="font-size:11px; color:var(--text-muted); font-family:monospace;">${escHtml(m.content_id)}</div>
+                        </td>
+                        <td><strong>${m.search_count}</strong></td>
+                        <td>${m.unique_searchers}</td>
+                    </tr>
+                `).join('');
+            }
+
+            const recBody = document.getElementById('recentSearchesBody');
+            const rec = data.recent_searches || [];
+            if (!rec.length) {
+                recBody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">No recent searches</td></tr>';
+            } else {
+                recBody.innerHTML = rec.map(r => `
+                    <tr>
+                        <td><strong>${escHtml(r.content_title || r.query)}</strong></td>
+                        <td>${escHtml(r.user_name || r.user_email || 'Guest')}</td>
+                        <td style="font-size:11px; color:var(--text-muted);">${(r.created_at || '').slice(11, 19)}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function renderContentAnalytics(contents) {
+            const tbody = document.getElementById('contentAnalyticsBody');
+            if (!contents || !contents.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:32px;">No content interactions recorded yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = contents.map(c => `
+                <tr>
+                    <td>
+                        <div><strong>${escHtml(c.content_title || c.content_id)}</strong></div>
+                        <div style="font-size:11px; color:var(--text-muted); font-family:monospace;">ID: ${escHtml(c.content_id)}</div>
+                    </td>
+                    <td><strong>${c.total_searches ?? 0}</strong></td>
+                    <td>${c.unique_searchers ?? 0}</td>
+                    <td><strong>${c.total_processing ?? 0}</strong></td>
+                    <td><span style="color:var(--accent-green); font-weight:600;">${c.successful_processing ?? 0}</span> / <span style="color:var(--accent-red);">${c.failed_processing ?? 0}</span></td>
+                    <td style="font-size:12px; color:var(--text-muted);">${(c.last_activity || '').slice(0, 16).replace('T', ' ')}</td>
+                    <td>
+                        <button onclick="inspectContent('${escHtml(c.content_id)}')" style="padding:4px 10px; background:var(--bg-elevated); border:1px solid var(--border-ui); color:var(--accent-cyan); border-radius:6px; cursor:pointer; font-weight:600; font-size:11px;">Breakdown →</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function inspectContent(contentId) {
+            try {
+                const res = await fetch(`/admin/api/content/${encodeURIComponent(contentId)}`);
+                if (!res.ok) throw new Error('Content not found');
+                const data = await res.json();
+
+                document.getElementById('inspectContentTitle').textContent = data.content_title || contentId;
+                document.getElementById('inspectContentId').textContent = 'Content ID: ' + contentId;
+
+                document.getElementById('inspectContentSearches').textContent = data.total_searches ?? 0;
+                document.getElementById('inspectContentUsers').textContent = data.unique_searchers ?? 0;
+                document.getElementById('inspectContentProc').textContent = data.total_processing ?? 0;
+
+                const totalProc = (data.successful_processing ?? 0) + (data.failed_processing ?? 0);
+                const pct = totalProc > 0 ? Math.round(((data.successful_processing ?? 0) / totalProc) * 100) : 100;
+                document.getElementById('inspectContentSuccess').textContent = pct + '%';
+
+                const tbody = document.getElementById('inspectContentUsersBody');
+                const users = data.users_breakdown || [];
+                if (!users.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">No user breakdown available</td></tr>';
+                } else {
+                    tbody.innerHTML = users.map(u => `
+                        <tr>
+                            <td><strong>${escHtml(u.user_name || 'Guest')}</strong></td>
+                            <td>${escHtml(u.user_email || '—')}</td>
+                            <td><strong>${u.search_count ?? 0}</strong></td>
+                            <td><strong>${u.process_count ?? 0}</strong></td>
+                            <td style="font-size:11px; color:var(--text-muted);">${(u.last_interacted || '').slice(0, 16).replace('T', ' ')}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                document.getElementById('contentInspectModal').classList.add('open');
+            } catch (e) {
+                alert('Could not load content breakdown.');
+            }
+        }
+
+        function closeContentModal() {
+            document.getElementById('contentInspectModal').classList.remove('open');
+        }
+
+        function renderVideos(videos) {
+            const tbody = document.getElementById('videosTableBody');
+            if (!videos || !videos.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:32px;">No videos analyzed yet</td></tr>';
+                return;
+            }
+            tbody.innerHTML = videos.map(v => `
+                <tr>
+                    <td>
+                        <a href="https://youtube.com/watch?v=${escHtml(v.video_id)}" target="_blank" style="color:var(--text-main); font-weight:600; text-decoration:none;">${escHtml(v.title || v.video_id)} ↗</a>
+                    </td>
+                    <td>${escHtml(v.author || '—')}</td>
+                    <td>${escHtml(v.duration || '—')}</td>
+                    <td><span class="badge badge-green">✓ Completed</span></td>
+                    <td style="font-size:12px; color:var(--text-muted);">${(v.created_at || '').slice(0, 16).replace('T', ' ')}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPayments(payData) {
+            const stats = payData.stats || {};
+            const payments = payData.payments || [];
+
+            document.getElementById('payTotalRev').textContent = '₹' + (stats.total_revenue ?? 0);
+            document.getElementById('payPayingCustomers').textContent = stats.paying_users ?? 0;
+            document.getElementById('payTxnCount').textContent = stats.verified_count ?? 0;
+
+            const tbody = document.getElementById('paymentsTableBody');
+            if (!payments.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:32px;">No payments recorded yet</td></tr>';
+                return;
+            }
+            tbody.innerHTML = payments.map(p => `
+                <tr>
+                    <td style="font-family:monospace; font-size:12px;">${escHtml(p.payment_id || p.id)}</td>
+                    <td>
+                        <div><strong>${escHtml(p.user_name || 'Customer')}</strong></div>
+                        <div style="font-size:11px; color:var(--text-muted);">${escHtml(p.user_email || '—')}</div>
+                    </td>
+                    <td><span class="badge badge-purple">${escHtml(p.plan)}</span></td>
+                    <td><strong>₹${p.amount}</strong></td>
+                    <td><span class="badge badge-green">${escHtml(p.status)}</span></td>
+                    <td style="font-size:12px; color:var(--text-muted); text-transform:uppercase;">${escHtml(p.provider)}</td>
+                    <td style="font-size:12px; color:var(--text-muted);">${(p.created_at || '').slice(0, 16).replace('T', ' ')}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderKeys(keys) {
+            const tbody = document.getElementById('keysTableBody');
+            if (!keys || !keys.length) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No key metrics yet</td></tr>';
+                return;
+            }
+            tbody.innerHTML = keys.map(k => `
+                <tr>
+                    <td style="font-family:monospace;">${escHtml(k.key_prefix || '????')}...</td>
+                    <td><span class="badge ${k.status === 'active' ? 'badge-green' : 'badge-red'}">${escHtml(k.status || 'active')}</span></td>
+                    <td><strong>${k.requests_today ?? 0}</strong></td>
+                    <td style="font-size:12px; color:var(--text-muted);">${(k.last_used || '').slice(0, 16).replace('T', ' ')}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderLogs(logs) {
+            const container = document.getElementById('logStream');
+            if (!logs || !logs.length) {
+                container.innerHTML = '<div class="log-info">[INFO] No logs recorded yet.</div>';
+                return;
+            }
+            container.innerHTML = logs.map(l => {
+                const cls = l.level === 'ERROR' ? 'log-error' : (l.level === 'WARNING' ? 'log-warning' : 'log-info');
+                const ts = (l.created_at || '').slice(0, 19).replace('T', ' ');
+                return `<div class="${cls}">[${l.level}] ${ts} [${escHtml(l.source || 'app')}] — ${escHtml(l.message)}</div>`;
+            }).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function generateCodes() {
+            const plan = document.getElementById('codePlan')?.value || '10';
+            const count = document.getElementById('codeCount')?.value || 5;
+            try {
+                const res = await fetch('/admin/api/generate-codes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan, count })
+                });
+                const data = await res.json();
+                const el = document.getElementById('generatedCodesList');
+                if (data.codes && data.codes.length) {
+                    el.innerHTML = `
+                        <div style="background:var(--bg-elevated); border:1px solid var(--border-ui); border-radius:8px; padding:16px;">
+                            <h4 style="margin:0 0 10px 0; color:var(--accent-green);">✓ Generated ${data.codes.length} Codes for ${data.plan}:</h4>
+                            ${data.codes.map(c => `<div style="padding:4px 0;">${escHtml(c)}</div>`).join('')}
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                alert('Code generation failed');
+            }
+        }
+
+        function escHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminDashboard();
+            setInterval(loadAdminDashboard, 10000); // Live poll every 10 seconds
+        });
+    </script>
+</body>
+</html>

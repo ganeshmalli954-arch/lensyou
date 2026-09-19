@@ -1,0 +1,12 @@
+flask
+youtube-transcript-api
+google-genai
+python-dotenv
+reportlab
+requests
+waitress
+json-repair
+yt-dlp
+authlib
+groq
+psutil
