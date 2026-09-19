@@ -159,17 +159,60 @@ def sitemap_xml():
 
 # --- Auth Routes ---
 
+def get_google_redirect_uri():
+    render_url = os.getenv('RENDER_EXTERNAL_URL')
+    if render_url and 'onrender.com' in render_url:
+        base = render_url.rstrip('/')
+        if not base.startswith('http'):
+            base = 'https://' + base
+        elif base.startswith('http://'):
+            base = base.replace('http://', 'https://', 1)
+        return f"{base}/auth/google/callback"
+    
+    proto = request.headers.get('X-Forwarded-Proto', 'https' if request.is_secure or os.getenv('RENDER') else request.scheme)
+    host = request.headers.get('X-Forwarded-Host', request.host)
+    if os.getenv('RENDER') or os.getenv('PRODUCTION'):
+        proto = 'https'
+    return f"{proto}://{host}/auth/google/callback"
+
+@app.route('/auth/google/info')
+def auth_google_info():
+    uri = get_google_redirect_uri()
+    return f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>LensYou — Google OAuth Configuration</title>
+        <style>
+            body {{ background: #050505; color: #F5F5F5; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }}
+            .card {{ background: #0C0C0D; border: 1px solid #222226; border-radius: 12px; padding: 32px; max-width: 580px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
+            h2 {{ margin-top: 0; font-size: 20px; }}
+            p {{ color: #A1A1AA; font-size: 14px; line-height: 1.6; }}
+            .uri-box {{ background: #141416; border: 1px solid #27272A; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 14px; color: #22C55E; word-break: break-all; margin: 20px 0; }}
+            .btn {{ display: inline-block; background: #4285F4; color: #FFF; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; margin-top: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h2>Google OAuth Whitelist Link</h2>
+            <p>To prevent <strong>Error 400: redirect_uri_mismatch</strong>, add this exact URL into your Google Cloud Console under <strong>Authorized redirect URIs</strong>:</p>
+            <div class="uri-box">{uri}</div>
+            <p>Once added and saved in Google Cloud Console, Google Sign-In will work immediately.</p>
+            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="btn">Open Google Cloud Console ↗</a>
+            <div style="margin-top: 20px;">
+                <a href="/" style="color: #71717A; font-size: 12px; text-decoration: none;">← Return to LensYou</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
 @app.route('/auth/google')
 def auth_google():
     if not FEATURES.get('google_login'):
         return "Google login not configured", 400
-    render_url = os.getenv('RENDER_EXTERNAL_URL')
-    if render_url:
-        redirect_uri = f"{render_url.rstrip('/')}/auth/google/callback"
-    else:
-        redirect_uri = url_for('auth_google_callback', _external=True)
-        if (os.getenv('RENDER') or os.getenv('PRODUCTION') or request.headers.get('X-Forwarded-Proto') == 'https') and redirect_uri.startswith('http://'):
-            redirect_uri = redirect_uri.replace('http://', 'https://', 1)
+    redirect_uri = get_google_redirect_uri()
     return oauth.google.authorize_redirect(redirect_uri)
 
 @app.route('/auth/google/callback')

@@ -1015,21 +1015,24 @@
                                 <div class="upgrade-plan-name">Unlimited Pro</div>
                                 <div class="upgrade-plan-price">₹99</div>
                                 <div style="font-size:11px; color:var(--text-muted); margin: 8px 0;">Unlimited Analyses<br>500 History Retention<br>Grounded Copilot<br>PDF Dossiers</div>
-                                <button onclick="initiatePlanPurchase('unlimited')" class="upgrade-plan-btn btn-gradient-plan" style="cursor:pointer; border:none; width:100%;">Upgrade ₹99/mo</button>
+                                <button onclick="initiatePlanPurchase('unlimited')" class="upgrade-plan-btn btn-gradient-plan" style="cursor:pointer; border:1px solid rgba(255,255,255,0.25); width:100%; background:linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%) !important; color:#FFFFFF !important; font-weight:700 !important; padding:10px; border-radius:8px; box-shadow:0 4px 16px rgba(139,92,246,0.45); font-size:13px;">Upgrade ₹99/mo</button>
                             </div>
                         </div>
 
                         <!-- Voluntary Buy Me a Coffee / UPI Support Link -->
-                        <div style="margin-top:20px; padding:12px 16px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                        <div style="margin-top:20px; padding:14px 16px; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.25); border-radius:10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
                             <div style="font-size:12px; color:var(--text-primary);">
                                 ☕ <strong>Voluntary Project Support</strong><br>
                                 <span style="color:var(--text-secondary); font-size:11px;">Keep AI credits active without purchasing a subscription</span>
                             </div>
-                            {% if is_upi %}
-                            <a href="javascript:void(0)" onclick="closeUpgradeModal(); openSupportModal();" style="padding:6px 14px; background:#F59E0B; color:#000; font-size:11px; font-weight:700; border-radius:6px; text-decoration:none;">⚡ Support via UPI →</a>
-                            {% else %}
-                            <a href="{{ bmc_url }}" target="_blank" style="padding:6px 14px; background:#F59E0B; color:#000; font-size:11px; font-weight:700; border-radius:6px; text-decoration:none;">Buy Me a Coffee →</a>
-                            {% endif %}
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <button type="button" onclick="closeUpgradeModal(); openSupportModal();" style="padding:7px 14px; background:linear-gradient(135deg, #10B981, #059669); color:#FFFFFF; font-size:12px; font-weight:700; border-radius:6px; border:none; cursor:pointer; box-shadow:0 2px 10px rgba(16,185,129,0.3);">
+                                    ⚡ Scan UPI QR Code
+                                </button>
+                                <a href="{{ bmc_url }}" target="_blank" style="padding:7px 14px; background:#F59E0B; color:#000000; font-size:12px; font-weight:700; border-radius:6px; text-decoration:none;">
+                                    Buy Me a Coffee →
+                                </a>
+                            </div>
                         </div>
 
                         <div class="upgrade-redeem-box" style="margin-top:16px;">
@@ -1048,38 +1051,41 @@
                         <h2 class="modal-title-center" style="text-align: left; font-size: 22px;">Support LensYou</h2>
                         <p class="modal-subtitle-center" style="text-align: left; margin-bottom: 20px;">LensYou is free and open-source for students. Support the project to keep AI inference credits running.</p>
                         
-                        {% if is_upi %}
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid #222226; border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 16px;">
-                            <div style="font-size: 13px; font-weight: 600; color: #F5F5F5; margin-bottom: 4px;">
-                                🇮🇳 Direct UPI Support
+                        {% set effective_upi = clean_upi if is_upi else 'ganeshmalli954@oksbi' %}
+                        {% set effective_intent = upi_intent if is_upi else 'upi://pay?pa=ganeshmalli954@oksbi&pn=LensYou&cu=INR' %}
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid #222226; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px;">
+                            <div style="font-size: 13px; font-weight: 700; color: #F5F5F5; margin-bottom: 4px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                                <span>🇮🇳</span> Direct UPI Instant Support
                             </div>
                             <div style="font-size: 11px; color: #A1A1AA; margin-bottom: 14px;">
                                 Google Pay • PhonePe • Paytm • BHIM • CRED
                             </div>
                             
                             <!-- Dynamic QR Code for UPI -->
-                            <div style="background: #FFFFFF; padding: 10px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.5); margin-bottom: 14px;">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ upi_intent | urlencode }}" 
-                                     alt="Scan UPI QR Code" width="180" height="180" style="display: block; border-radius: 4px;">
+                            <div style="background: #FFFFFF; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 30px rgba(0,0,0,0.6); margin-bottom: 14px;">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=190x190&data={{ effective_intent | urlencode }}" 
+                                     alt="Scan UPI QR Code" width="190" height="190" style="display: block; border-radius: 6px;">
                             </div>
 
                             <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px;">
-                                <code style="background: #141416; border: 1px solid #27272A; padding: 6px 12px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #F5F5F5;">{{ clean_upi }}</code>
-                                <button onclick="navigator.clipboard.writeText('{{ clean_upi }}'); showToast('UPI ID copied to clipboard!', 'success');" 
-                                        style="background: #27272A; border: 1px solid #3F3F46; color: #F5F5F5; padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 500;">
-                                    Copy
+                                <code style="background: #141416; border: 1px solid #27272A; padding: 7px 14px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #F5F5F5;">{{ effective_upi }}</code>
+                                <button onclick="navigator.clipboard.writeText('{{ effective_upi }}'); showToast('UPI ID copied to clipboard!', 'success');" 
+                                        style="background: #27272A; border: 1px solid #3F3F46; color: #F5F5F5; padding: 7px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600;">
+                                    Copy UPI ID
                                 </button>
                             </div>
 
-                            <a href="{{ upi_intent }}" class="support-cta-gradient" style="display: block; text-decoration: none; text-align: center; padding: 12px; border-radius: 8px; font-weight: 600;">
+                            <a href="{{ effective_intent }}" class="support-cta-gradient" style="display: block; text-decoration: none; text-align: center; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 13px; margin-bottom: 12px;">
                                 ⚡ Open in UPI App (Mobile) →
                             </a>
+
+                            <div style="margin-top: 12px; border-top: 1px solid #222226; padding-top: 12px;">
+                                <a href="{{ bmc_url }}" target="_blank" style="color: #F59E0B; font-size: 12px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                    ☕ Or Support via Buy Me a Coffee →
+                                </a>
+                            </div>
                         </div>
                         <p class="support-secure-note" style="text-align: center; margin: 0;">Direct to Indian Bank Account • Zero Intermediary Fees</p>
-                        {% else %}
-                        <a href="{{ bmc_url }}" target="_blank" class="support-cta-gradient">☕ Support on Buy Me a Coffee →</a>
-                        <p class="support-secure-note">No account needed • Secure via Stripe</p>
-                        {% endif %}
                     </div>
                 </div>
 
