@@ -121,6 +121,17 @@ def run_analysis_job(job_id, video_id, user_id, session_key, key_pool):
         duration_str = transcript_res.get("formatted_duration", "N/A")
         duration_secs = transcript_res.get("duration_seconds", 0)
 
+        # Check if transcript segments themselves indicate a longer lecture duration
+        segments = transcript_res.get("segments", [])
+        if segments:
+            max_seg_end = max((float(s.get("start", 0)) + float(s.get("duration", 0)) for s in segments), default=0)
+            if max_seg_end > duration_secs:
+                from utils.time_utils import format_seconds
+                duration_secs = int(max_seg_end)
+                duration_str = format_seconds(duration_secs)
+                transcript_res["duration_seconds"] = duration_secs
+                transcript_res["formatted_duration"] = duration_str
+
         # Ensure accurate video duration for long student lectures & podcasts
         if duration_str in ["N/A", "10:00", "00:00", ""] or duration_secs in [0, 600]:
             try:

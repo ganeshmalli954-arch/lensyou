@@ -267,7 +267,7 @@ def get_transcript_tier4_metadata(video_id: str) -> dict:
         author = oembed.get("author_name", "YouTube Creator")
 
         desc = ""
-        duration_secs = get_video_duration_seconds(video_id) or 600
+        duration_secs = get_video_duration_seconds(video_id)
 
         # Scrape YouTube watch page for description, length, and chapters
         try:
@@ -288,7 +288,7 @@ def get_transcript_tier4_metadata(video_id: str) -> dict:
                         desc = m2.group(1).encode().decode('unicode-escape')
                 
                 m_len = re.search(r'"lengthSeconds":\s*"(\d+)"', html)
-                if m_len:
+                if m_len and int(m_len.group(1)) > 0:
                     duration_secs = int(m_len.group(1))
         except Exception as e_page:
             print(f"  [Transcript Tier 4] Metadata fetch note: {e_page}", flush=True)
@@ -296,10 +296,13 @@ def get_transcript_tier4_metadata(video_id: str) -> dict:
         # Look for chapter timestamps in description e.g. "01:23 Intro" or "0:00 - Chapter 1"
         chapter_matches = re.findall(r'(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s+[-–—]?\s*([^\n\r]+)', desc)
         segments = []
+        max_chapter_sec = 0
         if chapter_matches:
             for match in chapter_matches:
                 hrs, mins, secs, chap_title = match
                 total_s = (int(hrs) * 3600 if hrs else 0) + int(mins) * 60 + int(secs)
+                if total_s > max_chapter_sec:
+                    max_chapter_sec = total_s
                 clean_title = chap_title.strip()
                 if clean_title:
                     segments.append({
@@ -308,6 +311,14 @@ def get_transcript_tier4_metadata(video_id: str) -> dict:
                         "duration": 60.0,
                         "timestamp": format_seconds(float(total_s))
                     })
+
+        if not duration_secs or duration_secs < max_chapter_sec:
+            if max_chapter_sec > 0:
+                duration_secs = max_chapter_sec + 180
+            elif desc:
+                duration_secs = max(1800, int((len(desc.split()) / 130) * 60))
+            else:
+                duration_secs = 3600
 
         if not segments:
             # Construct segments from description paragraphs

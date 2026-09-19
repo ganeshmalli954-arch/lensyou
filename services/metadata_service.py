@@ -48,8 +48,43 @@ def get_video_oembed(video_id: str) -> dict:
         print(f"  [Warning] oEmbed lookup failed: {e}", flush=True)
     return {}
 
+def parse_duration_string(dur_str: str) -> int:
+    """Convert '02:44:05', '1:21:12', '14:20', or '0:45' to total integer seconds."""
+    if not dur_str:
+        return 0
+    parts = str(dur_str).strip().split(':')
+    try:
+        if len(parts) == 3:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+        elif len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+        elif len(parts) == 1 and parts[0].isdigit():
+            return int(parts[0])
+    except Exception:
+        pass
+    return 0
+
 def get_video_duration_seconds(video_id: str) -> int:
-    """Fetch exact video duration in seconds using android-client yt-dlp, with HTML fallback."""
+    """Fetch exact video duration in seconds via YouTube Search data, yt-dlp, and HTML fallback."""
+    if not video_id:
+        return 0
+
+    # 1. Fast, highly reliable YouTube Search query (works seamlessly in cloud/Render environments)
+    try:
+        results = search_youtube(f'"{video_id}"', limit=3)
+        for it in results:
+            if it.get('video_id') == video_id and it.get('duration'):
+                secs = parse_duration_string(it['duration'])
+                if secs > 0:
+                    return secs
+        if results and results[0].get('duration'):
+            secs = parse_duration_string(results[0]['duration'])
+            if secs > 0:
+                return secs
+    except Exception as e_search:
+        print(f"  [Warning] Search duration lookup note: {e_search}", flush=True)
+
+    # 2. yt-dlp duration extractor
     import subprocess
     try:
         cmd = [
@@ -67,16 +102,19 @@ def get_video_duration_seconds(video_id: str) -> int:
     except Exception as e:
         print(f"  [Warning] yt-dlp duration lookup note: {e}", flush=True)
 
-    # Fallback to scraping watch page for lengthSeconds
+    # 3. Fallback to watch page lengthSeconds
     try:
         import urllib.request
         url = f"https://www.youtube.com/watch?v={video_id}"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        with urllib.request.urlopen(req, timeout=6) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
             m = re.search(r'"lengthSeconds":\s*"(\d+)"', html)
             if m and int(m.group(1)) > 0:
                 return int(m.group(1))
+            m_ms = re.search(r'"approxDurationMs":\s*"(\d+)"', html)
+            if m_ms and int(m_ms.group(1)) > 0:
+                return int(int(m_ms.group(1)) / 1000)
     except Exception:
         pass
 

@@ -455,6 +455,24 @@ def run_videolens_analysis(segments: list, duration_str: str, video_title: str, 
     data = _ensure_complete_schema(data, duration_str, video_title, author_name)
     data["_is_premium"] = is_paid
     data["_model_used"] = getattr(response, "used_model", "Gemini 3.6 Flash")
+
+    # Safety: check if generated chapters or engagement curve points show a longer lecture
+    last_known_sec = 0
+    from services.metadata_service import parse_duration_string
+    for ch in data.get("chapters", []):
+        t_str = ch.get("timestamp") or ch.get("time") or ""
+        s = parse_duration_string(t_str)
+        if s > last_known_sec:
+            last_known_sec = s
+    for pt in data.get("engagement_curve", []):
+        s = pt.get("seconds", 0)
+        if s > last_known_sec:
+            last_known_sec = s
+
+    if last_known_sec > 600 and (not duration_str or duration_str in ["N/A", "10:00", "00:00"]):
+        from utils.time_utils import format_seconds
+        duration_str = format_seconds(last_known_sec + 120)
+
     if "metrics" in data and duration_str:
         data["metrics"]["duration"] = duration_str
     if "video_overview" in data and duration_str:
