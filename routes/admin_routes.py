@@ -46,19 +46,20 @@ def admin_login():
     
     if request.method == 'POST':
         pwd = request.form.get('password', '')
-        totp_code = request.form.get('totp_code', '').strip()
+        import re
+        totp_code = re.sub(r'\D', '', request.form.get('totp_code', ''))
         
         if not is_admin(pwd):
             log_event('WARNING', "Failed admin authentication attempt: invalid password", source='admin')
             error = "Invalid administrator password"
         elif two_fa_active:
-            if not totp_code:
+            if not totp_code or len(totp_code) != 6:
                 error = "Google Authenticator 6-digit code is required"
             else:
                 secret = get_admin_totp_secret()
                 if not secret or not verify_totp_code(secret, totp_code):
                     log_event('WARNING', "Failed admin 2FA verification attempt: invalid TOTP code", source='admin')
-                    error = "Invalid 6-digit Google Authenticator code"
+                    error = "Invalid 6-digit Google Authenticator code. Check device time sync."
                 else:
                     session['is_admin'] = True
                     log_event('INFO', "Admin successfully authenticated with 2FA TOTP", source='admin')
@@ -75,7 +76,8 @@ def admin_login():
                 <label style="display:block; font-size:12px; font-weight:600; color:#A1A1AA; margin-bottom:6px; letter-spacing:0.5px; text-transform:uppercase;">
                     Google Authenticator (2FA)
                 </label>
-                <input type="text" name="totp_code" placeholder="000 000" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required autocomplete="one-time-code"
+                <input type="text" name="totp_code" placeholder="000 000" maxlength="8" inputmode="numeric" required autocomplete="one-time-code" autofocus
+                       oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);"
                        style="width:100%; box-sizing:border-box; background:#141416; border:1px solid #222226; border-radius:8px; padding:12px 14px; color:#F5F5F5; font-size:18px; font-family:'JetBrains Mono', monospace; letter-spacing:4px; text-align:center; outline:none;">
             </div>
         '''
@@ -124,7 +126,7 @@ def admin_login():
 
             {"<div class='error'>" + error + "</div>" if error else ""}
 
-            <form method="POST">
+            <form method="POST" novalidate>
                 <div class="form-group">
                     <label>Master Password</label>
                     <input type="password" name="password" placeholder="Enter admin password..." required autofocus autocomplete="current-password">
@@ -148,7 +150,8 @@ def setup_2fa():
 
     if request.method == 'POST':
         pwd = request.form.get('password', '')
-        totp_code = request.form.get('totp_code', '').strip()
+        import re
+        totp_code = re.sub(r'\D', '', request.form.get('totp_code', ''))
 
         # If not authenticated, require valid master password
         if not is_authenticated:
@@ -159,6 +162,8 @@ def setup_2fa():
         if not error:
             if not secret:
                 error = "Setup session expired. Please refresh the page."
+            elif not totp_code or len(totp_code) != 6:
+                error = "Please enter the complete 6-digit code shown in your Google Authenticator app."
             elif not verify_totp_code(secret, totp_code, window=2):
                 error = "Invalid 6-digit code. Ensure your device time is synchronized and enter the code currently displayed."
             else:
@@ -244,14 +249,15 @@ def setup_2fa():
             </div>
 
             <!-- Step 3: Verification -->
-            <form method="POST">
+            <form method="POST" novalidate>
                 <input type="hidden" name="setup_secret" value="{secret}">
                 {pwd_input_html}
                 <div style="margin-bottom: 16px; text-align: left;">
                     <label style="display:block; font-size:11px; font-weight:600; color:#A1A1AA; margin-bottom:6px; letter-spacing:0.5px; text-transform:uppercase;">
                         Enter 6-Digit Code from Authenticator App
                     </label>
-                    <input type="text" name="totp_code" placeholder="000 000" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required autofocus autocomplete="one-time-code"
+                    <input type="text" name="totp_code" id="setupTotpCode" placeholder="000 000" maxlength="8" inputmode="numeric" required autofocus autocomplete="one-time-code"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);"
                            style="width:100%; box-sizing:border-box; background:#141416; border:1px solid #222226; border-radius:8px; padding:12px 14px; color:#F5F5F5; font-size:20px; font-family:'JetBrains Mono', monospace; letter-spacing:4px; text-align:center; outline:none;">
                 </div>
                 <button type="submit" class="submit-btn">Verify & Activate 2FA →</button>

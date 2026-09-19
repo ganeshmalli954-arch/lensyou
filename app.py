@@ -42,6 +42,10 @@ if os.getenv('RENDER') or os.getenv('PRODUCTION'):
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32)
 
+# Enable ProxyFix to correctly resolve https scheme and client IPs on Render
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 # Secure application cookie settings & persistent sessions
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -118,7 +122,13 @@ def manifest():
 def auth_google():
     if not FEATURES.get('google_login'):
         return "Google login not configured", 400
-    redirect_uri = url_for('auth_google_callback', _external=True)
+    render_url = os.getenv('RENDER_EXTERNAL_URL')
+    if render_url:
+        redirect_uri = f"{render_url.rstrip('/')}/auth/google/callback"
+    else:
+        redirect_uri = url_for('auth_google_callback', _external=True)
+        if (os.getenv('RENDER') or os.getenv('PRODUCTION') or request.headers.get('X-Forwarded-Proto') == 'https') and redirect_uri.startswith('http://'):
+            redirect_uri = redirect_uri.replace('http://', 'https://', 1)
     return oauth.google.authorize_redirect(redirect_uri)
 
 @app.route('/auth/google/callback')
