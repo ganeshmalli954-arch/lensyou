@@ -338,7 +338,11 @@
                 <a href="/" class="action-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
                     <span>←</span> Analyzer
                 </a>
+                {% if is_upi %}
+                <button class="support-amber-btn" onclick="window.location.href='/?support=1'">⚡ Support (UPI)</button>
+                {% else %}
                 <button class="support-amber-btn" onclick="window.open('{{ bmc_url }}', '_blank')">☕ Support</button>
+                {% endif %}
                 <div id="authContainer">
                     <button class="action-btn" onclick="window.location.href='/auth/google'">Sign In</button>
                 </div>

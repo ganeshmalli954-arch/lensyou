@@ -22,6 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
     checkCookieConsent();
     setInterval(updateUsageCounter, 30000);
 
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('support') === '1') {
+        setTimeout(openSupportModal, 300);
+    }
+
     // Mobile bottom navigation listener
     document.querySelectorAll('.bottom-nav-tab').forEach(tab => {
         tab.addEventListener('click', () => switchMainMode(tab.dataset.mode));

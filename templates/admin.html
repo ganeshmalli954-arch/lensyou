@@ -409,17 +409,17 @@
 
                     <div style="margin-top:16px; display:flex; flex-direction:column; gap:12px;">
                         <div>
-                            <label style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:6px; font-weight:600;">Your Buy Me a Coffee Profile URL</label>
+                            <label style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:6px; font-weight:600;">Support Link (Buy Me a Coffee / Razorpay) OR Direct UPI ID</label>
                             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                                <input type="url" id="bmcUrlInput" placeholder="https://www.buymeacoffee.com/yourname" style="flex:1; min-width:280px; padding:10px 14px; background:var(--bg-elevated); border:1px solid var(--border-ui); border-radius:8px; color:#fff; font-size:13px; outline:none;">
-                                <button onclick="saveBmcUrl()" style="padding:10px 18px; background:#F5F5F5; border:1px solid #FFFFFF; border-radius:8px; color:#09090B; font-weight:600; font-size:13px; cursor:pointer;">Save BMC Link</button>
+                                <input type="text" id="bmcUrlInput" placeholder="e.g. username@oksbi or https://www.buymeacoffee.com/yourname" style="flex:1; min-width:280px; padding:10px 14px; background:var(--bg-elevated); border:1px solid var(--border-ui); border-radius:8px; color:#fff; font-size:13px; outline:none;">
+                                <button onclick="saveBmcUrl()" style="padding:10px 18px; background:#F5F5F5; border:1px solid #FFFFFF; border-radius:8px; color:#09090B; font-weight:600; font-size:13px; cursor:pointer;">Save Setting</button>
                                 <a id="bmcTestBtn" href="#" target="_blank" style="padding:10px 16px; background:var(--bg-elevated); border:1px solid var(--border-ui); border-radius:8px; color:var(--text-main); font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">Test Link ↗</a>
                             </div>
                             <div id="bmcSaveStatus" style="font-size:12px; margin-top:8px; font-weight:500;"></div>
                         </div>
 
-                        <div style="padding:12px 14px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:8px; font-size:12px; color:var(--text-muted);">
-                            💡 <strong>Tip for Students & Donors:</strong> When visitors click "Buy Me a Coffee" or voluntary support buttons in the footer, modal, or history page, they are directed straight to this link.
+                        <div style="padding:12px 14px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:8px; font-size:12px; color:var(--text-muted); line-height:1.6;">
+                            💡 <strong>Tip for Indian Creators & Students:</strong> You can enter your direct <strong>UPI ID</strong> (e.g. <code>username@oksbi</code>, <code>mobile@paytm</code>, <code>name@ybl</code>) or a payment link (Buy Me a Coffee, Razorpay). If a UPI ID is entered, VideoLens automatically creates an <strong>instant QR code</strong>, <strong>1-click copy</strong>, and <strong>mobile UPI app launcher</strong> (GPay / PhonePe / Paytm / BHIM) so students can support directly in INR (₹) with zero fees and no foreign credit card requirement.
                         </div>
                     </div>
                 </div>
@@ -946,6 +946,15 @@
             return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        function resolveSupportLink(raw) {
+            if (!raw) return '#';
+            if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('upi://')) return raw;
+            if (raw.includes('@')) {
+                return `upi://pay?pa=${encodeURIComponent(raw)}&pn=VideoLens&cu=INR`;
+            }
+            return raw;
+        }
+
         async function loadSettings() {
             try {
                 const res = await fetch('/admin/api/settings');
@@ -956,7 +965,7 @@
                     bmcInput.value = data.bmc_url || '';
                 }
                 const testBtn = document.getElementById('bmcTestBtn');
-                if (testBtn) testBtn.href = data.bmc_url || '#';
+                if (testBtn) testBtn.href = resolveSupportLink(data.bmc_url);
 
                 const badge = document.getElementById('admin2faStatusBadge');
                 const disableBtn = document.getElementById('disable2faBtn');
@@ -987,24 +996,27 @@
         async function saveBmcUrl() {
             const input = document.getElementById('bmcUrlInput');
             const status = document.getElementById('bmcSaveStatus');
-            const url = (input.value || '').trim();
-            if (!url) {
-                alert('Please enter a valid Buy Me a Coffee profile URL.');
+            const val = (input.value || '').trim();
+            if (!val) {
+                alert('Please enter a valid URL or UPI ID.');
                 return;
             }
             try {
                 const res = await fetch('/admin/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bmc_url: url })
+                    body: JSON.stringify({ bmc_url: val })
                 });
                 const data = await res.json();
                 if (data.success) {
                     status.style.color = 'var(--accent-green)';
-                    status.textContent = '✓ Saved successfully! Public support buttons updated.';
+                    const isUpi = (data.bmc_url.includes('@') && !data.bmc_url.startsWith('http')) || data.bmc_url.startsWith('upi://');
+                    status.textContent = isUpi 
+                        ? '✓ Direct UPI ID saved! Mobile launcher and QR code activated for students.' 
+                        : '✓ Saved successfully! Public support buttons updated.';
                     const testBtn = document.getElementById('bmcTestBtn');
-                    if (testBtn) testBtn.href = data.bmc_url;
-                    setTimeout(() => { status.textContent = ''; }, 4000);
+                    if (testBtn) testBtn.href = resolveSupportLink(data.bmc_url);
+                    setTimeout(() => { status.textContent = ''; }, 5000);
                 }
             } catch (e) {
                 status.style.color = 'var(--accent-red)';

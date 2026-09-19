@@ -92,7 +92,16 @@ def assign_anon_session():
 
 @app.context_processor
 def inject_global_vars():
-    return {'bmc_url': BMC_URL}
+    url = str(BMC_URL).strip()
+    is_upi = ('@' in url and not url.startswith('http')) or url.startswith('upi://')
+    clean_upi = url.replace('upi://pay?pa=', '').split('&')[0] if url.startswith('upi://') else url
+    upi_intent = url if url.startswith('upi://') else f"upi://pay?pa={clean_upi}&pn=VideoLens&cu=INR"
+    return {
+        'bmc_url': BMC_URL,
+        'is_upi': is_upi,
+        'clean_upi': clean_upi,
+        'upi_intent': upi_intent
+    }
 
 # --- View Routes ---
 

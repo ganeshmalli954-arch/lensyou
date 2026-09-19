@@ -943,13 +943,17 @@
                             </div>
                         </div>
 
-                        <!-- Voluntary Buy Me a Coffee Support Link -->
+                        <!-- Voluntary Buy Me a Coffee / UPI Support Link -->
                         <div style="margin-top:20px; padding:12px 16px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
                             <div style="font-size:12px; color:var(--text-primary);">
                                 ☕ <strong>Voluntary Project Support</strong><br>
                                 <span style="color:var(--text-secondary); font-size:11px;">Keep AI credits active without purchasing a subscription</span>
                             </div>
+                            {% if is_upi %}
+                            <a href="javascript:void(0)" onclick="closeUpgradeModal(); openSupportModal();" style="padding:6px 14px; background:#F59E0B; color:#000; font-size:11px; font-weight:700; border-radius:6px; text-decoration:none;">⚡ Support via UPI →</a>
+                            {% else %}
                             <a href="{{ bmc_url }}" target="_blank" style="padding:6px 14px; background:#F59E0B; color:#000; font-size:11px; font-weight:700; border-radius:6px; text-decoration:none;">Buy Me a Coffee →</a>
+                            {% endif %}
                         </div>
 
                         <div class="upgrade-redeem-box" style="margin-top:16px;">
@@ -963,12 +967,43 @@
                 </div>
 
                 <div id="supportModal" class="modal-backdrop" onclick="if(event.target === this) closeSupportModal()">
-                    <div class="modal-card">
+                    <div class="modal-card" style="max-width: 440px;">
                         <button class="modal-close" onclick="closeSupportModal()">×</button>
                         <h2 class="modal-title-center" style="text-align: left; font-size: 22px;">Support VideoLens</h2>
-                        <p class="modal-subtitle-center" style="text-align: left; margin-bottom: 20px;">VideoLens is free and open-source. Support the project to keep AI inference credits running.</p>
+                        <p class="modal-subtitle-center" style="text-align: left; margin-bottom: 20px;">VideoLens is free and open-source for students. Support the project to keep AI inference credits running.</p>
+                        
+                        {% if is_upi %}
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid #222226; border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 16px;">
+                            <div style="font-size: 13px; font-weight: 600; color: #F5F5F5; margin-bottom: 4px;">
+                                🇮🇳 Direct UPI Support
+                            </div>
+                            <div style="font-size: 11px; color: #A1A1AA; margin-bottom: 14px;">
+                                Google Pay • PhonePe • Paytm • BHIM • CRED
+                            </div>
+                            
+                            <!-- Dynamic QR Code for UPI -->
+                            <div style="background: #FFFFFF; padding: 10px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.5); margin-bottom: 14px;">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ upi_intent | urlencode }}" 
+                                     alt="Scan UPI QR Code" width="180" height="180" style="display: block; border-radius: 4px;">
+                            </div>
+
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px;">
+                                <code style="background: #141416; border: 1px solid #27272A; padding: 6px 12px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #F5F5F5;">{{ clean_upi }}</code>
+                                <button onclick="navigator.clipboard.writeText('{{ clean_upi }}'); showToast('UPI ID copied to clipboard!', 'success');" 
+                                        style="background: #27272A; border: 1px solid #3F3F46; color: #F5F5F5; padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 500;">
+                                    Copy
+                                </button>
+                            </div>
+
+                            <a href="{{ upi_intent }}" class="support-cta-gradient" style="display: block; text-decoration: none; text-align: center; padding: 12px; border-radius: 8px; font-weight: 600;">
+                                ⚡ Open in UPI App (Mobile) →
+                            </a>
+                        </div>
+                        <p class="support-secure-note" style="text-align: center; margin: 0;">Direct to Indian Bank Account • Zero Intermediary Fees</p>
+                        {% else %}
                         <a href="{{ bmc_url }}" target="_blank" class="support-cta-gradient">☕ Support on Buy Me a Coffee →</a>
                         <p class="support-secure-note">No account needed • Secure via Stripe</p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -1017,8 +1052,11 @@
                 <div class="supporter-icon">☕</div>
                 <div class="supporter-content">
                     <h4>VideoLens is free, forever.</h4>
-                    <p><span id="usageCount">0</span> analyses completed. If this saves you time, a coffee helps keep the AI credits running.</p>
+                    {% if is_upi %}
+                    <a class="supporter-cta-btn" href="javascript:void(0)" onclick="openSupportModal()">⚡ Support via UPI →</a>
+                    {% else %}
                     <a class="supporter-cta-btn" href="{{ bmc_url }}" target="_blank" rel="noopener">Buy Me a Coffee →</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
