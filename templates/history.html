@@ -10,10 +10,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-base: #050505;
+            --bg-card: #0C0C0D;
+            --bg-elevated: #141416;
+            --border-ui: #222226;
+            --border-subtle: #18181B;
+            --text-main: #F5F5F5;
+            --text-muted: #71717A;
+            --accent-purple: #8B7CFF;
+            --accent-green: #22C55E;
+            --accent-red: #EF4444;
+            --accent-amber: #F59E0B;
+        }
         .history-page-layout {
             min-height: 100vh;
-            background: #080A12;
-            color: #F8FAFC;
+            background: var(--bg-base);
+            color: var(--text-main);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             display: flex;
             flex-direction: column;
@@ -38,13 +51,12 @@
             font-size: 26px;
             font-weight: 700;
             margin: 0 0 6px 0;
-            background: linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #F5F5F5;
+            letter-spacing: -0.5px;
         }
         .history-subtitle {
             font-size: 13px;
-            color: #8E9AAF;
+            color: var(--text-muted);
             margin: 0;
         }
         .stats-grid-4 {
@@ -54,8 +66,8 @@
             margin-bottom: 28px;
         }
         .stat-card-hist {
-            background: #101522;
-            border: 1px solid #242B42;
+            background: var(--bg-card);
+            border: 1px solid var(--border-ui);
             border-radius: 12px;
             padding: 18px 20px;
             display: flex;
@@ -63,31 +75,29 @@
             gap: 6px;
             position: relative;
             overflow: hidden;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 4px 20px rgba(0,0,0,0.4);
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        .stat-card-hist::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #7C5CFC, #22D3EE);
-            opacity: 0.7;
+        .stat-card-hist:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.16);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 30px rgba(0,0,0,0.6);
         }
         .stat-card-num {
             font-size: 28px;
             font-weight: 700;
-            color: #F8FAFC;
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
         }
         .stat-card-lbl {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            color: #8E9AAF;
+            color: var(--text-muted);
         }
         .filters-toolbar {
-            background: #101522;
-            border: 1px solid #242B42;
+            background: var(--bg-card);
+            border: 1px solid var(--border-ui);
             border-radius: 12px;
             padding: 16px;
             display: flex;
@@ -95,6 +105,7 @@
             margin-bottom: 24px;
             flex-wrap: wrap;
             align-items: center;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
         .search-input-box {
             flex: 1;
@@ -104,17 +115,17 @@
         .search-input-box input {
             width: 100%;
             box-sizing: border-box;
-            background: #151C2B;
-            border: 1px solid #242B42;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-ui);
             border-radius: 8px;
             padding: 10px 14px 10px 36px;
-            color: #F8FAFC;
+            color: var(--text-main);
             font-size: 13px;
             outline: none;
             transition: border-color 0.2s;
         }
         .search-input-box input:focus {
-            border-color: #7C5CFC;
+            border-color: var(--accent-purple);
         }
         .search-icon-pos {
             position: absolute;
@@ -122,27 +133,27 @@
             top: 50%;
             transform: translateY(-50%);
             font-size: 13px;
-            color: #8E9AAF;
+            color: var(--text-muted);
         }
         .filter-select {
-            background: #151C2B;
-            border: 1px solid #242B42;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-ui);
             border-radius: 8px;
             padding: 10px 12px;
-            color: #F8FAFC;
+            color: var(--text-main);
             font-size: 13px;
             outline: none;
             cursor: pointer;
         }
         .filter-select:focus {
-            border-color: #7C5CFC;
+            border-color: var(--accent-purple);
         }
         .history-table-card {
-            background: #101522;
-            border: 1px solid #242B42;
+            background: var(--bg-card);
+            border: 1px solid var(--border-ui);
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 30px rgba(0,0,0,0.5);
         }
         .history-table {
             width: 100%;
@@ -150,22 +161,22 @@
             text-align: left;
         }
         .history-table th {
-            background: #151C2B;
+            background: var(--bg-elevated);
             padding: 14px 18px;
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            color: #8E9AAF;
-            border-bottom: 1px solid #242B42;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-ui);
         }
         .history-table td {
             padding: 16px 18px;
-            border-bottom: 1px solid #1C2333;
+            border-bottom: 1px solid var(--border-subtle);
             font-size: 13px;
             vertical-align: middle;
         }
         .history-table tr:hover td {
-            background: rgba(124, 92, 252, 0.04);
+            background: rgba(255, 255, 255, 0.02);
         }
         .badge-action {
             display: inline-block;
@@ -176,14 +187,14 @@
             text-transform: uppercase;
         }
         .badge-search {
-            background: rgba(59, 130, 246, 0.15);
-            color: #60A5FA;
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            color: #D4D4D8;
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
         .badge-process {
-            background: rgba(124, 92, 252, 0.15);
-            color: #A78BFA;
-            border: 1px solid rgba(124, 92, 252, 0.3);
+            background: rgba(139, 124, 255, 0.12);
+            color: #8B7CFF;
+            border: 1px solid rgba(139, 124, 255, 0.25);
         }
         .badge-status {
             display: inline-flex;
@@ -216,15 +227,15 @@
             height: 36px;
             border-radius: 6px;
             object-fit: cover;
-            background: #1C2333;
-            border: 1px solid #242B42;
+            background: #141416;
+            border: 1px solid var(--border-ui);
             flex-shrink: 0;
         }
         .content-info {
             min-width: 0;
         }
         .content-title-link {
-            color: #F8FAFC;
+            color: var(--text-main);
             text-decoration: none;
             font-weight: 600;
             font-size: 13px;
@@ -233,11 +244,11 @@
             transition: color 0.2s;
         }
         .content-title-link:hover {
-            color: #7C5CFC;
+            color: var(--accent-purple);
         }
         .content-query-sub {
             font-size: 11px;
-            color: #8E9AAF;
+            color: var(--text-muted);
             font-family: 'JetBrains Mono', monospace;
         }
         .pagination-row {
@@ -245,15 +256,15 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #151C2B;
-            border-top: 1px solid #242B42;
+            background: var(--bg-elevated);
+            border-top: 1px solid var(--border-ui);
             font-size: 12px;
-            color: #8E9AAF;
+            color: var(--text-muted);
         }
         .btn-page {
-            background: #101522;
-            border: 1px solid #242B42;
-            color: #F8FAFC;
+            background: var(--bg-card);
+            border: 1px solid var(--border-ui);
+            color: var(--text-main);
             padding: 6px 14px;
             border-radius: 6px;
             font-size: 12px;
@@ -261,15 +272,15 @@
             transition: background 0.2s;
         }
         .btn-page:hover:not(:disabled) {
-            background: #242B42;
+            background: var(--border-ui);
         }
         .btn-page:disabled {
             opacity: 0.4;
             cursor: not-allowed;
         }
         .guest-notice-banner {
-            background: linear-gradient(135deg, rgba(124, 92, 252, 0.12), rgba(34, 211, 238, 0.12));
-            border: 1px solid rgba(124, 92, 252, 0.3);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-ui);
             border-radius: 12px;
             padding: 16px 20px;
             margin-bottom: 24px;
@@ -282,16 +293,16 @@
         .guest-notice-text h4 {
             margin: 0 0 4px 0;
             font-size: 14px;
-            color: #F8FAFC;
+            color: var(--text-main);
         }
         .guest-notice-text p {
             margin: 0;
             font-size: 12px;
-            color: #CBD5E1;
+            color: #A1A1AA;
         }
         .btn-google-sm {
-            background: #FFFFFF;
-            color: #1E293B;
+            background: #F5F5F5;
+            color: #09090B;
             border: none;
             padding: 8px 16px;
             border-radius: 8px;
@@ -304,7 +315,7 @@
             text-decoration: none;
         }
         .btn-google-sm:hover {
-            background: #F1F5F9;
+            background: #FFFFFF;
         }
     </style>
 </head>
@@ -315,7 +326,7 @@
         <header class="top-nav">
             <div class="nav-brand" onclick="window.location.href='/'">
                 <div class="brand-logo">
-                    <img src="/static/logo.svg" alt="VideoLens" width="32" height="32" style="filter: drop-shadow(0 0 8px rgba(124,92,252,0.6));">
+                    <img src="/static/logo.svg" alt="VideoLens" width="32" height="32">
                 </div>
                 <div class="brand-text">
                     <span class="brand-name">VideoLens</span>
@@ -357,7 +368,7 @@
                 </div>
                 <div style="display:flex; gap:10px;">
                     <button class="btn-page" onclick="loadHistoryData()">↻ Refresh</button>
-                    <a href="/" class="btn-page" style="text-decoration:none; background:linear-gradient(135deg, #7C3AED, #5B5FEF); color:#fff; border:none; font-weight:600;">+ Analyze New Video</a>
+                    <a href="/" class="btn-page" style="text-decoration:none; background:#F5F5F5; color:#09090B; border:1px solid #FFFFFF; font-weight:600;">+ Analyze New Video</a>
                 </div>
             </div>
 
@@ -426,7 +437,7 @@
                         </thead>
                         <tbody id="historyTableBody">
                             <tr>
-                                <td colspan="7" style="text-align:center; padding:48px 20px; color:#8E9AAF;">
+                                <td colspan="7" style="text-align:center; padding:48px 20px; color:var(--text-muted);">
                                     <div style="font-size:24px; margin-bottom:8px;">⏳</div>
                                     <div>Loading your personal activity history...</div>
                                 </td>
@@ -460,7 +471,7 @@
                     <div class="footer-subtitle">Account-Specific Video Intelligence History</div>
                 </div>
                 <div class="footer-credit-col">
-                    <span>Created by <strong>MOLLI MALLIKHARJUN</strong></span>
+                    <span>VideoLens • INTELLIGENCE PLATFORM</span>
                     <span class="footer-email">ganeshmalli954@gmail.com</span>
                 </div>
             </div>
@@ -492,11 +503,11 @@
                     container.innerHTML = `
                         <div style="display:flex; align-items:center; gap:10px;">
                             ${u.avatar_url 
-                                ? `<img src="${escHtml(u.avatar_url)}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid #242B42;" alt="Avatar">`
-                                : `<div style="width:28px; height:28px; border-radius:50%; background:#7C5CFC; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff;">${initial}</div>`
+                                ? `<img src="${escHtml(u.avatar_url)}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--border-ui);" alt="Avatar">`
+                                : `<div style="width:28px; height:28px; border-radius:50%; background:var(--accent-purple); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff;">${initial}</div>`
                             }
-                            <span style="font-size:13px; font-weight:600; color:#F8FAFC;">${escHtml(u.name || u.email)}</span>
-                            ${u.is_owner ? `<a href="/admin" class="action-btn" style="text-decoration:none; padding:4px 8px; font-size:11px; background:rgba(124,92,252,0.2); color:#A78BFA; border:1px solid #7C5CFC;">Owner Portal</a>` : ''}
+                            <span style="font-size:13px; font-weight:600; color:var(--text-main);">${escHtml(u.name || u.email)}</span>
+                            ${u.is_owner ? `<a href="/admin" class="action-btn" style="text-decoration:none; padding:4px 8px; font-size:11px; background:rgba(255,255,255,0.06); color:var(--text-main); border:1px solid var(--border-ui);">Owner Portal</a>` : ''}
                             <a href="/auth/logout" class="action-btn" style="text-decoration:none; padding:4px 8px; font-size:12px;" title="Sign out">Sign Out</a>
                         </div>
                     `;
@@ -569,11 +580,11 @@
             if (!items.length) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" style="text-align:center; padding:54px 20px; color:#8E9AAF;">
+                        <td colspan="7" style="text-align:center; padding:54px 20px; color:var(--text-muted);">
                             <div style="font-size:32px; margin-bottom:10px;">📜</div>
-                            <div style="font-weight:600; font-size:15px; color:#F8FAFC; margin-bottom:6px;">No activity records found</div>
+                            <div style="font-weight:600; font-size:15px; color:var(--text-primary); margin-bottom:6px;">No activity records found</div>
                             <div style="font-size:13px;">No searches or analyses matching your criteria were found.</div>
-                            <a href="/" style="display:inline-block; margin-top:16px; padding:8px 18px; background:linear-gradient(135deg, #7C3AED, #5B5FEF); color:#fff; border-radius:8px; text-decoration:none; font-size:13px; font-weight:600;">+ Analyze a Video</a>
+                            <a href="/" style="display:inline-block; margin-top:16px; padding:8px 18px; background:#F5F5F5; color:#09090B; border:1px solid #FFFFFF; border-radius:8px; text-decoration:none; font-size:13px; font-weight:600;">+ Analyze a Video</a>
                         </td>
                     </tr>
                 `;
@@ -605,8 +616,8 @@
                 const planLabel = escHtml(item.plan_at_time || 'Free');
 
                 const actionBtn = isYouTube
-                    ? `<a href="/?v=${vidId}" style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:#151C2B; border:1px solid #242B42; color:#7C5CFC; text-decoration:none; border-radius:6px; font-size:12px; font-weight:600;">View →</a>`
-                    : `<a href="/?q=${encodeURIComponent(item.query || '')}" style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:#151C2B; border:1px solid #242B42; color:#60A5FA; text-decoration:none; border-radius:6px; font-size:12px; font-weight:600;">Search →</a>`;
+                    ? `<a href="/?v=${vidId}" style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:var(--bg-elevated); border:1px solid var(--border-ui); color:var(--text-main); text-decoration:none; border-radius:6px; font-size:12px; font-weight:600;">View →</a>`
+                    : `<a href="/?q=${encodeURIComponent(item.query || '')}" style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:var(--bg-elevated); border:1px solid var(--border-ui); color:var(--text-secondary); text-decoration:none; border-radius:6px; font-size:12px; font-weight:600;">Search →</a>`;
 
                 return `
                     <tr>
@@ -619,11 +630,11 @@
                                 </div>
                             </div>
                         </td>
-                        <td style="color:#8E9AAF; font-size:12px;">${escHtml(item.content_type || 'YouTube Video')}</td>
+                        <td style="color:var(--text-muted); font-size:12px;">${escHtml(item.content_type || 'YouTube Video')}</td>
                         <td>${actionBadge}</td>
                         <td>${statusBadge}</td>
-                        <td><span style="font-size:11px; padding:3px 8px; background:#151C2B; border:1px solid #242B42; border-radius:4px; text-transform:uppercase;">${planLabel}</span></td>
-                        <td style="color:#8E9AAF; font-size:12px;">${ts}</td>
+                        <td><span style="font-size:11px; padding:3px 8px; background:var(--bg-elevated); border:1px solid var(--border-ui); border-radius:4px; text-transform:uppercase;">${planLabel}</span></td>
+                        <td style="color:var(--text-muted); font-size:12px;">${ts}</td>
                         <td>${actionBtn}</td>
                     </tr>
                 `;
@@ -671,12 +682,12 @@
     </script>
 
     <!-- Cookie Consent Banner -->
-    <div id="cookieConsentBanner" class="cookie-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#101522; border:1px solid #242B42; padding:14px 20px; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.8); z-index:9999; align-items:center; gap:16px; max-width:540px; width:90%; box-sizing:border-box;">
+    <div id="cookieConsentBanner" class="cookie-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(12,12,14,0.92); border:1px solid rgba(255,255,255,0.1); padding:14px 20px; border-radius:12px; box-shadow:0 16px 48px rgba(0,0,0,0.8); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); z-index:9999; align-items:center; gap:16px; max-width:540px; width:90%; box-sizing:border-box;">
         <span style="font-size:20px;">🍪</span>
-        <div style="font-size:12px; color:#CBD5E1; line-height:1.4; flex:1;">
+        <div style="font-size:12px; color:var(--text-secondary); line-height:1.4; flex:1;">
             VideoLens uses secure, legitimate application cookies only for authentication and session state. No third-party ad tracking.
         </div>
-        <button onclick="acceptCookieConsent()" style="padding:6px 14px; background:linear-gradient(135deg, #7C3AED, #5B5FEF); border:none; border-radius:6px; color:#fff; font-size:12px; font-weight:600; cursor:pointer;">Accept</button>
+        <button onclick="acceptCookieConsent()" style="padding:6px 14px; background:#F5F5F5; border:1px solid #FFFFFF; border-radius:6px; color:#09090B; font-size:12px; font-weight:600; cursor:pointer;">Accept</button>
     </div>
 </body>
 </html>

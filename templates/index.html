@@ -8,7 +8,7 @@
     <link rel="shortcut icon" href="/static/logo.svg">
     <link rel="apple-touch-icon" href="/static/logo.svg">
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#7C5CFC">
+    <meta name="theme-color" content="#050505">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
         <header class="top-nav">
             <div class="nav-brand" onclick="showScreen('landing')">
                 <div class="brand-logo" id="brandLogo" title="VideoLens AI">
-                    <img src="/static/logo.svg" alt="VideoLens Logo" width="32" height="32" style="filter: drop-shadow(0 0 8px rgba(124,92,252,0.6));">
+                    <img src="/static/logo.svg" alt="VideoLens Logo" width="32" height="32">
                 </div>
                 <div class="brand-text">
                     <span class="brand-name">VideoLens</span>
@@ -127,9 +127,9 @@
                 <section id="landingScreen" class="screen landing-screen">
                     <div class="hero-container">
                         
-                        <div class="hero-badge eyebrow"><img src="/static/logo.svg" alt="" width="15" height="15" style="vertical-align:middle; margin-right:8px; display:inline-block; filter:drop-shadow(0 0 4px rgba(124,92,252,0.8));">AI VIDEO INTELLIGENCE • POWERED BY GEMINI</div>
+                        <div class="hero-badge eyebrow"><img src="/static/logo.svg" alt="" width="14" height="14" style="vertical-align:middle; margin-right:8px; display:inline-block; opacity:0.9;">VideoLens • INTELLIGENCE PLATFORM</div>
                         <h1 class="hero-title">Understand any video in minutes.</h1>
-                        <p class="hero-subtitle">Turn long videos into searchable knowledge, multi-track timelines, interactive study flashcards, and verified claims.</p>
+                        <p class="hero-subtitle">Turn long-form video into structured knowledge, insights, timelines, study material and evidence-grounded conversations.</p>
 
                         <div class="url-input-card">
                             <form id="analyzeForm" class="hero-form" style="display:flex; width:100%; align-items:center;">
@@ -144,8 +144,8 @@
                         <!-- Live Search Results Grid (Keywords & Topics) -->
                         <div id="searchResultsZone" class="search-results-zone" style="display:none; margin-top:24px; width:100%;">
                             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-                                <h3 style="margin:0; font-size:16px; font-weight:600; color:#F8FAFC;" id="searchQueryHeading">Matching Content</h3>
-                                <button onclick="clearSearchResults()" style="background:transparent; border:1px solid #242B42; color:#8E9AAF; cursor:pointer; font-size:12px; padding:4px 10px; border-radius:6px;">✕ Clear</button>
+                                <h3 style="margin:0; font-size:16px; font-weight:600; color:var(--text-primary);" id="searchQueryHeading">Matching Content</h3>
+                                <button onclick="clearSearchResults()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); cursor:pointer; font-size:12px; padding:4px 10px; border-radius:6px;">✕ Clear</button>
                             </div>
                             <div id="searchResultsGrid" class="search-results-grid"></div>
                         </div>
@@ -356,7 +356,7 @@
                         <div class="mode-pane active" id="pane-understand">
 
                             <!-- Executive Summary Card -->
-                            <div class="glass-card mb-24">
+                            <div class="glass-card summary-card mb-24">
                                 <div class="card-title-bar">
                                     <h3><span class="accent-sparkle">✦</span> AI Executive Summary</h3>
                                     <span class="pill-tag">High-Level Synthesis</span>
@@ -905,13 +905,13 @@
                         <button class="oauth-btn btn-x" onclick="showToast('X / Twitter sign-in is coming soon. Please use Google.', 'info')">Continue with X</button>
                         <button class="oauth-btn btn-fb" onclick="showToast('Facebook sign-in is coming soon. Please use Google.', 'info')">Continue with Facebook</button>
 
-                        <div style="margin-top:20px; border-top:1px solid #242B42; padding-top:14px;">
-                            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#8E9AAF; margin-bottom:10px; text-align:center;">Local Multi-Account Simulator (Fast Switch)</div>
+                        <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
+                            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:10px; text-align:center;">Local Multi-Account Simulator (Fast Switch)</div>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                                 <a href="/auth/dev-login?email=user_alpha%40gmail.com&name=User+Alpha" class="oauth-btn" style="text-decoration:none; justify-content:center; font-size:12px; padding:8px;">👤 User A (Google)</a>
                                 <a href="/auth/dev-login?email=user_beta%40gmail.com&name=User+Beta" class="oauth-btn" style="text-decoration:none; justify-content:center; font-size:12px; padding:8px;">👤 User B (Google)</a>
                             </div>
-                            <a href="/auth/dev-login?email=ganeshmalli954%40gmail.com&name=Owner" class="oauth-btn" style="text-decoration:none; justify-content:center; font-size:12px; padding:8px; margin-top:8px; color:#22D3EE; border-color:rgba(34,211,238,0.3);">👑 Platform Owner Login</a>
+                            <a href="/auth/dev-login?email=ganeshmalli954%40gmail.com&name=Owner" class="oauth-btn" style="text-decoration:none; justify-content:center; font-size:12px; padding:8px; margin-top:8px; color:var(--text-secondary); border-color:var(--border);">Platform Owner Login</a>
                         </div>
                     </div>
                 </div>
@@ -926,28 +926,28 @@
                             <div class="glass-card upgrade-plan-card">
                                 <div class="upgrade-plan-name">10-Video Pack</div>
                                 <div class="upgrade-plan-price">₹50</div>
-                                <div style="font-size:11px; color:#8E9AAF; margin: 8px 0;">+10 Extra Analyses<br>50 History Retention<br>Priority AI Inference</div>
+                                <div style="font-size:11px; color:var(--text-muted); margin: 8px 0;">+10 Extra Analyses<br>50 History Retention<br>Priority AI Inference</div>
                                 <button onclick="initiatePlanPurchase('pack10')" class="upgrade-plan-btn btn-warning-plan" style="cursor:pointer; border:none; width:100%;">Upgrade ₹50</button>
                             </div>
                             <div class="glass-card upgrade-plan-card featured">
                                 <div class="upgrade-plan-name">50-Video Pack</div>
                                 <div class="upgrade-plan-price">₹70</div>
-                                <div style="font-size:11px; color:#8E9AAF; margin: 8px 0;">+50 Extra Analyses<br>100 History Retention<br>Priority AI Inference</div>
+                                <div style="font-size:11px; color:var(--text-muted); margin: 8px 0;">+50 Extra Analyses<br>100 History Retention<br>Priority AI Inference</div>
                                 <button onclick="initiatePlanPurchase('pack50')" class="upgrade-plan-btn btn-primary-plan" style="cursor:pointer; border:none; width:100%;">Upgrade ₹70</button>
                             </div>
                             <div class="glass-card upgrade-plan-card">
                                 <div class="upgrade-plan-name">Unlimited Pro</div>
                                 <div class="upgrade-plan-price">₹99</div>
-                                <div style="font-size:11px; color:#8E9AAF; margin: 8px 0;">Unlimited Analyses<br>500 History Retention<br>Grounded Copilot<br>PDF Dossiers</div>
+                                <div style="font-size:11px; color:var(--text-muted); margin: 8px 0;">Unlimited Analyses<br>500 History Retention<br>Grounded Copilot<br>PDF Dossiers</div>
                                 <button onclick="initiatePlanPurchase('unlimited')" class="upgrade-plan-btn btn-gradient-plan" style="cursor:pointer; border:none; width:100%;">Upgrade ₹99/mo</button>
                             </div>
                         </div>
 
                         <!-- Voluntary Buy Me a Coffee Support Link -->
                         <div style="margin-top:20px; padding:12px 16px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                            <div style="font-size:12px; color:#FDE68A;">
+                            <div style="font-size:12px; color:var(--text-primary);">
                                 ☕ <strong>Voluntary Project Support</strong><br>
-                                <span style="color:#D4D4D8; font-size:11px;">Keep AI credits active without purchasing a subscription</span>
+                                <span style="color:var(--text-secondary); font-size:11px;">Keep AI credits active without purchasing a subscription</span>
                             </div>
                             <a href="{{ bmc_url }}" target="_blank" style="padding:6px 14px; background:#F59E0B; color:#000; font-size:11px; font-weight:700; border-radius:6px; text-decoration:none;">Buy Me a Coffee →</a>
                         </div>
@@ -989,7 +989,7 @@
             <div class="footer-container">
                 <div class="footer-brand-col">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <img src="/static/logo.svg" alt="VideoLens" width="26" height="26" style="filter: drop-shadow(0 0 6px rgba(124,92,252,0.6));">
+                        <img src="/static/logo.svg" alt="VideoLens" width="26" height="26">
                         <div class="footer-logo-title">VideoLens</div>
                     </div>
                     <div class="footer-subtitle">AI-powered Video Intelligence & Study Dashboard</div>
@@ -1003,7 +1003,7 @@
                     <a href="mailto:ganeshmalli954@gmail.com" class="footer-link">Contact</a>
                 </div>
                 <div class="footer-credit-col">
-                    <span>Created by <strong>MOLLI MALLIKHARJUN</strong></span>
+                    <span>VideoLens • INTELLIGENCE PLATFORM</span>
                     <span class="footer-email">ganeshmalli954@gmail.com</span>
                 </div>
             </div>
@@ -1054,15 +1054,15 @@
             </div>
         </div>
 
-        <div id="cookieConsentBanner" class="cookie-banner" style="display:none; position:fixed; bottom:20px; left:20px; right:20px; max-width:680px; margin:0 auto; background:#101522; border:1px solid #242B42; border-radius:12px; padding:16px 20px; z-index:9999; box-shadow:0 12px 40px rgba(0,0,0,0.8); align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <div id="cookieConsentBanner" class="cookie-banner" style="display:none; position:fixed; bottom:20px; left:20px; right:20px; max-width:680px; margin:0 auto; background:rgba(12,12,14,0.92); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px 20px; z-index:9999; box-shadow:0 16px 48px rgba(0,0,0,0.8); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
             <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:260px;">
                 <span style="font-size:24px;">🍪</span>
-                <div style="font-size:12px; color:#CBD5E1; line-height:1.4;">
-                    <strong style="color:#F8FAFC;">Privacy-First Cookies:</strong> VideoLens uses strictly essential cookies for secure session authentication, preferences, and account protection. No third-party tracking or advertising cookies are collected.
+                <div style="font-size:12px; color:var(--text-secondary); line-height:1.4;">
+                    <strong style="color:var(--text-primary);">Privacy-First Cookies:</strong> VideoLens uses strictly essential cookies for secure session authentication, preferences, and account protection. No third-party tracking or advertising cookies are collected.
                 </div>
             </div>
             <div style="display:flex; gap:8px;">
-                <button onclick="acceptCookieConsent()" style="padding:8px 18px; background:linear-gradient(135deg, #7C3AED, #5B5FEF); border:none; border-radius:8px; color:#fff; font-weight:600; font-size:12px; cursor:pointer;">Accept Essential</button>
+                <button onclick="acceptCookieConsent()" style="padding:8px 18px; background:#F5F5F5; border:1px solid #FFFFFF; border-radius:8px; color:#09090B; font-weight:600; font-size:12px; cursor:pointer;">Accept Essential</button>
             </div>
         </div>
 

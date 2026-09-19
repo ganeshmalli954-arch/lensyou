@@ -104,7 +104,7 @@ PLAN_CONFIG = {
         'history_limit': 500,
         'price': 99,
         'price_display': '₹99/mo',
-        'features': ['Unlimited analyses', 'Full 500-item history retention', 'Priority Gemini Intelligence', 'Unlimited PDF dossiers', 'Grounded Copilot Evidence Mode', 'Unlimited video length (1-4+ hr lectures)']
+        'features': ['Unlimited analyses', 'Full 500-item history retention', 'Priority Model Intelligence', 'Unlimited PDF dossiers', 'Grounded Copilot Evidence Mode', 'Unlimited video length (1-4+ hr lectures)']
     }
 }
 

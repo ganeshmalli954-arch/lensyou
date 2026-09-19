@@ -135,7 +135,7 @@ function renderSearchResults(query, results) {
 
     if (!results.length) {
         grid.innerHTML = `
-            <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-muted); background: #101522; border: 1px solid #242B42; border-radius: 12px;">
+            <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-muted); background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px;">
                 No videos found matching "${escapeHtml(query)}". Try a direct YouTube link or different keywords.
             </div>
         `;
@@ -145,17 +145,17 @@ function renderSearchResults(query, results) {
     }
 
     grid.innerHTML = results.map(r => `
-        <div class="search-result-card" style="background:#101522; border:1px solid #242B42; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; transition:transform 0.2s, border-color 0.2s;">
-            <div style="position:relative; aspect-ratio:16/9; background:#080A12;">
+        <div class="search-result-card" style="background:var(--surface-card); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; transition:transform 0.2s, border-color 0.2s;">
+            <div style="position:relative; aspect-ratio:16/9; background:var(--bg-primary);">
                 <img src="${escapeHtml(r.thumbnail_url)}" alt="Thumb" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='/static/logo.svg'">
                 ${r.duration ? `<span style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.8); color:#fff; font-size:11px; padding:2px 6px; border-radius:4px; font-weight:600;">${escapeHtml(r.duration)}</span>` : ''}
             </div>
             <div style="padding:14px; display:flex; flex-direction:column; flex:1; justify-content:space-between; gap:10px;">
                 <div>
-                    <h4 style="margin:0 0 4px 0; font-size:14px; font-weight:600; color:#F8FAFC; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3;">${escapeHtml(r.title)}</h4>
-                    <p style="margin:0; font-size:12px; color:#8E9AAF;">${escapeHtml(r.author || 'YouTube Creator')}</p>
+                    <h4 style="margin:0 0 4px 0; font-size:14px; font-weight:600; color:var(--text-primary); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3;">${escapeHtml(r.title)}</h4>
+                    <p style="margin:0; font-size:12px; color:var(--text-muted);">${escapeHtml(r.author || 'YouTube Creator')}</p>
                 </div>
-                <button onclick="startAnalysis('${escapeHtml(r.video_id)}')" style="width:100%; padding:8px; background:linear-gradient(135deg, #7C3AED, #5B5FEF); border:none; border-radius:6px; color:#fff; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <button onclick="startAnalysis('${escapeHtml(r.video_id)}')" style="width:100%; padding:8px; background:#F5F5F5; border:1px solid #FFFFFF; border-radius:6px; color:#09090B; font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
                     <span>⚡ Analyze Video</span>
                 </button>
             </div>
@@ -648,7 +648,7 @@ function renderEngagementCurve(points, totalSec) {
     const peakCard = document.getElementById('peakMomentCard');
     const peakText = document.getElementById('peakMomentText');
     if (peakText && peakPoint) {
-        peakText.innerHTML = `<span style="color:var(--warning, #F59E0B); font-weight:700;">★ ${escapeHtml(peakPoint.time)}</span> — <strong>${escapeHtml(peakPoint.highlight || 'High engagement turning point')}</strong> (Score: ${peakPoint.score}/100)`;
+        peakText.innerHTML = `<span style="color:var(--text-primary); font-weight:700;">★ ${escapeHtml(peakPoint.time)}</span> — <strong>${escapeHtml(peakPoint.highlight || 'High engagement turning point')}</strong> (Score: ${peakPoint.score}/100)`;
         if (peakCard) {
             const peakSec = parseTimestampToSeconds(peakPoint.time);
             peakCard.onclick = () => jumpToSecond(peakSec);
@@ -680,25 +680,25 @@ function renderEngagementCurve(points, totalSec) {
     let svgHtml = `
         <defs>
             <linearGradient id="engGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#7C5CFC" stop-opacity="0.45"/>
-                <stop offset="100%" stop-color="#7C5CFC" stop-opacity="0.0"/>
+                <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+                <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0"/>
             </linearGradient>
         </defs>
         <rect width="100%" height="100%" fill="transparent" style="cursor: crosshair;"/>
         <path d="${areaD}" fill="url(#engGrad)" style="cursor: pointer;"/>
-        <path d="${pathD}" fill="none" stroke="#7C5CFC" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="${pathD}" fill="none" stroke="#E4E4E7" stroke-width="2" stroke-linecap="round"/>
     `;
 
     coords.forEach(c => {
         const isPeak = c.point === peakPoint;
-        const color = isPeak ? '#F59E0B' : '#4F8CFF';
-        const r = isPeak ? 6 : 4;
+        const color = isPeak ? '#FFFFFF' : '#71717A';
+        const r = isPeak ? 5.5 : 3.5;
         const sec = parseTimestampToSeconds(c.point.time);
         svgHtml += `
             <g class="eng-point" style="cursor: pointer;" onclick="event.stopPropagation(); jumpToSecond(${sec})" title="${escapeHtml(c.point.time)}: ${escapeHtml(c.point.highlight || '')} (${c.point.score}/100) — Click to seek">
                 <circle cx="${c.x}" cy="${c.y}" r="${r + 5}" fill="transparent"/>
-                <circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${color}" stroke="#101522" stroke-width="2"/>
-                <text x="${c.x}" y="${height - 4}" font-size="9" fill="#94A3B8" text-anchor="middle">${escapeHtml(c.point.time)}</text>
+                <circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${color}" stroke="#0C0C0D" stroke-width="2"/>
+                <text x="${c.x}" y="${height - 4}" font-size="9" fill="#71717A" text-anchor="middle">${escapeHtml(c.point.time)}</text>
             </g>
         `;
     });
@@ -806,7 +806,7 @@ function renderMultiTrackTimeline(data) {
             const sec = vm.seconds || parseTimestampToSeconds(vm.timestamp);
             const leftPct = Math.min(98, Math.max(1, (sec / totalSec) * 100));
             return `
-                <div class="track-marker-dot" style="left: ${leftPct}%; background: #22D3EE;" title="${escapeHtml(vm.title)} (${vm.scene_type}) [${vm.timestamp}]" onclick="selectTrackMoment('${escapeJsString(vm.title)}', '${escapeJsString(vm.takeaway)}', ${sec}, '${vm.timestamp}')"></div>
+                <div class="track-marker-dot" style="left: ${leftPct}%; background: #8B7CFF;" title="${escapeHtml(vm.title)} (${vm.scene_type}) [${vm.timestamp}]" onclick="selectTrackMoment('${escapeJsString(vm.title)}', '${escapeJsString(vm.takeaway)}', ${sec}, '${vm.timestamp}')"></div>
             `;
         }).join('');
     }
@@ -877,7 +877,7 @@ function renderVideoMap(kg) {
     const links = kg.links || [];
 
     if (!nodes.length) {
-        svg.innerHTML = '<text x="350" y="175" fill="#64748b" text-anchor="middle" font-size="14">No concept graph generated</text>';
+        svg.innerHTML = '<text x="350" y="175" fill="#71717A" text-anchor="middle" font-size="14">No concept graph generated</text>';
         return;
     }
 
@@ -908,7 +908,7 @@ function renderVideoMap(kg) {
         const t = nodeCoords[l.target];
         if (s && t) {
             linksHtml += `
-                <line id="kg-link-${idx}" data-source="${escapeHtml(l.source)}" data-target="${escapeHtml(l.target)}" x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" stroke="rgba(124, 92, 252, 0.35)" stroke-width="1.5" class="kg-link" style="transition: opacity 0.25s, stroke 0.25s;"/>
+                <line id="kg-link-${idx}" data-source="${escapeHtml(l.source)}" data-target="${escapeHtml(l.target)}" x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1.5" class="kg-link" style="transition: opacity 0.25s, stroke 0.25s;"/>
             `;
         }
     });
@@ -917,13 +917,13 @@ function renderVideoMap(kg) {
     Object.values(nodeCoords).forEach((c, idx) => {
         const isCenter = idx === 0;
         const r = isCenter ? 24 : 18;
-        const color = isCenter ? '#7C5CFC' : (c.node.type === 'entity' ? '#22D3EE' : (c.node.type === 'theme' ? '#22C55E' : '#4F8CFF'));
+        const color = isCenter ? '#FFFFFF' : (c.node.type === 'entity' ? '#D4D4D8' : (c.node.type === 'theme' ? '#A1A1AA' : '#71717A'));
         const safeId = String(c.node.id).replace(/[^a-zA-Z0-9_-]/g, '_');
         nodesHtml += `
             <g id="kg-node-${safeId}" class="kg-node" data-id="${escapeHtml(c.node.id)}" onclick="selectConceptNode('${escapeJsString(c.node.id)}')" style="cursor: pointer; transition: opacity 0.25s, transform 0.25s;">
                 <circle cx="${c.x}" cy="${c.y}" r="${r + 6}" fill="none" stroke="transparent" stroke-width="2.5" class="kg-node-ring" id="kg-ring-${safeId}"/>
-                <circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${color}" stroke="#151C2B" stroke-width="2.5" class="kg-node-circle"/>
-                <text x="${c.x}" y="${c.y + r + 14}" class="kg-node-label" text-anchor="middle" fill="#CBD5E1" font-size="11" font-weight="600">${escapeHtml(c.node.label)}</text>
+                <circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${color}" stroke="#0C0C0D" stroke-width="2.5" class="kg-node-circle"/>
+                <text x="${c.x}" y="${c.y + r + 14}" class="kg-node-label" text-anchor="middle" fill="#E4E4E7" font-size="11" font-weight="600">${escapeHtml(c.node.label)}</text>
             </g>
         `;
     });
@@ -961,13 +961,13 @@ function selectConceptNode(nodeId) {
             if (n.id === nodeId) {
                 el.style.opacity = '1';
                 if (ring) {
-                    ring.setAttribute('stroke', '#22D3EE');
+                    ring.setAttribute('stroke', '#8B7CFF');
                     ring.setAttribute('stroke-width', '2.5');
                 }
             } else if (connectedNodeIds.has(n.id)) {
                 el.style.opacity = '0.95';
                 if (ring) {
-                    ring.setAttribute('stroke', 'rgba(124, 92, 252, 0.5)');
+                    ring.setAttribute('stroke', 'rgba(139, 124, 255, 0.45)');
                     ring.setAttribute('stroke-width', '1.5');
                 }
             } else {
@@ -984,11 +984,11 @@ function selectConceptNode(nodeId) {
         const t = linkEl.getAttribute('data-target');
         if (s === nodeId || t === nodeId) {
             linkEl.style.opacity = '1';
-            linkEl.setAttribute('stroke', '#7C5CFC');
+            linkEl.setAttribute('stroke', '#8B7CFF');
             linkEl.setAttribute('stroke-width', '2.5');
         } else {
             linkEl.style.opacity = '0.12';
-            linkEl.setAttribute('stroke', 'rgba(124, 92, 252, 0.2)');
+            linkEl.setAttribute('stroke', 'rgba(255, 255, 255, 0.06)');
             linkEl.setAttribute('stroke-width', '1');
         }
     });
@@ -1028,7 +1028,7 @@ function deselectConceptNode() {
     });
     document.querySelectorAll('.kg-link').forEach(linkEl => {
         linkEl.style.opacity = '1';
-        linkEl.setAttribute('stroke', 'rgba(124, 92, 252, 0.35)');
+        linkEl.setAttribute('stroke', 'rgba(255, 255, 255, 0.12)');
         linkEl.setAttribute('stroke-width', '1.5');
     });
 
@@ -2221,7 +2221,7 @@ function showToast(msg, type = 'info') {
     if (!toast) return;
 
     let icon = '✦';
-    let borderColor = '#7C5CFC';
+    let borderColor = '#8B7CFF';
     if (type === 'success' || msg.includes('✓')) {
         icon = '✓';
         borderColor = '#22C55E';
@@ -2365,9 +2365,8 @@ function updateAuthUI(user) {
                         ? `<img src="${escapeHtml(user.avatar_url)}" style="width:26px; height:26px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">`
                         : `<span style="width:26px; height:26px; border-radius:50%; background:var(--purple-primary); display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff;">${initial}</span>`
                     }
-                    <span style="font-size:12px; font-weight:600; color:var(--text-primary); max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(user.name || user.email)}</span>
-                    <span style="font-size:10px; padding:2px 6px; background:rgba(124,92,252,0.18); color:#A78BFA; border-radius:4px; font-weight:600;">${planBadge}</span>
-                    ${user.is_owner ? `<a href="/admin" class="action-btn" style="text-decoration:none; padding:2px 6px; font-size:11px; color:#22D3EE; background:rgba(34,211,238,0.12); border:1px solid rgba(34,211,238,0.3); font-weight:600;">Owner</a>` : ''}
+                    <span style="font-size:10px; padding:2px 6px; background:rgba(255,255,255,0.08); color:var(--text-secondary); border-radius:4px; font-weight:600;">${planBadge}</span>
+                    ${user.is_owner ? `<a href="/admin" class="action-btn" style="text-decoration:none; padding:2px 6px; font-size:11px; color:var(--text-main); background:rgba(255,255,255,0.06); border:1px solid var(--border); font-weight:600;">Owner</a>` : ''}
                     <a href="/auth/logout" class="action-btn" style="text-decoration:none; padding:2px 6px; font-size:11px;" title="Sign out">⎋</a>
                 </div>
             `;

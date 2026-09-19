@@ -11,7 +11,23 @@ PLANS = {
     'unlimited': {'label': 'Unlimited', 'quota_grant': -1, 'price': 99, 'price_display': '₹99/mo'},
 }
 
-BMC_URL = os.getenv('BMC_URL', 'https://www.buymeacoffee.com/videolens')
+def get_bmc_url() -> str:
+    try:
+        from services.storage_service import get_system_setting
+        val = get_system_setting('bmc_url')
+        if val and val.strip():
+            return val.strip()
+    except Exception:
+        pass
+    return os.getenv('BMC_URL', 'https://www.buymeacoffee.com/videolens')
+
+class _DynamicBMCUrl(str):
+    def __str__(self):
+        return get_bmc_url()
+    def __repr__(self):
+        return get_bmc_url()
+
+BMC_URL = _DynamicBMCUrl('https://www.buymeacoffee.com/videolens')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', '')
 SECRET_KEY = os.getenv('FLASK_SECRET_KEY', '')
 

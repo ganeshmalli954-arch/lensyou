@@ -145,6 +145,14 @@ def init_db():
         c.execute('CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_payments_created ON payments(created_at)')
 
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TEXT
+            )
+        ''')
+
         conn.commit()
         # Migrations: add columns if missing
         try:
@@ -839,4 +847,28 @@ def get_payment_stats() -> dict:
             'paying_users': paying_users,
             'plans': plan_rows
         }
+
+def get_system_setting(key: str, default=None) -> str:
+    """Retrieve a persistent system configuration setting from SQLite."""
+    try:
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute("SELECT value FROM system_settings WHERE key = ?", (key,))
+            row = c.fetchone()
+            return row['value'] if row else default
+    except Exception:
+        return default
+
+def set_system_setting(key: str, value: str):
+    """Store or update a persistent system configuration setting in SQLite."""
+    now = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO system_settings (key, value, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+        """, (key, str(value), now))
+        conn.commit()
+
 

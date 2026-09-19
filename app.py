@@ -589,5 +589,4 @@ if __name__ == '__main__':
     print(f"\n==========================================================")
     print(f" VideoLens v2 — AI YouTube Video Intelligence Platform")
     print(f" Local: http://localhost:{port}")
-    print(f"==========================================================")
-    serve(app, host='0.0.0.0', port=port, threads=4)
+    serve(app, host='0.0.0.0', port=port, threads=8)

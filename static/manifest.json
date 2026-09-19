@@ -1,11 +1,11 @@
 {
   "name": "VideoLens — AI Video Intelligence Platform",
   "short_name": "VideoLens",
-  "description": "AI-powered YouTube Video Intelligence and Study Dashboard",
+  "description": "Enterprise Video Intelligence and Study Platform",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#080A12",
-  "theme_color": "#7C5CFC",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "icons": [
     {
       "src": "/static/logo.svg",

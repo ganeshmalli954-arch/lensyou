@@ -19,7 +19,9 @@ services:
         value: ganeshmalli954@gmail.com
       - key: GROQ_API_KEY
         sync: false
-disks:
-  - name: videolens-data
-    mountPath: /opt/render/project/src/data
-    sizeGB: 1
+      - key: DATABASE_PATH
+        value: /opt/render/project/src/data/videolens.db
+    disk:
+      name: videolens-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

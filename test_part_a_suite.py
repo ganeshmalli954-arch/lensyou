@@ -15,9 +15,13 @@ class TestVideoLensPartA(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_db()
+        from services.totp_service import disable_admin_totp
+        disable_admin_totp()
 
     def setUp(self):
         self.client = app.test_client()
+        from services.totp_service import disable_admin_totp
+        disable_admin_totp()
 
     def test_01_public_routes(self):
         """Verify basic public routes return HTTP 200"""
@@ -363,6 +367,99 @@ class TestVideoLensPartA(unittest.TestCase):
         for p in ['free', 'pack10', 'pack50', 'unlimited']:
             features_str = " ".join(PLAN_CONFIG[p]['features'])
             self.assertIn("Unlimited video length", features_str)
+
+    def test_18_google_authenticator_and_bmc_settings(self):
+        """Verify Google Authenticator (TOTP RFC 6238) 2FA and dynamic Buy Me a Coffee settings"""
+        import time
+        from services.totp_service import (
+            generate_totp_secret, format_secret_readable, get_totp_uri,
+            generate_totp_code, verify_totp_code, setup_admin_totp,
+            disable_admin_totp, is_admin_2fa_enabled, get_admin_totp_secret
+        )
+        from config import get_bmc_url
+        from services.storage_service import set_system_setting
+
+        # 1. Base32 Secret & URI Generation
+        secret = generate_totp_secret()
+        self.assertEqual(len(secret), 16)
+        self.assertTrue(all(c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567" for c in secret))
+        
+        readable = format_secret_readable(secret)
+        self.assertEqual(len(readable.split()), 4)
+
+        uri = get_totp_uri(secret, account="Admin", issuer="VideoLens")
+        self.assertTrue(uri.startswith("otpauth://totp/VideoLens:Admin?"))
+        self.assertIn(f"secret={secret}", uri)
+
+        # 2. RFC 6238 TOTP Code Generation & Verification
+        now = int(time.time())
+        code = generate_totp_code(secret, now)
+        self.assertEqual(len(code), 6)
+        self.assertTrue(code.isdigit())
+
+        # Exact code verifies
+        self.assertTrue(verify_totp_code(secret, code))
+        # Wrong code fails
+        self.assertFalse(verify_totp_code(secret, "999999" if code != "999999" else "000000"))
+        # Invalid format fails
+        self.assertFalse(verify_totp_code(secret, "abc"))
+        self.assertFalse(verify_totp_code(secret, "12345"))
+
+        # Clock drift tolerance (+/- 30s)
+        prev_code = generate_totp_code(secret, now - 30)
+        self.assertTrue(verify_totp_code(secret, prev_code, window=1))
+
+        # 3. Dynamic Buy Me a Coffee setting
+        initial_bmc = get_bmc_url()
+        self.assertTrue(len(initial_bmc) > 0)
+        
+        # Test authenticated settings API
+        with self.client.session_transaction() as sess:
+            sess['is_admin'] = True
+
+        res = self.client.get('/admin/api/settings')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertIn('bmc_url', data)
+
+        # Update BMC URL via API
+        test_bmc = 'https://www.buymeacoffee.com/studentaid'
+        res_post = self.client.post('/admin/api/settings', json={'bmc_url': test_bmc})
+        self.assertEqual(res_post.status_code, 200)
+        self.assertEqual(get_bmc_url(), test_bmc)
+
+        # 4. Activate 2FA for Admin
+        setup_admin_totp(secret, enable=True)
+        self.assertTrue(is_admin_2fa_enabled())
+        self.assertEqual(get_admin_totp_secret(), secret)
+
+        # 5. Admin Login with 2FA Enforced
+        # Clear session to test login flow
+        with self.client.session_transaction() as sess:
+            sess.clear()
+
+        # Login with password only must fail when 2FA is active
+        res_no_totp = self.client.post('/admin/login', data={'password': 'admin123'})
+        self.assertIn(b'code is required', res_no_totp.data)
+
+        # Login with invalid TOTP code must fail
+        res_bad_totp = self.client.post('/admin/login', data={'password': 'admin123', 'totp_code': '000000'})
+        self.assertIn(b'Invalid 6-digit Google Authenticator code', res_bad_totp.data)
+
+        # Login with correct password and valid TOTP code must succeed
+        valid_code = generate_totp_code(secret)
+        res_ok = self.client.post('/admin/login', data={'password': 'admin123', 'totp_code': valid_code}, follow_redirects=False)
+        self.assertEqual(res_ok.status_code, 302)
+
+        # 6. Disable 2FA
+        disable_admin_totp()
+        self.assertFalse(is_admin_2fa_enabled())
+
+        # Now password-only login succeeds again
+        with self.client.session_transaction() as sess:
+            sess.clear()
+        res_pwd_only = self.client.post('/admin/login', data={'password': 'admin123'}, follow_redirects=False)
+        self.assertEqual(res_pwd_only.status_code, 302)
 
 if __name__ == '__main__':
     unittest.main()
