@@ -334,6 +334,37 @@ class TestVideoLensPartA(unittest.TestCase):
         self.assertEqual(len(match2), 1)
         self.assertEqual(match2[0]['content_title'], 'Resolved Real Video Title')
 
+    def test_17_duration_and_unlimited_length(self):
+        """Verify unlimited lecture length support, time formatting, and full timeline sampling"""
+        from utils.time_utils import format_seconds, prepare_transcript_for_analysis, prepare_ui_transcript_sample
+        from services.auth_service import PLAN_CONFIG
+
+        # Verify format_seconds handles multi-hour lecture durations accurately
+        self.assertEqual(format_seconds(4872), "01:21:12")
+        self.assertEqual(format_seconds(10800), "03:00:00")
+        self.assertEqual(format_seconds(65), "01:05")
+
+        # Simulate a 3-hour university lecture transcript (1500 segments)
+        long_segments = [
+            {"text": f"Lecture slide {i} explanation on advanced topics", "start": i * 7.2, "duration": 7.0, "timestamp": format_seconds(i * 7.2)}
+            for i in range(1500)
+        ]
+
+        # Ensure prepare_transcript_for_analysis handles massive text without error
+        analysis_text = prepare_transcript_for_analysis(long_segments, max_chars=500000)
+        self.assertTrue(len(analysis_text) > 10000)
+        self.assertIn("[00:00] Lecture slide 0", analysis_text)
+
+        # Ensure UI snippets sampling spans across the entire 3 hours
+        ui_sample = prepare_ui_transcript_sample(long_segments, max_snippets=2500)
+        self.assertEqual(len(ui_sample), 1500)  # All 1500 fit within 2500
+
+        # Verify plans highlight unlimited video length
+        for p in ['free', 'pack10', 'pack50', 'unlimited']:
+            features_str = " ".join(PLAN_CONFIG[p]['features'])
+            self.assertIn("Unlimited video length", features_str)
+
 if __name__ == '__main__':
     unittest.main()
+
 
