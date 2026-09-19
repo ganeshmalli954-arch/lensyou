@@ -15,7 +15,7 @@ def redeem_code(code: str, user_id: str) -> dict:
     code = code.strip().upper()
     
     # Master VIP Code bypass
-    if code in ['VIP-UNLIMITED', 'OWNER-ACCESS-2026', 'VIDEOLENS-VIP']:
+    if code in ['VIP-UNLIMITED', 'OWNER-ACCESS-2026', 'LENSYOU-VIP', 'VIDEOLENS-VIP']:
         update_user_plan(user_id, 'unlimited', -1)
         return {'success': True, 'message': 'VIP Master Code activated! You now have Unlimited Lifetime Access.', 'plan': 'unlimited'}
 

@@ -5,7 +5,7 @@ echo ============================================================
 echo   🎬 LensYou - Personal AI Video Intelligence Platform
 echo   Opening in your browser...
 echo ============================================================
-cd /d "C:\Users\HP\.gemini\antigravity\scratch\yt-analyzer"
+cd /d "%~dp0"
 timeout /t 2 /nobreak >nul
 start "" http://localhost:5000
 python app.py

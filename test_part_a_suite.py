@@ -11,7 +11,7 @@ from services.storage_service import (
 )
 from services.auth_service import PLAN_CONFIG, get_plan_history_limit, is_owner
 
-class TestVideoLensPartA(unittest.TestCase):
+class TestLensYouPartA(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_db()
