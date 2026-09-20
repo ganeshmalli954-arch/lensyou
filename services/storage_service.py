@@ -7,7 +7,19 @@ import string
 from collections import OrderedDict
 from datetime import datetime, date
 
-DB_PATH = os.getenv('DATABASE_PATH') or os.path.join(os.path.dirname(__file__), '..', 'data', 'videolens.db')
+def resolve_database_path() -> str:
+    env_path = os.getenv('DATABASE_PATH')
+    if env_path:
+        return env_path
+    if os.path.exists('/var/data'):
+        if os.path.exists('/var/data/lensyou.db'):
+            return '/var/data/lensyou.db'
+        if os.path.exists('/var/data/videolens.db'):
+            return '/var/data/videolens.db'
+        return '/var/data/lensyou.db'
+    return os.path.join(os.path.dirname(__file__), '..', 'data', 'videolens.db')
+
+DB_PATH = resolve_database_path()
 
 class BoundedCache(OrderedDict):
     def __init__(self, maxsize=20, *args, **kwargs):

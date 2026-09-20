@@ -88,6 +88,8 @@ PLAN_CONFIG = {
         'history_limit': 50,
         'price': 50,
         'price_display': '₹50',
+        'price_usd': 2.99,
+        'price_display_usd': '$2.99',
         'features': ['15 video analyses (+10 extra)', '50 history items', 'Priority model inference', 'Full PDF dossier export', 'Unlimited video length (1-4+ hr lectures)']
     },
     'pack50': {
@@ -96,6 +98,8 @@ PLAN_CONFIG = {
         'history_limit': 100,
         'price': 70,
         'price_display': '₹70',
+        'price_usd': 3.99,
+        'price_display_usd': '$3.99',
         'features': ['55 video analyses (+50 extra)', '100 history items', 'Priority model inference', 'Deep Copilot evidence mode', 'Unlimited video length (1-4+ hr lectures)']
     },
     'unlimited': {
@@ -104,6 +108,8 @@ PLAN_CONFIG = {
         'history_limit': 500,
         'price': 99,
         'price_display': '₹99/mo',
+        'price_usd': 4.99,
+        'price_display_usd': '$4.99/mo',
         'features': ['Unlimited analyses', 'Full 500-item history retention', 'Priority Model Intelligence', 'Unlimited PDF dossiers', 'Grounded Copilot Evidence Mode', 'Unlimited video length (1-4+ hr lectures)']
     }
 }

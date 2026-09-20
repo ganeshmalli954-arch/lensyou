@@ -126,7 +126,7 @@ def shared_dossier(video_id):
             "image": meta.get('thumbnail_url') or f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg",
             "url": f"{request.host_url.rstrip('/')}/v/{video_id}"
         }
-    return render_template("index.html", dossier_meta=dossier_meta)
+    return render_template("index.html", dossier_meta=dossier_meta, is_shared_dossier=True, shared_video_id=video_id)
 
 @app.route("/history")
 def history_page():
@@ -488,12 +488,18 @@ def api_payment_verify():
     payment_id = data.get('payment_id') or f"PAY-{secrets.token_hex(6).upper()}"
     order_id = data.get('order_id') or f"ORD-{secrets.token_hex(4).upper()}"
     provider = data.get('provider', 'razorpay')
+    currency = (data.get('currency') or 'INR').upper()
 
     if plan not in PLAN_CONFIG or plan in ['anonymous', 'free']:
         return jsonify({'success': False, 'error': 'Invalid plan selected'}), 400
 
     cfg = PLAN_CONFIG[plan]
-    amount = cfg['price']
+    if currency == 'USD':
+        amount = float(data.get('amount') or cfg.get('price_usd') or (2.99 if plan == 'pack10' else (4.99 if plan == 'unlimited' else 3.99)))
+    else:
+        currency = 'INR'
+        amount = cfg['price']
+
     quota_limit = cfg['quota']
 
     # Record in payments table
@@ -502,7 +508,7 @@ def api_payment_verify():
         payment_id=payment_id,
         order_id=order_id,
         amount=amount,
-        currency='INR',
+        currency=currency,
         plan=plan,
         status='verified',
         provider=provider
@@ -516,6 +522,7 @@ def api_payment_verify():
         'message': f"Successfully upgraded to {cfg['name']}!",
         'plan': plan,
         'amount': amount,
+        'currency': currency,
         'payment_id': payment_id
     })
 

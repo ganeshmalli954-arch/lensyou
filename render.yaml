@@ -20,8 +20,8 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: DATABASE_PATH
-        value: /opt/render/project/src/data/videolens.db
+        value: /var/data/lensyou.db
     disk:
-      name: videolens-data
-      mountPath: /opt/render/project/src/data
+      name: lensyou-data
+      mountPath: /var/data
       sizeGB: 1

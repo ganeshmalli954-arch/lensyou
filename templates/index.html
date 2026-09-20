@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ (dossier_meta.title ~ ' — LensYou AI Dossier') if dossier_meta and dossier_meta.title else 'LensYou — AI Video Intelligence & Study Platform | Summaries, Notes & Flashcards' }}</title>
+    <title>{{ (dossier_meta.title ~ ' — LensYou AI Dossier') if dossier_meta and dossier_meta.title else 'LensYou — Executive Video Intelligence & Learning Engine' }}</title>
     
     <!-- Primary SEO Meta Tags -->
-    <meta name="title" content="{{ dossier_meta.title if dossier_meta and dossier_meta.title else 'LensYou — AI Video Intelligence & Study Platform' }}">
-    <meta name="description" content="{{ dossier_meta.description if dossier_meta and dossier_meta.description else 'LensYou is an AI-powered YouTube video intelligence platform for students and researchers. Instantly transform any video into timestamped executive notes, grounded copilot Q&A, mindmaps, and interactive flashcards.' }}">
-    <meta name="keywords" content="LensYou, AI video summarizer, YouTube note taker, video intelligence platform, study dashboard, lecture notes AI, video to notes, Andrew Huberman notes, YouTube transcript summarizer, AI flashcards, video mindmap, grounded AI copilot">
+    <meta name="title" content="{{ dossier_meta.title if dossier_meta and dossier_meta.title else 'LensYou — Executive Video Intelligence & Learning Engine' }}">
+    <meta name="description" content="{{ dossier_meta.description if dossier_meta and dossier_meta.description else 'LensYou is an Executive Video Intelligence & Learning Engine. Instantly transform any video into timestamped executive notes, 3D flashcards, Bloom taxonomy quizzes, multi-hour timeline heatmaps, and publication-grade PDF dossiers.' }}">
+    <meta name="keywords" content="LensYou, Executive Video Intelligence & Learning Engine, YouTube note taker, video intelligence platform, study dashboard, lecture notes AI, video to notes, Andrew Huberman notes, 3D interactive flashcards, Bloom taxonomy quiz, timeline heatmaps, publication-grade PDF dossiers">
     <meta name="author" content="LensYou">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
@@ -90,7 +90,14 @@
     </script>
 </head>
 <body class="dark-theme">
-    <div class="app-shell">
+        <!-- Shared Dossier High-Converting Sticky Top Bar -->
+        <div id="sharedDossierBanner" class="shared-dossier-sticky-bar" {% if is_shared_dossier %}style="display:flex;"{% else %}style="display:none;"{% endif %}>
+            <div class="shared-dossier-banner-inner">
+                <span class="shared-banner-text">🧠 Analyzed in 50ms with LensYou AI. Want to turn your own 3-hour lecture into instant notes?</span>
+                <button type="button" class="shared-banner-cta-btn" onclick="handleSharedBannerAnalyze()">Analyze Any Video Free →</button>
+            </div>
+            <button type="button" class="shared-banner-close" onclick="dismissSharedBanner()" title="Close banner">✕</button>
+        </div>
 
         <!-- Top Navigation Header -->
         <header class="top-nav">
@@ -203,9 +210,9 @@
                 <section id="landingScreen" class="screen landing-screen">
                     <div class="hero-container">
                         
-                        <div class="hero-badge eyebrow"><img src="/static/logo.svg" alt="" width="14" height="14" style="vertical-align:middle; margin-right:8px; display:inline-block; opacity:0.9;">LensYou • INTELLIGENCE PLATFORM</div>
-                        <h1 class="hero-title">Understand any video in minutes.</h1>
-                        <p class="hero-subtitle">Turn long-form video into structured knowledge, insights, timelines, study material and evidence-grounded conversations.</p>
+                        <div class="hero-badge eyebrow"><img src="/static/logo.svg" alt="" width="14" height="14" style="vertical-align:middle; margin-right:8px; display:inline-block; opacity:0.9;">LensYou • EXECUTIVE VIDEO INTELLIGENCE &amp; LEARNING ENGINE</div>
+                        <h1 class="hero-title">Understand any 3-hour video in minutes.</h1>
+                        <p class="hero-subtitle">LensYou is an Executive Video Intelligence &amp; Learning Engine. Built for time-poor high performers to turn multi-hour lectures, earnings calls, and podcasts into structured mastery.</p>
 
                         <div class="url-input-card">
                             <form id="analyzeForm" class="hero-form" style="display:flex; width:100%; align-items:center;">
@@ -230,7 +237,7 @@
                             <div class="cap-card" onclick="handleCapCardClick('understand')">
                                 <div class="cap-icon">✦</div>
                                 <div class="cap-title">Understand</div>
-                                <div class="cap-desc">Summary • Chapters • Timeline</div>
+                                <div class="cap-desc">Executive Notes • Chapters • Timeline</div>
                                 <div class="cap-chips"><span class="cap-chip">Overview</span><span class="cap-chip">Highlights</span></div>
                             </div>
                             <div class="cap-card" onclick="handleCapCardClick('research')">
@@ -242,7 +249,7 @@
                             <div class="cap-card" onclick="handleCapCardClick('learn')">
                                 <div class="cap-icon">📚</div>
                                 <div class="cap-title">Learn</div>
-                                <div class="cap-desc">Notes • Flashcards • Quiz</div>
+                                <div class="cap-desc">3D Cards • Bloom's Quiz • Notes</div>
                                 <div class="cap-chips"><span class="cap-chip">Study</span><span class="cap-chip">Test</span></div>
                             </div>
                             <div class="cap-card" onclick="handleCapCardClick('create')">
@@ -269,6 +276,99 @@
                             <span class="example-label">Quick sample videos:</span>
                             <button class="chip-btn" onclick="pasteQuickUrl('https://youtu.be/LqY6hFLMEJw')">🎙️ AI Podcast (Raj Shamani)</button>
                             <button class="chip-btn" onclick="pasteQuickUrl('https://www.youtube.com/watch?v=aircAruvnKk')">🧠 Neural Networks (3Blue1Brown)</button>
+                        </div>
+
+                        <!-- 4 Features ChatGPT Cannot Do (Showcase Section) -->
+                        <div class="features-vs-chatgpt-section">
+                            <div class="section-tag-badge">⚡ BEYOND BASIC AI</div>
+                            <h2 class="section-heading">4 Things ChatGPT Cannot Do With Video</h2>
+                            <p class="section-subheading">ChatGPT generates superficial text walls. LensYou transforms multi-hour videos into interactive, verifiable intelligence engines.</p>
+                            
+                            <div class="chatgpt-diff-grid">
+                                <div class="diff-card">
+                                    <div class="diff-card-badge">ACTIVE RECALL</div>
+                                    <div class="diff-card-icon">🎴</div>
+                                    <h3 class="diff-card-title">Interactive 3D Flashcards</h3>
+                                    <p class="diff-card-desc">Active recall cards with realistic 3D flip physics and rapid keyboard flipping: <kbd>[Space]</kbd> to flip, <kbd>[←]</kbd> and <kbd>[→]</kbd> to cycle.</p>
+                                    <div class="diff-pill">ChatGPT can't flip in 3D</div>
+                                </div>
+                                <div class="diff-card">
+                                    <div class="diff-card-badge">MASTERY EVALUATION</div>
+                                    <div class="diff-card-icon">🎓</div>
+                                    <h3 class="diff-card-title">Bloom's Taxonomy Quizzes</h3>
+                                    <p class="diff-card-desc">Auto-generated diagnostic quizzes spanning Remember, Understand, Apply, and Evaluate levels with instant grading and explanatory rationales.</p>
+                                    <div class="diff-pill">ChatGPT lacks Bloom's hierarchy</div>
+                                </div>
+                                <div class="diff-card">
+                                    <div class="diff-card-badge">VERIFIABLE PROOF</div>
+                                    <div class="diff-card-icon">⏳</div>
+                                    <h3 class="diff-card-title">Multi-Hour Timeline Heatmaps</h3>
+                                    <p class="diff-card-desc">Visual density heatmaps across 1-4+ hour videos with clickable, verifiable evidence timestamps that jump directly to source moments.</p>
+                                    <div class="diff-pill">ChatGPT has zero timeline grounding</div>
+                                </div>
+                                <div class="diff-card">
+                                    <div class="diff-card-badge">EXECUTIVE GRADE</div>
+                                    <div class="diff-card-icon">📄</div>
+                                    <h3 class="diff-card-title">Publication-Grade PDF Dossiers</h3>
+                                    <p class="diff-card-desc">Publication-grade PDF Dossiers with one-click export featuring thesis highlights, concept maps, quote evidence, and study outlines.</p>
+                                    <div class="diff-pill">ChatGPT gives plain raw text</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target High-Stakes, Time-Poor Video Consumers -->
+                        <div class="target-segments-section">
+                            <div class="section-tag-badge">🎯 BUILT FOR HIGH-STAKES CONSUMERS</div>
+                            <h2 class="section-heading">Targeted for Time-Poor High Performers</h2>
+                            <p class="section-subheading">When stakes are high and videos are hours long, generic summaries fail. Here is how LensYou saves 15+ hours a week:</p>
+                            
+                            <div class="segments-grid">
+                                <div class="segment-card" onclick="pasteQuickUrl('https://www.youtube.com/watch?v=aircAruvnKk')">
+                                    <div class="segment-header">
+                                        <span class="segment-icon">🩺</span>
+                                        <span class="segment-title">Medical &amp; Engineering Students</span>
+                                    </div>
+                                    <div class="segment-pain">
+                                        <span class="segment-label">The Pain Point:</span>
+                                        3-hour university lectures; impossible to re-watch before high-stakes exams.
+                                    </div>
+                                    <div class="segment-why">
+                                        <span class="segment-label">Why They Pay:</span>
+                                        Interactive 3D Flashcards + Bloom's taxonomy Quizzes save 15 hours of study time per exam.
+                                    </div>
+                                    <button type="button" class="segment-cta-btn">Analyze 3B1B Lecture (1-Click) →</button>
+                                </div>
+                                <div class="segment-card" onclick="pasteQuickUrl('https://youtu.be/LqY6hFLMEJw')">
+                                    <div class="segment-header">
+                                        <span class="segment-icon">💼</span>
+                                        <span class="segment-title">Investors &amp; Founders</span>
+                                    </div>
+                                    <div class="segment-pain">
+                                        <span class="segment-label">The Pain Point:</span>
+                                        2-hour earnings calls, All-In Podcast, and YC talks with critical thesis insights.
+                                    </div>
+                                    <div class="segment-why">
+                                        <span class="segment-label">Why They Pay:</span>
+                                        Executive takeaways &amp; thesis extract in 50ms without losing work hours.
+                                    </div>
+                                    <button type="button" class="segment-cta-btn">Analyze Founder Interview (1-Click) →</button>
+                                </div>
+                                <div class="segment-card" onclick="pasteQuickUrl('https://www.youtube.com/watch?v=aircAruvnKk')">
+                                    <div class="segment-header">
+                                        <span class="segment-icon">⚡</span>
+                                        <span class="segment-title">Self-Improvement Junkies</span>
+                                    </div>
+                                    <div class="segment-pain">
+                                        <span class="segment-label">The Pain Point:</span>
+                                        Huberman Lab (2.5 hrs), Lex Fridman (3.5 hrs) dense with protocols and science.
+                                    </div>
+                                    <div class="segment-why">
+                                        <span class="segment-label">Why They Pay:</span>
+                                        Actionable protocol list &amp; habit checklists with timeline evidence timestamps.
+                                    </div>
+                                    <button type="button" class="segment-cta-btn">Analyze Deep-Dive Podcast (1-Click) →</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -1001,25 +1101,42 @@
                         <button class="modal-close" onclick="closeUpgradeModal()">×</button>
                         <h2 class="modal-title-center">Select Intelligence Tier</h2>
                         <p class="modal-subtitle-center" style="margin-bottom:20px;">Enforced server-side quotas with permanent history retention</p>
+                        <!-- Currency / Region Interactive Segmented Toggle -->
+                        <div class="pricing-region-toggle-wrap" style="display:flex; justify-content:center; margin-bottom:18px;">
+                            <div class="pricing-region-toggle" style="display:inline-flex; background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:9999px; padding:3px;">
+                                <button type="button" id="toggleRegionInr" class="region-toggle-btn active" onclick="setPricingRegion('inr')" style="border-radius:9999px; border:none; padding:6px 16px; font-size:12px; font-weight:700; cursor:pointer; background:var(--accent-primary); color:#FFFFFF;">
+                                    🇮🇳 India (INR • UPI &amp; Cards)
+                                </button>
+                                <button type="button" id="toggleRegionUsd" class="region-toggle-btn" onclick="setPricingRegion('usd')" style="border-radius:9999px; border:none; padding:6px 16px; font-size:12px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary);">
+                                    🌐 International (USD • Cards &amp; Apple Pay)
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="upgrade-plans-grid" style="grid-template-columns: repeat(3, 1fr); gap: 12px;">
                             <div class="glass-card upgrade-plan-card">
                                 <div class="upgrade-plan-name">10-Video Pack</div>
-                                <div class="upgrade-plan-price">₹50</div>
+                                <div class="upgrade-plan-price plan-price-pack10">₹50</div>
                                 <div style="font-size:11px; color:var(--text-muted); margin: 8px 0;">+10 Extra Analyses<br>50 History Retention<br>Priority AI Inference</div>
-                                <button onclick="initiatePlanPurchase('pack10')" class="upgrade-plan-btn btn-warning-plan" style="cursor:pointer; border:none; width:100%;">Upgrade ₹50</button>
+                                <button onclick="initiatePlanPurchase('pack10')" class="upgrade-plan-btn btn-warning-plan plan-btn-pack10" style="cursor:pointer; border:none; width:100%;">Upgrade ₹50</button>
                             </div>
                             <div class="glass-card upgrade-plan-card featured">
                                 <div class="upgrade-plan-name">50-Video Pack</div>
-                                <div class="upgrade-plan-price">₹70</div>
+                                <div class="upgrade-plan-price plan-price-pack50">₹70</div>
                                 <div style="font-size:11px; color:var(--text-muted); margin: 8px 0;">+50 Extra Analyses<br>100 History Retention<br>Priority AI Inference</div>
-                                <button onclick="initiatePlanPurchase('pack50')" class="upgrade-plan-btn btn-primary-plan" style="cursor:pointer; border:none; width:100%;">Upgrade ₹70</button>
+                                <button onclick="initiatePlanPurchase('pack50')" class="upgrade-plan-btn btn-primary-plan plan-btn-pack50" style="cursor:pointer; border:none; width:100%;">Upgrade ₹70</button>
                             </div>
                             <div class="glass-card upgrade-plan-card">
                                 <div class="upgrade-plan-name">Unlimited Pro</div>
-                                <div class="upgrade-plan-price">₹99</div>
+                                <div class="upgrade-plan-price plan-price-unlimited">₹99</div>
                                 <div style="font-size:11px; color:var(--text-muted); margin: 8px 0;">Unlimited Analyses<br>500 History Retention<br>Grounded Copilot<br>PDF Dossiers</div>
-                                <button onclick="initiatePlanPurchase('unlimited')" class="upgrade-plan-btn btn-gradient-plan" style="cursor:pointer; border:1px solid rgba(255,255,255,0.25); width:100%; background:linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%) !important; color:#FFFFFF !important; font-weight:700 !important; padding:10px; border-radius:8px; box-shadow:0 4px 16px rgba(139,92,246,0.45); font-size:13px;">Upgrade ₹99/mo</button>
+                                <button onclick="initiatePlanPurchase('unlimited')" class="upgrade-plan-btn btn-gradient-plan plan-btn-unlimited" style="cursor:pointer; border:1px solid rgba(255,255,255,0.25); width:100%; background:linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%) !important; color:#FFFFFF !important; font-weight:700 !important; padding:10px; border-radius:8px; box-shadow:0 4px 16px rgba(139,92,246,0.45); font-size:13px;">Upgrade ₹99/mo</button>
                             </div>
+                        </div>
+
+                        <!-- Dynamic Region Payment Note -->
+                        <div id="pricingPaymentMethodNote" style="margin-top:14px; text-align:center; font-size:11.5px; color:var(--text-secondary);">
+                            ⚡ <strong>Domestic India Checkout:</strong> Instant activation via UPI (GPay, PhonePe, Paytm) &amp; Razorpay.
                         </div>
 
                         <!-- Voluntary Buy Me a Coffee / UPI Support Link -->
@@ -1232,6 +1349,9 @@
         <!-- Toast Notifications -->
         <div id="toastNotification" class="toast-popup" style="display:none;"></div>
 
+    <script>
+        window.LENSYOU_BMC_URL = "{{ bmc_url }}";
+    </script>
     <script src="/static/script.js"></script>
 </body>
 </html>

@@ -3,12 +3,27 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def resolve_database_path() -> str:
+    env_path = os.getenv('DATABASE_PATH')
+    if env_path:
+        return env_path
+    if os.path.exists('/var/data'):
+        if os.path.exists('/var/data/lensyou.db'):
+            return '/var/data/lensyou.db'
+        if os.path.exists('/var/data/videolens.db'):
+            return '/var/data/videolens.db'
+        return '/var/data/lensyou.db'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_dir, 'data', 'videolens.db')
+
+DATABASE_PATH = resolve_database_path()
+
 PLANS = {
-    'anonymous': {'label': 'Guest', 'quota': 3, 'price': 0, 'price_display': 'Free'},
-    'free': {'label': 'Free', 'quota': 5, 'price': 0, 'price_display': 'Free'},
-    'pack10': {'label': '10-Video Pack', 'quota_grant': 10, 'price': 50, 'price_display': '₹50'},
-    'pack50': {'label': '50-Video Pack', 'quota_grant': 50, 'price': 70, 'price_display': '₹70'},
-    'unlimited': {'label': 'Unlimited', 'quota_grant': -1, 'price': 99, 'price_display': '₹99/mo'},
+    'anonymous': {'label': 'Guest', 'quota': 3, 'price': 0, 'price_display': 'Free', 'price_usd': 0, 'price_display_usd': 'Free'},
+    'free': {'label': 'Free', 'quota': 5, 'price': 0, 'price_display': 'Free', 'price_usd': 0, 'price_display_usd': 'Free'},
+    'pack10': {'label': '10-Video Pack', 'quota_grant': 10, 'price': 50, 'price_display': '₹50', 'price_usd': 2.99, 'price_display_usd': '$2.99'},
+    'pack50': {'label': '50-Video Pack', 'quota_grant': 50, 'price': 70, 'price_display': '₹70', 'price_usd': 3.99, 'price_display_usd': '$3.99'},
+    'unlimited': {'label': 'Unlimited', 'quota_grant': -1, 'price': 99, 'price_display': '₹99/mo', 'price_usd': 4.99, 'price_display_usd': '$4.99/mo'},
 }
 
 def get_bmc_url() -> str:

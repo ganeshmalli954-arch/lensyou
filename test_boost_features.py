@@ -16,6 +16,9 @@ class TestBoostFeatures(unittest.TestCase):
 
     def setUp(self):
         self.client = app.test_client()
+        with get_db() as conn:
+            conn.cursor().execute("DELETE FROM anon_sessions")
+            conn.commit()
 
     def test_01_index_and_caching_functions(self):
         """Verify idx_videos_video_id index exists and save_analysis is alias of save_cached_analysis"""
@@ -215,6 +218,90 @@ class TestBoostFeatures(unittest.TestCase):
             self.assertEqual(row['user_id'], test_user)
             self.assertEqual(row['session_key'], 'sess_123')
             self.assertEqual(row['title'], "Test Title Updated")
+
+    def test_09_shared_dossier_sticky_banner_and_copy(self):
+        """Verify shared /v/<video_id> has sticky banner, executive branding, 4 ChatGPT diffs, and segments"""
+        test_vid = f"sticky_{uuid.uuid4().hex[:6]}"
+        sample_analysis = {
+            "_meta": {"video_id": test_vid, "title": "AI in Medicine Lecture", "duration": "01:15:00"},
+            "video_overview": {"summary": "Advanced neural networks in computational pathology"}
+        }
+        save_cached_analysis(test_vid, "AI in Medicine Lecture", "Stanford Medical", "01:15:00", sample_analysis)
+
+        res = self.client.get(f'/v/{test_vid}')
+        self.assertEqual(res.status_code, 200)
+        html = res.data.decode('utf-8')
+
+        # Sticky Top Bar
+        self.assertIn("sharedDossierBanner", html)
+        self.assertIn("Analyzed in 50ms with LensYou AI", html)
+        self.assertIn("Analyze Any Video Free →", html)
+
+        # Executive Video Intelligence & Learning Engine (never just a summarizer)
+        self.assertIn("Executive Video Intelligence &amp; Learning Engine", html)
+        self.assertNotIn("AI video summarizer", html)
+
+        # 4 Features ChatGPT cannot do
+        self.assertIn("Interactive 3D Flashcards", html)
+        self.assertIn("[Space]", html)
+        self.assertIn("Bloom's Taxonomy Quizzes", html)
+        self.assertIn("Multi-Hour Timeline Heatmaps", html)
+        self.assertIn("Publication-Grade PDF Dossiers", html)
+
+        # Target Segments
+        self.assertIn("Medical &amp; Engineering Students", html)
+        self.assertIn("Investors &amp; Founders", html)
+        self.assertIn("Self-Improvement Junkies", html)
+
+    def test_10_international_currency_and_pricing_support(self):
+        """Verify international USD currency and pricing in /api/payment/verify"""
+        user_id = create_user('google', f'sub_intl_{uuid.uuid4().hex[:8]}', 'intl@example.com', 'Global User', '')
+
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = user_id
+
+        # Upgrade via International USD pack10 ($2.99)
+        res_pack = self.client.post('/api/payment/verify', json={
+            'plan': 'pack10',
+            'currency': 'USD',
+            'amount': 2.99,
+            'provider': 'stripe'
+        })
+        self.assertEqual(res_pack.status_code, 200)
+        data = res_pack.get_json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['currency'], 'USD')
+        self.assertEqual(data['amount'], 2.99)
+
+        # Upgrade via International USD unlimited ($4.99)
+        res_unlim = self.client.post('/api/payment/verify', json={
+            'plan': 'unlimited',
+            'currency': 'USD',
+            'amount': 4.99,
+            'provider': 'stripe'
+        })
+        self.assertEqual(res_unlim.status_code, 200)
+        data_u = res_unlim.get_json()
+        self.assertTrue(data_u['success'])
+        self.assertEqual(data_u['currency'], 'USD')
+        self.assertEqual(data_u['amount'], 4.99)
+
+    def test_11_render_disk_storage_path_resolution(self):
+        """Verify resolve_database_path respects /var/data and environment variables"""
+        from services.storage_service import resolve_database_path
+        from unittest.mock import patch
+
+        # Explicit DATABASE_PATH env var
+        with patch.dict(os.environ, {'DATABASE_PATH': '/custom/path/db.sqlite'}):
+            self.assertEqual(resolve_database_path(), '/custom/path/db.sqlite')
+
+        # Simulated Render persistent disk mount at /var/data
+        with patch.dict(os.environ, {}, clear=True):
+            if 'DATABASE_PATH' in os.environ:
+                del os.environ['DATABASE_PATH']
+            with patch('os.path.exists') as mock_exists:
+                mock_exists.side_effect = lambda p: p == '/var/data'
+                self.assertEqual(resolve_database_path(), '/var/data/lensyou.db')
 
 if __name__ == '__main__':
     unittest.main()

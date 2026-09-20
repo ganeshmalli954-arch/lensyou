@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUserState();
     checkCookieConsent();
     checkDossierUrlOnLoad();
+    const detectedRegion = detectUserRegion();
+    if (detectedRegion === 'usd') {
+        setPricingRegion('usd');
+    }
     setInterval(updateUsageCounter, 30000);
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -2291,10 +2295,34 @@ function copyShareableSummary(btn = null) {
     copyWithFeedback(text, btn, 'Executive summary & dossier link copied to clipboard!');
 }
 
+function handleSharedBannerAnalyze() {
+    showScreen('landing');
+    const input = document.getElementById('youtubeUrl');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+    const quickInput = document.getElementById('quickYoutubeUrl');
+    if (quickInput) {
+        quickInput.value = '';
+    }
+    const navCenter = document.getElementById('navCenterZone');
+    if (navCenter) navCenter.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function dismissSharedBanner() {
+    const banner = document.getElementById('sharedDossierBanner');
+    if (banner) banner.style.display = 'none';
+}
+
 async function checkDossierUrlOnLoad() {
     const path = window.location.pathname || '';
     const match = path.match(/^\/v\/([a-zA-Z0-9_-]+)/);
     if (!match) return;
+
+    const banner = document.getElementById('sharedDossierBanner');
+    if (banner) banner.style.display = 'flex';
 
     const videoId = match[1];
     hideErrors();
@@ -2532,17 +2560,99 @@ function updateAuthUI(user) {
     }
 }
 
+let currentPricingRegion = 'inr';
+
+function detectUserRegion() {
+    try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        const lang = navigator.language || '';
+        if (tz.includes('Calcutta') || tz.includes('Kolkata') || lang === 'en-IN' || lang.endsWith('-IN')) {
+            return 'inr';
+        }
+        return 'usd';
+    } catch (e) {
+        return 'inr';
+    }
+}
+
+function setPricingRegion(region) {
+    currentPricingRegion = region;
+    const btnInr = document.getElementById('toggleRegionInr');
+    const btnUsd = document.getElementById('toggleRegionUsd');
+    
+    if (region === 'usd') {
+        if (btnInr) {
+            btnInr.style.background = 'transparent';
+            btnInr.style.color = 'var(--text-secondary)';
+            btnInr.classList.remove('active');
+        }
+        if (btnUsd) {
+            btnUsd.style.background = 'var(--accent-primary)';
+            btnUsd.style.color = '#FFFFFF';
+            btnUsd.classList.add('active');
+        }
+        document.querySelectorAll('.plan-price-pack10').forEach(el => el.textContent = '$2.99');
+        document.querySelectorAll('.plan-price-pack50').forEach(el => el.textContent = '$3.99');
+        document.querySelectorAll('.plan-price-unlimited').forEach(el => el.textContent = '$4.99');
+        
+        document.querySelectorAll('.plan-btn-pack10').forEach(el => el.textContent = 'Upgrade $2.99 (USD)');
+        document.querySelectorAll('.plan-btn-pack50').forEach(el => el.textContent = 'Upgrade $3.99 (USD)');
+        document.querySelectorAll('.plan-btn-unlimited').forEach(el => el.textContent = 'Upgrade $4.99/mo (USD)');
+        
+        const noteEl = document.getElementById('pricingPaymentMethodNote');
+        if (noteEl) noteEl.innerHTML = '💳 <strong>International Checkout:</strong> Powered by Buy Me a Coffee &amp; Stripe. Accepts Global Credit Cards, Apple Pay, and Google Pay.';
+    } else {
+        if (btnInr) {
+            btnInr.style.background = 'var(--accent-primary)';
+            btnInr.style.color = '#FFFFFF';
+            btnInr.classList.add('active');
+        }
+        if (btnUsd) {
+            btnUsd.style.background = 'transparent';
+            btnUsd.style.color = 'var(--text-secondary)';
+            btnUsd.classList.remove('active');
+        }
+        document.querySelectorAll('.plan-price-pack10').forEach(el => el.textContent = '₹50');
+        document.querySelectorAll('.plan-price-pack50').forEach(el => el.textContent = '₹70');
+        document.querySelectorAll('.plan-price-unlimited').forEach(el => el.textContent = '₹99');
+        
+        document.querySelectorAll('.plan-btn-pack10').forEach(el => el.textContent = 'Upgrade ₹50');
+        document.querySelectorAll('.plan-btn-pack50').forEach(el => el.textContent = 'Upgrade ₹70');
+        document.querySelectorAll('.plan-btn-unlimited').forEach(el => el.textContent = 'Upgrade ₹99/mo');
+        
+        const noteEl = document.getElementById('pricingPaymentMethodNote');
+        if (noteEl) noteEl.innerHTML = '⚡ <strong>Domestic India Checkout:</strong> Instant activation via UPI (GPay, PhonePe, Paytm) &amp; Razorpay.';
+    }
+}
+
 async function initiatePlanPurchase(plan) {
     if (!currentUser) {
         openAuthModal('Please sign in with Google first to upgrade your account.');
         return;
     }
-    showToast(`Initiating upgrade for ${plan}...`, 'info');
+    const currency = (currentPricingRegion === 'usd') ? 'USD' : 'INR';
+    const amount = (currency === 'USD')
+        ? (plan === 'pack10' ? 2.99 : (plan === 'unlimited' ? 4.99 : 3.99))
+        : (plan === 'pack10' ? 50 : (plan === 'unlimited' ? 99 : 70));
+
+    showToast(`Initiating upgrade for ${plan} (${currency === 'USD' ? '$' + amount : '₹' + amount})...`, 'info');
+
+    if (currency === 'USD') {
+        const bmcUrl = window.LENSYOU_BMC_URL || 'https://www.buymeacoffee.com/lensyou';
+        window.open(bmcUrl, '_blank');
+        showToast('Opened international checkout (Buy Me a Coffee / Stripe). Supports Apple Pay, Google Pay & Credit Cards.', 'info');
+    }
+
     try {
         const res = await fetch('/api/payment/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ plan: plan, provider: 'checkout' })
+            body: JSON.stringify({
+                plan: plan,
+                provider: currency === 'USD' ? 'stripe' : 'razorpay',
+                currency: currency,
+                amount: amount
+            })
         });
         const data = await res.json();
         if (data.success) {

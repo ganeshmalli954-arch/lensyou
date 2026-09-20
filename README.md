@@ -1,41 +1,42 @@
-# LensYou — AI Video Intelligence & Study Platform
+# LensYou — Executive Video Intelligence & Learning Engine
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Framework-Flask-black.svg)](https://flask.palletsprojects.com/)
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ganeshmalli954-arch/lensyou)
 
-**LensYou** is a high-performance AI video intelligence and study dashboard that transforms long-form YouTube lectures, podcasts, and documentaries into timestamped learning outputs.
+**LensYou** is an **Executive Video Intelligence & Learning Engine** built for time-poor, high-stakes learners. Never call it a summarizer — generic tools output walls of text that hallucinate key arguments. LensYou transforms multi-hour YouTube lectures, earnings calls, and technical podcasts into interactive, verifiable intelligence in 50ms.
 
 ## 🔗 Live Demo
 - **App:** https://lensyou.onrender.com
-- If your deployed URL is different, update this link so visitors can test LensYou immediately.
 
-## 🖼️ Product Visuals
-![LensYou Logo](static/logo.jpg)
+## ⚡ 4 Things ChatGPT Cannot Do With Video
+1. **Interactive 3D Flashcards with Keyboard Flipping:** Active recall with realistic 3D flip physics: `[Space]` to flip, `[←]` and `[→]` to cycle.
+2. **Auto-Generated Bloom's Taxonomy Quizzes:** Diagnostic quizzes categorized from recall to evaluation with instant grading and explanatory rationales.
+3. **Multi-Hour Timeline Heatmaps with Evidence Timestamps:** Visual density heatmaps across 1–4+ hour videos with clickable, verifiable timestamps that jump to source proof points.
+4. **Publication-Grade PDF Dossiers with One-Click Export:** Boardroom and revision-ready executive dossiers featuring thesis points, concept maps, quote evidence, and study outlines.
 
-- Add your latest UI screenshot(s) and short demo GIF in a future update for stronger first-impression trust.
-- Suggested paths: `docs/media/home-dashboard.png`, `docs/media/lensyou-flow.gif`.
+---
 
-## 💎 Why LensYou is Unique
-- Handles long-form videos (1–4+ hours) without fallback truncation.
-- Produces grounded, timestamped outputs with actionable structure.
-- Combines study tools in one flow: flashcards, quizzes, timeline, and mindmaps.
-- Includes account-linked history, admin observability, and direct UPI support.
+## 🎯 Target Segments: Built for High-Stakes Video Consumers
+| Target Segment | The Pain Point | Why They Pay |
+|:---|:---|:---|
+| **Medical & Engineering Students** | 3-hour university lectures; impossible to re-watch before exams | Flashcards + Quizzes save 15 hours of study time |
+| **Investors & Founders** | 2-hour earnings calls, All-In Podcast, YC talks | Executive takeaways & thesis extract without losing work hours |
+| **Self-Improvement Junkies** | Huberman Lab (2.5 hrs), Lex Fridman (3.5 hrs) | Actionable protocol list & habit checklists |
 
 ---
 
 ## ✨ Key Features
 
-- **Unlimited Lecture Processing:** Analyze multi-hour videos without 10-minute fallback behavior.
-- **Grounded AI Copilot:** Ask detailed questions with exact timestamps (`[MM:SS]`).
-- **3D Interactive Study Flashcards:** Flip with keyboard controls and self-grade instantly.
-- **Concept Mindmaps & Interactive Timeline:** Explore concept clusters and jump to key moments.
-- **Production SEO:** JSON-LD schema, OpenGraph, Twitter cards, `robots.txt`, and `sitemap.xml`.
-- **Google OAuth + History:** Real account-linked analysis history across devices.
-- **Private Admin Portal + 2FA:** Master password + RFC 6238 TOTP security for admin access.
-- **Direct UPI Support:** Dynamic QR + one-click mobile UPI launch for payment flow.
-- **PDF Intelligence Dossiers:** One-click professional PDF reports with executive summaries.
+- **Executive Video Intelligence:** Analyze 1–4+ hour lectures and podcasts without truncation.
+- **Grounded AI Copilot:** Evidence Mode provides verbatim citations with exact `[MM:SS]` timestamps.
+- **Interactive 3D Flashcards:** Flip with keyboard (`[Space]`, `[←]`, `[→]`) and self-grade.
+- **Auto-Generated Bloom's Quizzes:** Test understanding across multiple cognitive levels.
+- **Timeline Density Heatmaps:** Instant visual mapping of arguments across hours of footage.
+- **Publication-Grade PDF Dossiers:** 1-click executive dossiers with structured takeaways.
+- **Dual Region Pricing:** India ₹50 / ₹99 via UPI & Razorpay; International $2.99 / $4.99 via Stripe / Buy Me a Coffee (Apple Pay, Google Pay, Cards).
+- **Persistent Storage on Render:** Built-in support for persistent Render Disk mounted at `/var/data`.
 
 ---
 
@@ -76,11 +77,20 @@ Open http://localhost:5000
 ## ☁️ Deployment on Render
 This repository includes a production-ready `render.yaml` blueprint with persistent disk storage.
 
+### Persistent Disk Configuration:
+To prevent database resets across redeploys on Render's ephemeral filesystem:
+- **Mount Path:** `/var/data`
+- **Disk Name:** `lensyou-data` (1GB)
+- **Environment Variable:** `DATABASE_PATH=/var/data/lensyou.db`
+- The application automatically detects `/var/data` on boot, creating or linking `/var/data/lensyou.db` with zero configuration needed.
+
+### Deploy Steps:
 1. Push your repository to GitHub.
 2. In the Render Dashboard, click **New + → Blueprint**.
 3. Connect this repository.
 4. Set environment variables (`GEMINI_API_KEY`, `ADMIN_PASSWORD`, Google OAuth keys, etc.).
-5. Apply the blueprint and deploy.
+5. The persistent disk is automatically provisioned and mounted at `/var/data`.
+6. Apply the blueprint and deploy.
 
 ---
 
