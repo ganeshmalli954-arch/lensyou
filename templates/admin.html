@@ -678,7 +678,7 @@
             }
 
             tbody.innerHTML = filtered.map(u => {
-                const planBadge = u.plan === 'unlimited' ? 'badge-purple' : (u.plan === 'pack10' ? 'badge-blue' : '');
+                const planBadge = u.plan === 'unlimited' ? 'badge-purple' : (u.plan === 'pack10' ? 'badge-blue' : (u.plan === 'pack50' ? 'badge-green' : ''));
                 const tsJoined = u.created_at ? u.created_at.slice(0, 10) : '—';
                 const tsActive = u.last_active ? u.last_active.slice(0, 16).replace('T', ' ') : '—';
                 return `

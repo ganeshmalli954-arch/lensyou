@@ -212,9 +212,10 @@ def save_cached_analysis(video_id: str, title: str, author: str, duration: str, 
             if existing:
                 c.execute('''
                     UPDATE videos 
-                    SET title = ?, author = ?, duration = ?, analysis_json = ?, created_at = ?
+                    SET title = ?, author = ?, duration = ?, analysis_json = ?, 
+                        user_id = COALESCE(?, user_id), session_key = COALESCE(?, session_key), created_at = ?
                     WHERE video_id = ?
-                ''', (title, author, duration, raw_json, now_str, video_id))
+                ''', (title, author, duration, raw_json, user_id, session_key, now_str, video_id))
             else:
                 c.execute('''
                     INSERT INTO videos (id, video_id, title, author, duration, analysis_json, user_id, session_key, created_at)

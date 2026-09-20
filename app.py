@@ -113,9 +113,20 @@ def inject_global_vars():
 def index():
     return render_template("index.html")
 
-@app.route("/v/<video_id>")
+@app.route("/v/<video_id>", strict_slashes=False)
 def shared_dossier(video_id):
-    return render_template("index.html")
+    cached = get_cached_analysis(video_id)
+    dossier_meta = None
+    if cached:
+        meta = cached.get('_meta') or {}
+        overview = cached.get('video_overview') or {}
+        dossier_meta = {
+            "title": meta.get('title') or f"Video Dossier ({video_id})",
+            "description": overview.get('summary') or f"Explore the AI intelligence dossier and study notes for this YouTube video.",
+            "image": meta.get('thumbnail_url') or f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg",
+            "url": f"{request.host_url.rstrip('/')}/v/{video_id}"
+        }
+    return render_template("index.html", dossier_meta=dossier_meta)
 
 @app.route("/history")
 def history_page():
@@ -282,7 +293,7 @@ def health():
         "timestamp": datetime.utcnow().isoformat()
     }), 200
 
-@app.route('/api/dossier/<video_id>')
+@app.route('/api/dossier/<video_id>', strict_slashes=False)
 def api_dossier(video_id):
     cached = get_cached_analysis(video_id)
     if not cached:
@@ -553,16 +564,22 @@ def api_analyze():
     if not quota['allowed']:
         return jsonify({"error": "Quota exceeded", "quota_info": quota}), 402
         
+    cached = get_cached_analysis(video_id)
     key_pool = get_key_pool()
-    if not key_pool:
+    if not cached and not key_pool:
          return jsonify({"error": "Gemini API keys not configured"}), 500
 
     user = get_user(user_id) if user_id else None
     user_plan = user.get('plan', 'free') if user else 'anonymous'
 
-    # Fetch official video title so search event has the real title immediately
-    meta = get_video_oembed(video_id)
-    video_title = meta.get('title') or f"YouTube Video ({video_id})"
+    # If cached, serve title immediately with 0 YouTube network requests
+    if cached:
+        cached_meta = cached.get('_meta') or {}
+        video_title = cached_meta.get('title') or f"YouTube Video ({video_id})"
+    else:
+        # Fetch official video title so search event has the real title immediately
+        meta = get_video_oembed(video_id)
+        video_title = meta.get('title') or f"YouTube Video ({video_id})"
 
     # Record search event immediately
     record_search_event(
@@ -746,7 +763,7 @@ def start_keepalive_daemon():
     if _keepalive_started:
         return
 
-    site_url = os.getenv('RENDER_EXTERNAL_URL') or os.getenv('SITE_URL')
+    site_url = os.getenv('RENDER_EXTERNAL_URL') or os.getenv('RENDER_EXTERNAL_HOSTNAME') or os.getenv('SITE_URL')
     is_render = bool(os.getenv('RENDER'))
     target_url = site_url or ('https://lensyou.onrender.com' if is_render else None)
 
@@ -754,19 +771,23 @@ def start_keepalive_daemon():
         return
 
     _keepalive_started = True
-    clean_target = target_url.rstrip('/')
+    clean_target = target_url.strip().rstrip('/')
+    if not clean_target.startswith(('http://', 'https://')):
+        clean_target = f"https://{clean_target}"
     health_endpoint = f"{clean_target}/api/health"
 
     def _pinger():
         import requests
         print(f"  [Keepalive Daemon]: Started for {health_endpoint} (interval 8m)", flush=True)
+        # Short initial delay to let server socket bind before initial warm-up ping
+        time.sleep(15)
         while True:
-            time.sleep(480)  # 8 minutes
             try:
                 res = requests.get(health_endpoint, timeout=15)
                 print(f"  [Keepalive Daemon]: Pinged {health_endpoint} -> HTTP {res.status_code}", flush=True)
             except Exception as e:
                 print(f"  [Keepalive Daemon]: Ping attempt error: {e}", flush=True)
+            time.sleep(480)  # 8 minutes
 
     t = threading.Thread(target=_pinger, daemon=True, name="lensyou-keepalive")
     t.start()

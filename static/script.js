@@ -80,6 +80,7 @@ function setupEventListeners() {
             closeAuthModal();
             closeUpgradeModal();
             closeSupportModal();
+            closeShareModal();
         }
     });
 }
@@ -470,9 +471,9 @@ async function startAnalysis(url) {
             throw new Error('No job identifier returned by the server.');
         }
 
-        // Begin Polling
+        // Begin Polling (with immediate check for instant cache hits)
         if (pollingInterval) clearInterval(pollingInterval);
-        pollingInterval = setInterval(async () => {
+        const checkStatus = async () => {
             try {
                 const jobRes = await fetch('/api/job/' + jobId);
                 if (!jobRes.ok) return;
@@ -483,7 +484,8 @@ async function startAnalysis(url) {
                 }
 
                 if (jobData.status === 'completed' && jobData.result) {
-                    clearInterval(pollingInterval);
+                    if (pollingInterval) clearInterval(pollingInterval);
+                    pollingInterval = null;
                     stopElapsedTimer();
                     updatePipelineStageUI(9, 'Dossier ready');
 
@@ -496,10 +498,11 @@ async function startAnalysis(url) {
                         loadUserState();
                         isAnalyzing = false;
                         setAnalyzeButtonLoading(false);
-                    }, 350);
+                    }, 50);
 
                 } else if (jobData.status === 'error' || jobData.status === 'failed') {
-                    clearInterval(pollingInterval);
+                    if (pollingInterval) clearInterval(pollingInterval);
+                    pollingInterval = null;
                     stopElapsedTimer();
                     isAnalyzing = false;
                     setAnalyzeButtonLoading(false);
@@ -508,7 +511,13 @@ async function startAnalysis(url) {
             } catch (pollErr) {
                 console.warn('Poll retry:', pollErr);
             }
-        }, 1200);
+        };
+
+        // Check immediately
+        await checkStatus();
+        if (isAnalyzing) {
+            pollingInterval = setInterval(checkStatus, 1200);
+        }
 
     } catch (err) {
         stopElapsedTimer();
@@ -2193,23 +2202,81 @@ function shareDossier(btn = null) {
         showToast('Please analyze a video first to share its dossier.', 'warning');
         return;
     }
+    const shareUrl = getShareableDossierUrl();
+    copyWithFeedback(shareUrl, btn, 'Public dossier link copied to clipboard!');
+    openShareModal();
+}
+
+function openShareModal() {
+    if (!currentAnalysis) return;
+    const modal = document.getElementById('shareModal');
+    if (!modal) return;
+
+    const meta = currentAnalysis._meta || {};
+    const title = meta.title || 'Video Dossier';
+    const shareUrl = getShareableDossierUrl();
+
+    const input = document.getElementById('shareModalUrlInput');
+    if (input) input.value = shareUrl;
+
+    const sub = document.getElementById('shareModalSubtitle');
+    if (sub) sub.textContent = title;
+
+    const nativeRow = document.getElementById('nativeShareRow');
+    if (nativeRow) {
+        nativeRow.style.display = navigator.share ? 'block' : 'none';
+    }
+
+    modal.classList.add('open');
+}
+
+function closeShareModal() {
+    const modal = document.getElementById('shareModal');
+    if (modal) modal.classList.remove('open');
+}
+
+function copyShareUrlFromModal(btn) {
+    const input = document.getElementById('shareModalUrlInput');
+    const url = input ? input.value : getShareableDossierUrl();
+    copyWithFeedback(url, btn, 'Public dossier link copied!');
+}
+
+function shareVia(channel) {
+    if (!currentAnalysis) return;
+    const meta = currentAnalysis._meta || {};
+    const title = meta.title || 'Video';
+    const summary = (currentAnalysis.video_overview?.summary || '').slice(0, 200);
+    const shareUrl = getShareableDossierUrl();
+
+    if (channel === 'whatsapp') {
+        const text = `🎬 *${title}* — AI Video Intelligence Dossier\n${shareUrl}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    } else if (channel === 'twitter') {
+        const text = `Explore the AI intelligence dossier & study notes for "${title}" on @LensYou:`;
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+    } else if (channel === 'linkedin') {
+        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+    } else if (channel === 'summary') {
+        copyShareableSummary();
+        closeShareModal();
+    }
+}
+
+function triggerNativeShare() {
+    if (!navigator.share || !currentAnalysis) return;
     const meta = currentAnalysis._meta || {};
     const title = meta.title || 'Video';
     const shareUrl = getShareableDossierUrl();
 
-    if (navigator.share) {
-        navigator.share({
-            title: `LensYou: ${title}`,
-            text: `Explore the AI intelligence dossier and study notes for "${title}":`,
-            url: shareUrl
-        }).catch(err => {
-            if (err.name !== 'AbortError') {
-                copyWithFeedback(shareUrl, btn, 'Public dossier link copied to clipboard!');
-            }
-        });
-    } else {
-        copyWithFeedback(shareUrl, btn, 'Public dossier link copied to clipboard!');
-    }
+    navigator.share({
+        title: `LensYou: ${title}`,
+        text: `Explore the AI intelligence dossier and study notes for "${title}":`,
+        url: shareUrl
+    }).catch(err => {
+        if (err.name !== 'AbortError') {
+            copyWithFeedback(shareUrl, null, 'Public dossier link copied to clipboard!');
+        }
+    });
 }
 
 function copyShareableSummary(btn = null) {

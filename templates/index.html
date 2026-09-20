@@ -3,31 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LensYou — AI Video Intelligence & Study Platform | Summaries, Notes & Flashcards</title>
+    <title>{{ (dossier_meta.title ~ ' — LensYou AI Dossier') if dossier_meta and dossier_meta.title else 'LensYou — AI Video Intelligence & Study Platform | Summaries, Notes & Flashcards' }}</title>
     
     <!-- Primary SEO Meta Tags -->
-    <meta name="title" content="LensYou — AI Video Intelligence & Study Platform">
-    <meta name="description" content="LensYou is an AI-powered YouTube video intelligence platform for students and researchers. Instantly transform any video into timestamped executive notes, grounded copilot Q&A, mindmaps, and interactive flashcards.">
+    <meta name="title" content="{{ dossier_meta.title if dossier_meta and dossier_meta.title else 'LensYou — AI Video Intelligence & Study Platform' }}">
+    <meta name="description" content="{{ dossier_meta.description if dossier_meta and dossier_meta.description else 'LensYou is an AI-powered YouTube video intelligence platform for students and researchers. Instantly transform any video into timestamped executive notes, grounded copilot Q&A, mindmaps, and interactive flashcards.' }}">
     <meta name="keywords" content="LensYou, AI video summarizer, YouTube note taker, video intelligence platform, study dashboard, lecture notes AI, video to notes, Andrew Huberman notes, YouTube transcript summarizer, AI flashcards, video mindmap, grounded AI copilot">
     <meta name="author" content="LensYou">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
-    <link rel="canonical" href="{{ site_url }}/">
+    <link rel="canonical" href="{{ dossier_meta.url if dossier_meta and dossier_meta.url else site_url ~ '/' }}">
 
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ site_url }}/">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="{{ dossier_meta.url if dossier_meta and dossier_meta.url else site_url ~ '/' }}">
     <meta property="og:site_name" content="LensYou">
-    <meta property="og:title" content="LensYou — AI Video Intelligence & Study Platform">
-    <meta property="og:description" content="Turn any YouTube lecture or podcast into timestamped executive summaries, interactive study cards, visual mindmaps, and a grounded AI copilot in seconds.">
-    <meta property="og:image" content="{{ site_url }}/static/logo.svg">
+    <meta property="og:title" content="{{ dossier_meta.title if dossier_meta and dossier_meta.title else 'LensYou — AI Video Intelligence & Study Platform' }}">
+    <meta property="og:description" content="{{ dossier_meta.description if dossier_meta and dossier_meta.description else 'Turn any YouTube lecture or podcast into timestamped executive summaries, interactive study cards, visual mindmaps, and a grounded AI copilot in seconds.' }}">
+    <meta property="og:image" content="{{ dossier_meta.image if dossier_meta and dossier_meta.image else site_url ~ '/static/logo.svg' }}">
 
     <!-- Twitter / X -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="{{ site_url }}/">
-    <meta property="twitter:title" content="LensYou — AI Video Intelligence & Study Platform">
-    <meta property="twitter:description" content="Turn any YouTube lecture or podcast into timestamped executive summaries, interactive study cards, visual mindmaps, and a grounded AI copilot in seconds.">
-    <meta property="twitter:image" content="{{ site_url }}/static/logo.svg">
+    <meta property="twitter:url" content="{{ dossier_meta.url if dossier_meta and dossier_meta.url else site_url ~ '/' }}">
+    <meta property="twitter:title" content="{{ dossier_meta.title if dossier_meta and dossier_meta.title else 'LensYou — AI Video Intelligence & Study Platform' }}">
+    <meta property="twitter:description" content="{{ dossier_meta.description if dossier_meta and dossier_meta.description else 'Turn any YouTube lecture or podcast into timestamped executive summaries, interactive study cards, visual mindmaps, and a grounded AI copilot in seconds.' }}">
+    <meta property="twitter:image" content="{{ dossier_meta.image if dossier_meta and dossier_meta.image else site_url ~ '/static/logo.svg' }}">
 
     <!-- Progressive Web App & Icons -->
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
@@ -1089,6 +1089,46 @@
                             </div>
                         </div>
                         <p class="support-secure-note" style="text-align: center; margin: 0;">Direct to Indian Bank Account • Zero Intermediary Fees</p>
+                    </div>
+                </div>
+
+                <!-- Quick Share Dossier Modal -->
+                <div id="shareModal" class="modal-backdrop" onclick="if(event.target === this) closeShareModal()">
+                    <div class="modal-card" style="max-width: 480px;">
+                        <button class="modal-close" onclick="closeShareModal()">×</button>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                            <div style="width:36px; height:36px; border-radius:8px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:18px;">🔗</div>
+                            <div>
+                                <h3 style="margin:0; font-size:17px; font-weight:700; color:#fff;">Share Intelligence Dossier</h3>
+                                <p style="margin:2px 0 0 0; font-size:12px; color:var(--text-muted);" id="shareModalSubtitle">Public interactive dossier link</p>
+                            </div>
+                        </div>
+
+                        <div style="background:var(--bg-elevated); border:1px solid var(--border-ui); border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:8px; margin:16px 0;">
+                            <input type="text" id="shareModalUrlInput" readonly style="flex:1; background:transparent; border:none; color:var(--text-primary); font-size:12px; font-family:monospace; outline:none;" value="">
+                            <button id="shareModalCopyBtn" onclick="copyShareUrlFromModal(this)" style="padding:6px 12px; background:#fff; color:#09090B; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">Copy</button>
+                        </div>
+
+                        <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:10px;">Quick Share Options</div>
+                        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:16px;">
+                            <button onclick="shareVia('whatsapp')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; background:rgba(37, 211, 102, 0.12); border:1px solid rgba(37, 211, 102, 0.3); border-radius:8px; color:#25D366; font-size:12px; font-weight:600; cursor:pointer;">
+                                <span>💬 WhatsApp</span>
+                            </button>
+                            <button onclick="shareVia('twitter')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; background:rgba(255, 255, 255, 0.08); border:1px solid rgba(255, 255, 255, 0.2); border-radius:8px; color:#fff; font-size:12px; font-weight:600; cursor:pointer;">
+                                <span>𝕏 Post on X</span>
+                            </button>
+                            <button onclick="shareVia('linkedin')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; background:rgba(10, 102, 194, 0.15); border:1px solid rgba(10, 102, 194, 0.3); border-radius:8px; color:#38bdf8; font-size:12px; font-weight:600; cursor:pointer;">
+                                <span>💼 LinkedIn</span>
+                            </button>
+                            <button onclick="shareVia('summary')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; background:rgba(255, 255, 255, 0.05); border:1px solid var(--border-ui); border-radius:8px; color:var(--text-secondary); font-size:12px; font-weight:600; cursor:pointer;">
+                                <span>📋 Copy Summary</span>
+                            </button>
+                        </div>
+                        <div id="nativeShareRow" style="display:none; margin-top:8px;">
+                            <button onclick="triggerNativeShare()" style="width:100%; padding:9px; background:transparent; border:1px dashed var(--border-ui); border-radius:8px; color:var(--text-muted); font-size:12px; cursor:pointer;">
+                                <span>📱 More Device Share Options...</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
