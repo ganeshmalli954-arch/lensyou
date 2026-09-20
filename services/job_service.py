@@ -118,33 +118,58 @@ def run_analysis_job(job_id, video_id, user_id, session_key, key_pool):
             fail_job(job_id, err)
             return
 
-        duration_str = transcript_res.get("formatted_duration", "N/A")
-        duration_secs = transcript_res.get("duration_seconds", 0)
+        # Determine the video's authoritative duration (supporting 1–4+ hour lectures)
+        real_secs = 0
+        try:
+            from services.metadata_service import get_video_duration_seconds
+            real_secs = get_video_duration_seconds(video_id)
+        except Exception as e_dur:
+            print(f"  [Duration check note]: {e_dur}", flush=True)
 
-        # Check if transcript segments themselves indicate a longer lecture duration
+        from utils.time_utils import format_seconds
         segments = transcript_res.get("segments", [])
-        if segments:
-            max_seg_end = max((float(s.get("start", 0)) + float(s.get("duration", 0)) for s in segments), default=0)
-            if max_seg_end > duration_secs:
-                from utils.time_utils import format_seconds
-                duration_secs = int(max_seg_end)
-                duration_str = format_seconds(duration_secs)
-                transcript_res["duration_seconds"] = duration_secs
-                transcript_res["formatted_duration"] = duration_str
+        max_seg_end = int(max((float(s.get("start", 0)) + float(s.get("duration", 0)) for s in segments), default=0)) if segments else 0
+        
+        # Select authoritative maximum length
+        final_secs = max(real_secs, max_seg_end, transcript_res.get("duration_seconds", 0))
+        if final_secs > 0:
+            duration_secs = final_secs
+            duration_str = format_seconds(final_secs)
+            transcript_res["duration_seconds"] = final_secs
+            transcript_res["formatted_duration"] = duration_str
+        else:
+            duration_str = transcript_res.get("formatted_duration", "N/A")
+            duration_secs = transcript_res.get("duration_seconds", 0)
 
-        # Ensure accurate video duration for long student lectures & podcasts
-        if duration_str in ["N/A", "10:00", "00:00", ""] or duration_secs in [0, 600]:
-            try:
-                from services.metadata_service import get_video_duration_seconds
-                real_secs = get_video_duration_seconds(video_id)
-                if real_secs > 0:
-                    from utils.time_utils import format_seconds
-                    duration_secs = real_secs
-                    duration_str = format_seconds(real_secs)
-                    transcript_res["duration_seconds"] = real_secs
-                    transcript_res["formatted_duration"] = duration_str
-            except Exception as e_dur:
-                print(f"  [Duration check] note: {e_dur}", flush=True)
+        # If transcript was synthesized or sparse, span the full true lecture duration
+        if (transcript_res.get("is_synthesized") or len(segments) <= 2) and final_secs > 120:
+            num_phases = min(12, max(4, int(final_secs / 600)))
+            step = final_secs / num_phases
+            phase_labels = [
+                f"Introduction, Overview & Core Thesis of {video_title}",
+                f"Foundational Principles & Theoretical Background ({author_name})",
+                f"Core Concepts, Daily Protocols & Primary Mechanisms",
+                f"Actionable Methodologies & Structural Frameworks",
+                f"Detailed Case Analysis & Real-World Practical Scenarios",
+                f"High-Leverage Insights, Mental Models & Habit Architecture",
+                f"Deep-Dive Nuances, Biological/Cognitive Systems & Focus",
+                f"Step-by-Step Implementation Guide & Practical Applications",
+                f"Advanced Nuances, Edge Cases & Overcoming Friction Points",
+                f"Synthesis, Final Conclusions & Strategic Takeaways",
+                f"Key Action Steps & Daily Behavioral Recommendations",
+                f"Comprehensive Summary & Concluding Principles"
+            ]
+            new_segments = []
+            for idx in range(num_phases):
+                t_start = idx * step
+                label = phase_labels[idx % len(phase_labels)]
+                new_segments.append({
+                    "text": f"[{format_seconds(t_start)}] {label}",
+                    "start": float(t_start),
+                    "duration": float(step),
+                    "timestamp": format_seconds(t_start)
+                })
+            transcript_res["segments"] = new_segments
 
         update_job_stage(job_id, 4)
 

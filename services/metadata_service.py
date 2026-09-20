@@ -64,12 +64,54 @@ def parse_duration_string(dur_str: str) -> int:
         pass
     return 0
 
+def parse_iso8601_duration(pt_str: str) -> int:
+    """Convert ISO 8601 duration string like 'PT2H15M30S' or 'PT1H' to total seconds."""
+    if not pt_str:
+        return 0
+    m = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', pt_str.strip())
+    if not m:
+        return 0
+    h = int(m.group(1) or 0)
+    m_val = int(m.group(2) or 0)
+    s = int(m.group(3) or 0)
+    return h * 3600 + m_val * 60 + s
+
 def get_video_duration_seconds(video_id: str) -> int:
-    """Fetch exact video duration in seconds via YouTube Search data, yt-dlp, and HTML fallback."""
+    """Fetch exact video duration in seconds via ISO 8601 meta tag, YouTube Search data, yt-dlp, and HTML fallback."""
     if not video_id:
         return 0
 
-    # 1. Fast, highly reliable YouTube Search query (works seamlessly in cloud/Render environments)
+    # 1. HTML parsing: ISO duration meta tag, lengthSeconds, approxDurationMs
+    try:
+        import urllib.request
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9'
+        })
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            html = resp.read().decode('utf-8', errors='ignore')
+            
+            # 1a. ISO 8601 duration meta tag e.g. <meta itemprop="duration" content="PT2H15M30S">
+            m_iso = re.search(r'itemprop="duration"\s+content="(PT[^"]+)"', html) or re.search(r'content="(PT[^"]+)"\s+itemprop="duration"', html)
+            if m_iso:
+                secs = parse_iso8601_duration(m_iso.group(1))
+                if secs > 0:
+                    return secs
+
+            # 1b. JSON player response lengthSeconds
+            m = re.search(r'"lengthSeconds":\s*"(\d+)"', html)
+            if m and int(m.group(1)) > 0:
+                return int(m.group(1))
+                
+            # 1c. approxDurationMs
+            m_ms = re.search(r'"approxDurationMs":\s*"(\d+)"', html)
+            if m_ms and int(m_ms.group(1)) > 0:
+                return int(int(m_ms.group(1)) / 1000)
+    except Exception as e_html:
+        print(f"  [Warning] Watch HTML duration lookup note: {e_html}", flush=True)
+
+    # 2. Fast, highly reliable YouTube Search query (works seamlessly in cloud/Render environments)
     try:
         results = search_youtube(f'"{video_id}"', limit=3)
         for it in results:
@@ -84,7 +126,7 @@ def get_video_duration_seconds(video_id: str) -> int:
     except Exception as e_search:
         print(f"  [Warning] Search duration lookup note: {e_search}", flush=True)
 
-    # 2. yt-dlp duration extractor
+    # 3. yt-dlp duration extractor
     import subprocess
     try:
         cmd = [
@@ -101,22 +143,6 @@ def get_video_duration_seconds(video_id: str) -> int:
                 return int(line)
     except Exception as e:
         print(f"  [Warning] yt-dlp duration lookup note: {e}", flush=True)
-
-    # 3. Fallback to watch page lengthSeconds
-    try:
-        import urllib.request
-        url = f"https://www.youtube.com/watch?v={video_id}"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
-        with urllib.request.urlopen(req, timeout=6) as resp:
-            html = resp.read().decode('utf-8', errors='ignore')
-            m = re.search(r'"lengthSeconds":\s*"(\d+)"', html)
-            if m and int(m.group(1)) > 0:
-                return int(m.group(1))
-            m_ms = re.search(r'"approxDurationMs":\s*"(\d+)"', html)
-            if m_ms and int(m_ms.group(1)) > 0:
-                return int(int(m_ms.group(1)) / 1000)
-    except Exception:
-        pass
 
     return 0
 
