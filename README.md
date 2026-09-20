@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Framework-Flask-black.svg)](https://flask.palletsprojects.com/)
-[![Render](https://img.shields.io/badge/Deployed%20on-Render-46e3b7.svg)](https://render.com)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ganeshmalli954-arch/lensyou)
 
 **LensYou** is a quiet-luxury, high-performance AI video intelligence and study dashboard designed for students, researchers, and professionals. It transforms long-form YouTube lectures, podcasts, and documentaries into structured, timestamped executive dossiers, interactive 3D study flashcards, self-test quizzes, visual concept mindmaps, and a deeply grounded AI Copilot.
 
@@ -27,8 +27,8 @@
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/ganeshmalli954-arch/videolens.git
-cd videolens
+git clone https://github.com/ganeshmalli954-arch/lensyou.git
+cd lensyou
 pip install -r requirements.txt
 ```
 
