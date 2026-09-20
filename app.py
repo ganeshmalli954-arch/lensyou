@@ -2,7 +2,9 @@ import os
 import sys
 import secrets
 import hashlib
-from datetime import timedelta
+import threading
+import time
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for, send_from_directory, Response
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
@@ -13,7 +15,7 @@ from config import FEATURES, SECRET_KEY, ADMIN_PASSWORD, BMC_URL
 from services.storage_service import (
     init_db, get_stats, get_user, get_user_history,
     record_search_event, record_payment, update_user_plan,
-    get_analysis, update_search_event_content
+    get_analysis, update_search_event_content, get_cached_analysis
 )
 from services.metadata_service import extract_video_id, get_video_oembed, search_youtube
 from services.job_service import create_job, get_job, start_job, JOBS
@@ -109,6 +111,10 @@ def inject_global_vars():
 
 @app.route("/")
 def index():
+    return render_template("index.html")
+
+@app.route("/v/<video_id>")
+def shared_dossier(video_id):
     return render_template("index.html")
 
 @app.route("/history")
@@ -267,6 +273,31 @@ def logout():
     return redirect('/')
 
 # --- API Routes ---
+
+@app.route('/api/health')
+def health():
+    return jsonify({
+        "status": "ok",
+        "service": "lensyou",
+        "timestamp": datetime.utcnow().isoformat()
+    }), 200
+
+@app.route('/api/dossier/<video_id>')
+def api_dossier(video_id):
+    cached = get_cached_analysis(video_id)
+    if not cached:
+        return jsonify({
+            "found": False,
+            "cached": False,
+            "error": f"No cached dossier found for video '{video_id}'."
+        }), 404
+    return jsonify({
+        "found": True,
+        "cached": True,
+        "video_id": video_id,
+        "analysis": cached,
+        "result": cached
+    })
 
 @app.route('/api/config')
 def get_config():
@@ -706,6 +737,41 @@ def export_pdf():
 def usage_stats():
     # Return simple stats from DB
     return jsonify(get_stats())
+
+_keepalive_started = False
+
+def start_keepalive_daemon():
+    """Background keep-alive daemon thread that pings <site_url>/api/health every 8 minutes on Render to prevent 50s cold-start spin-down."""
+    global _keepalive_started
+    if _keepalive_started:
+        return
+
+    site_url = os.getenv('RENDER_EXTERNAL_URL') or os.getenv('SITE_URL')
+    is_render = bool(os.getenv('RENDER'))
+    target_url = site_url or ('https://lensyou.onrender.com' if is_render else None)
+
+    if not target_url:
+        return
+
+    _keepalive_started = True
+    clean_target = target_url.rstrip('/')
+    health_endpoint = f"{clean_target}/api/health"
+
+    def _pinger():
+        import requests
+        print(f"  [Keepalive Daemon]: Started for {health_endpoint} (interval 8m)", flush=True)
+        while True:
+            time.sleep(480)  # 8 minutes
+            try:
+                res = requests.get(health_endpoint, timeout=15)
+                print(f"  [Keepalive Daemon]: Pinged {health_endpoint} -> HTTP {res.status_code}", flush=True)
+            except Exception as e:
+                print(f"  [Keepalive Daemon]: Ping attempt error: {e}", flush=True)
+
+    t = threading.Thread(target=_pinger, daemon=True, name="lensyou-keepalive")
+    t.start()
+
+start_keepalive_daemon()
 
 def find_available_port(preferred_port=5000):
     import socket

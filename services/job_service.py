@@ -8,7 +8,7 @@ from services.analysis_service import run_videolens_analysis
 from services.storage_service import (
     save_analysis, log_event, record_search_event,
     record_processing_event, update_processing_event, get_user,
-    update_search_events_for_content
+    update_search_events_for_content, get_cached_analysis
 )
 from services.auth_service import increment_quota, is_owner
 
@@ -88,6 +88,33 @@ def run_analysis_job(job_id, video_id, user_id, session_key, key_pool):
         user_email = user.get("email") if user else ""
         user_plan = user.get("plan", "free") if user else "anonymous"
         is_paid = is_owner(user_email) or (user_plan in ["pack10", "pack50", "unlimited"])
+
+        # Check cached analysis first (Zero YouTube network calls & Zero Gemini tokens)
+        cached = get_cached_analysis(video_id)
+        if cached:
+            cached_meta = cached.get('_meta') or {}
+            c_title = cached_meta.get('title') or f"YouTube Video ({video_id})"
+            c_dur = cached_meta.get('duration') or 'N/A'
+            c_model = cached.get('_model_used') or cached_meta.get('model_used') or 'Gemini AI (Cached)'
+
+            update_search_events_for_content(video_id, c_title)
+
+            proc_event_id = record_processing_event(
+                user_id=user_id,
+                session_key=session_key,
+                content_id=video_id,
+                content_title=c_title,
+                content_type="YouTube Video",
+                status="pending",
+                plan=user_plan
+            )
+
+            update_job_stage(job_id, 9)
+            increment_quota(user_id, session_key)
+            if proc_event_id:
+                update_processing_event(proc_event_id, status="success", duration=c_dur, model_used=c_model)
+            complete_job(job_id, cached)
+            return
 
         update_job_stage(job_id, 1)
         meta_info = get_video_oembed(video_id)

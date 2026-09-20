@@ -127,6 +127,7 @@ def init_db():
         c.execute('CREATE INDEX IF NOT EXISTS idx_uah_content ON user_activity_history(content_id)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_uah_action ON user_activity_history(action)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_uah_created ON user_activity_history(created_at)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_videos_video_id ON videos(video_id)')
 
         c.execute('''
             CREATE TABLE IF NOT EXISTS payments (
@@ -195,37 +196,68 @@ def get_logs(limit=200) -> list:
         c.execute('SELECT * FROM app_logs ORDER BY created_at DESC LIMIT ?', (limit,))
         return [dict(row) for row in c.fetchall()]
 
-def get_analysis(video_id: str):
+def save_cached_analysis(video_id: str, title: str, author: str, duration: str, analysis: dict, user_id: str = None, session_key: str = None) -> str:
+    """Save completed video analysis to SQLite database for instant caching and public sharing."""
+    if not video_id or not analysis:
+        return ""
+    CACHE[video_id] = analysis
+    record_id = str(uuid.uuid4())
+    now_str = datetime.utcnow().isoformat()
+    try:
+        raw_json = json.dumps(analysis)
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute('SELECT id FROM videos WHERE video_id = ?', (video_id,))
+            existing = c.fetchone()
+            if existing:
+                c.execute('''
+                    UPDATE videos 
+                    SET title = ?, author = ?, duration = ?, analysis_json = ?, created_at = ?
+                    WHERE video_id = ?
+                ''', (title, author, duration, raw_json, now_str, video_id))
+            else:
+                c.execute('''
+                    INSERT INTO videos (id, video_id, title, author, duration, analysis_json, user_id, session_key, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (record_id, video_id, title, author, duration, raw_json, user_id, session_key, now_str))
+            conn.commit()
+            return existing['id'] if existing else record_id
+    except Exception as e:
+        print(f"  [Cache Save Error]: {e}", flush=True)
+        return ""
+
+save_analysis = save_cached_analysis
+
+def get_cached_analysis(video_id: str) -> dict | None:
+    """Retrieve cached analysis JSON from memory or SQLite database. Zero network calls or Gemini API tokens needed."""
+    if not video_id:
+        return None
     if video_id in CACHE:
         return CACHE[video_id]
-    with get_db() as conn:
-        c = conn.cursor()
-        c.execute('SELECT analysis_json FROM videos WHERE video_id = ? ORDER BY created_at DESC LIMIT 1', (video_id,))
-        row = c.fetchone()
-        if row:
-            try:
+    try:
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute('SELECT analysis_json FROM videos WHERE video_id = ? ORDER BY created_at DESC LIMIT 1', (video_id,))
+            row = c.fetchone()
+            if row and row['analysis_json']:
                 data = json.loads(row['analysis_json'])
                 CACHE[video_id] = data
                 return data
-            except:
-                return None
+    except Exception as e:
+        print(f"  [Cache Retrieval Error]: {e}", flush=True)
     return None
 
-def save_analysis(video_id, title, author, duration, analysis_dict, user_id=None, session_key=None):
-    CACHE[video_id] = analysis_dict
-    with get_db() as conn:
-        c = conn.cursor()
-        c.execute('''
-            INSERT INTO videos (id, video_id, title, author, duration, analysis_json, user_id, session_key, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (str(uuid.uuid4()), video_id, title, author, duration, json.dumps(analysis_dict), user_id, session_key, datetime.utcnow().isoformat()))
-        conn.commit()
+get_analysis = get_cached_analysis
 
-def get_recent_videos(limit=20) -> list:
+def get_recent_videos(limit=100) -> list:
+    """Retrieve list of recently analyzed videos for admin portal and caching overview."""
     with get_db() as conn:
         c = conn.cursor()
-        c.execute('SELECT id, video_id, title, author, duration, created_at FROM videos ORDER BY created_at DESC LIMIT ?', (limit,))
+        c.execute('SELECT id, video_id, title, author, duration, user_id, created_at FROM videos ORDER BY created_at DESC LIMIT ?', (limit,))
         return [dict(row) for row in c.fetchall()]
+
+def get_all_videos(limit=100) -> list:
+    return get_recent_videos(limit)
 
 def get_user(user_id) -> dict:
     with get_db() as conn:
@@ -343,9 +375,6 @@ def get_all_users(limit=100) -> list:
         c = conn.cursor()
         c.execute('SELECT * FROM users ORDER BY created_at DESC LIMIT ?', (limit,))
         return [dict(row) for row in c.fetchall()]
-
-def get_all_videos(limit=100) -> list:
-    return get_recent_videos(limit)
 
 def get_stats() -> dict:
     from datetime import timedelta

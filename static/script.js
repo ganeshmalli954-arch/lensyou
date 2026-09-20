@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUsageCounter();
     loadUserState();
     checkCookieConsent();
+    checkDossierUrlOnLoad();
     setInterval(updateUsageCounter, 30000);
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -1688,6 +1689,7 @@ const COMMANDS = [
     { title: "Practice Flashcards", sub: "Flip through video revision cards", badge: "Learn", action: () => { switchMainMode('learn'); scrollToElement('activeFlashcard'); } },
     { title: "Viral Shorts Clip Ideas", sub: "Review curated Shorts hooks and scores", badge: "Create", action: () => { switchMainMode('create'); } },
     { title: "Export Detailed PDF", sub: "Download publication-grade intelligence dossier", badge: "Export", action: () => exportDetailedPDF() },
+    { title: "Share Public Dossier Link", sub: "Copy https://domain/v/<id> link to clipboard", badge: "Share", action: () => shareDossier() },
     { title: "Copy Summary", sub: "Copy executive synthesis to clipboard", badge: "Share", action: () => copyShareableSummary() },
     { title: "Copy YouTube Chapters", sub: "Copy timestamp chapters description", badge: "Create", action: () => copyYouTubeChapters() }
 ];
@@ -2179,12 +2181,84 @@ function printReportPreview() {
     window.print();
 }
 
+// ===== Shareable Public Dossier & Virality =====
+function getShareableDossierUrl() {
+    if (!currentAnalysis) return window.location.origin;
+    const videoId = currentAnalysis._meta?.video_id || '';
+    return videoId ? `${window.location.origin}/v/${videoId}` : window.location.href;
+}
+
+function shareDossier(btn = null) {
+    if (!currentAnalysis) {
+        showToast('Please analyze a video first to share its dossier.', 'warning');
+        return;
+    }
+    const meta = currentAnalysis._meta || {};
+    const title = meta.title || 'Video';
+    const shareUrl = getShareableDossierUrl();
+
+    if (navigator.share) {
+        navigator.share({
+            title: `LensYou: ${title}`,
+            text: `Explore the AI intelligence dossier and study notes for "${title}":`,
+            url: shareUrl
+        }).catch(err => {
+            if (err.name !== 'AbortError') {
+                copyWithFeedback(shareUrl, btn, 'Public dossier link copied to clipboard!');
+            }
+        });
+    } else {
+        copyWithFeedback(shareUrl, btn, 'Public dossier link copied to clipboard!');
+    }
+}
+
 function copyShareableSummary(btn = null) {
-    if (!currentAnalysis) return;
+    if (!currentAnalysis) {
+        showToast('Please analyze a video first to copy summary.', 'warning');
+        return;
+    }
     const title = currentAnalysis._meta?.title || 'Video';
     const summary = currentAnalysis.video_overview?.summary || '';
-    const text = `🎬 ${title}\n\n✦ AI Executive Summary:\n${summary}\n\nAnalyzed with LensYou Video Intelligence Platform.`;
-    copyWithFeedback(text, btn, 'Executive summary copied to clipboard!');
+    const shareUrl = getShareableDossierUrl();
+    const text = `🎬 ${title}\n\n✦ AI Executive Summary:\n${summary}\n\n🔗 View full interactive dossier: ${shareUrl}\nAnalyzed with LensYou Video Intelligence Platform.`;
+    copyWithFeedback(text, btn, 'Executive summary & dossier link copied to clipboard!');
+}
+
+async function checkDossierUrlOnLoad() {
+    const path = window.location.pathname || '';
+    const match = path.match(/^\/v\/([a-zA-Z0-9_-]+)/);
+    if (!match) return;
+
+    const videoId = match[1];
+    hideErrors();
+    showScreen('loading');
+    startElapsedTimer();
+    updatePipelineStageUI(9, 'Loading public intelligence dossier');
+
+    try {
+        const res = await fetch(`/api/dossier/${encodeURIComponent(videoId)}`);
+        if (res.ok) {
+            const data = await res.json();
+            const analysis = data.analysis || data.result || (data.found ? data.data : data);
+            if (analysis && (analysis.video_overview || analysis._meta)) {
+                stopElapsedTimer();
+                currentAnalysis = analysis;
+                saveToHistory(analysis);
+                renderDashboard(analysis);
+                showScreen('dashboard');
+                showToast('✓ Loaded public intelligence dossier!', 'success');
+                return;
+            }
+        }
+        // Fallback: If not cached yet in database, start analysis pipeline
+        stopElapsedTimer();
+        showToast('Dossier not cached yet. Generating analysis now...', 'info');
+        startAnalysis(`https://www.youtube.com/watch?v=${videoId}`);
+    } catch (e) {
+        stopElapsedTimer();
+        showToast('❌ Failed to load dossier: ' + e.message, 'error');
+        showScreen('landing');
+    }
 }
 
 function copyWithFeedback(text, btn, successMsg = 'Copied to clipboard!') {

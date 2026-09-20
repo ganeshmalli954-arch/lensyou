@@ -9,7 +9,7 @@ from services.storage_service import (
     get_user_history, get_user_activity_summary,
     get_content_analytics, get_search_analytics,
     get_all_payments, get_payment_stats, get_user,
-    get_system_setting, set_system_setting
+    get_system_setting, set_system_setting, update_user_plan
 )
 from services.code_service import generate_codes_batch
 from services.auth_service import is_admin, is_owner
@@ -390,6 +390,34 @@ def admin_user_history(user_id):
 @require_admin
 def admin_user_summary(user_id):
     return jsonify(get_user_activity_summary(user_id))
+
+@admin_bp.route('/api/user/<user_id>/plan', methods=['POST'])
+@require_admin
+def admin_update_user_plan(user_id):
+    user = get_user(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.get_json() or {}
+    plan = data.get('plan')
+    quota_limit = data.get('quota_limit')
+
+    if not plan:
+        return jsonify({'error': 'Plan is required'}), 400
+
+    from services.auth_service import PLAN_QUOTAS
+    if quota_limit is None:
+        quota_limit = PLAN_QUOTAS.get(plan, 5)
+    else:
+        try:
+            quota_limit = int(quota_limit)
+        except (ValueError, TypeError):
+            quota_limit = PLAN_QUOTAS.get(plan, 5)
+
+    update_user_plan(user_id, plan, quota_limit)
+    log_event('INFO', f"Admin updated plan for user {user.get('email') or user_id} to '{plan}' (limit: {quota_limit})", source='admin')
+    updated = get_user(user_id)
+    return jsonify({'success': True, 'user': updated})
 
 @admin_bp.route('/api/content-analytics')
 @require_admin

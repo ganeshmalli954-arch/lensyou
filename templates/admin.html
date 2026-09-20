@@ -501,6 +501,23 @@
                     </div>
                 </div>
 
+                <!-- Plan Management -->
+                <div style="background:var(--bg-elevated); border:1px solid var(--border-ui); border-radius:10px; padding:14px 16px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Account Plan:</span>
+                        <select id="inspectUserPlanSelect" style="background:var(--bg-card); border:1px solid var(--border-ui); border-radius:6px; color:#fff; padding:7px 12px; font-size:13px; outline:none;">
+                            <option value="free">Free (5 analyses)</option>
+                            <option value="pack10">₹50 Pack (15 analyses)</option>
+                            <option value="pack50">₹70 Pack (55 analyses)</option>
+                            <option value="unlimited">₹99 Unlimited (∞ Pro)</option>
+                        </select>
+                        <button id="inspectUserUpdatePlanBtn" onclick="updateUserPlanFromModal()" style="padding:7px 16px; background:#F5F5F5; border:1px solid #FFFFFF; border-radius:6px; color:#09090B; font-weight:600; font-size:13px; cursor:pointer; transition:opacity 0.2s;">
+                            Apply Plan
+                        </button>
+                    </div>
+                    <div id="inspectPlanStatus" style="font-size:12px; font-weight:500;"></div>
+                </div>
+
                 <h4 style="margin:0 0 12px 0; font-size:14px;">Account-Specific Activity Log</h4>
                 <div style="max-height: 380px; overflow-y:auto; border:1px solid var(--border-ui); border-radius:8px;">
                     <table class="admin-table">
@@ -696,6 +713,12 @@
 
                 // Find user info
                 const user = allUsersData.find(u => u.id === userId) || {};
+                currentInspectedUserId = userId;
+                const planSelect = document.getElementById('inspectUserPlanSelect');
+                if (planSelect) planSelect.value = user.plan || 'free';
+                const statusEl = document.getElementById('inspectPlanStatus');
+                if (statusEl) statusEl.textContent = '';
+
                 document.getElementById('inspectUserName').textContent = user.name || 'User Details';
                 document.getElementById('inspectUserEmail').textContent = user.email || userId;
                 document.getElementById('inspectUserAvatar').innerHTML = user.avatar_url 
@@ -733,6 +756,43 @@
 
         function closeUserModal() {
             document.getElementById('userInspectModal').classList.remove('open');
+            currentInspectedUserId = null;
+        }
+
+        async function updateUserPlanFromModal() {
+            if (!currentInspectedUserId) return;
+            const planSelect = document.getElementById('inspectUserPlanSelect');
+            const statusEl = document.getElementById('inspectPlanStatus');
+            const btn = document.getElementById('inspectUserUpdatePlanBtn');
+            const selectedPlan = planSelect.value;
+
+            btn.disabled = true;
+            statusEl.innerHTML = '<span style="color:var(--text-muted);">Updating plan...</span>';
+
+            try {
+                const res = await fetch(`/admin/api/user/${currentInspectedUserId}/plan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan: selectedPlan })
+                });
+                const data = await res.json();
+                btn.disabled = false;
+                if (res.ok && data.success) {
+                    statusEl.innerHTML = '<span style="color:var(--accent-green); font-weight:600;">✓ Plan updated</span>';
+                    const user = allUsersData.find(u => u.id === currentInspectedUserId);
+                    if (user && data.user) {
+                        user.plan = data.user.plan;
+                        user.quota_limit = data.user.quota_limit;
+                    }
+                    filterUsersTable(document.getElementById('userSearchInput')?.value || '');
+                    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+                } else {
+                    statusEl.innerHTML = `<span style="color:var(--accent-red); font-weight:500;">${data.error || 'Update failed'}</span>`;
+                }
+            } catch (err) {
+                btn.disabled = false;
+                statusEl.innerHTML = `<span style="color:var(--accent-red); font-weight:500;">${err.message}</span>`;
+            }
         }
 
         function renderSearchAnalytics(data) {
