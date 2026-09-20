@@ -15,7 +15,12 @@ from config import FEATURES, SECRET_KEY, ADMIN_PASSWORD, BMC_URL
 from services.storage_service import (
     init_db, get_stats, get_user, get_user_history,
     record_search_event, record_payment, update_user_plan,
-    get_analysis, update_search_event_content, get_cached_analysis
+    get_analysis, update_search_event_content, get_cached_analysis,
+    get_user_notifications, mark_notification_read
+)
+from services.retention_service import (
+    generate_weekly_digest_for_user, run_weekly_retention_cycle,
+    get_weekly_trending_podcasts
 )
 from services.metadata_service import extract_video_id, get_video_oembed, search_youtube
 from services.job_service import create_job, get_job, start_job, JOBS
@@ -552,6 +557,56 @@ def api_payment_webhook():
         return jsonify({'success': True, 'user_id': user_id, 'plan': plan})
 
     return jsonify({'success': False, 'message': 'Webhook acknowledged without plan update'}), 200
+
+@app.route('/api/notifications/retention', methods=['GET'])
+def api_retention_notifications():
+    """Returns active retention notifications (spaced repetition flashcards or weekly trending podcasts)."""
+    user_id = session.get('user_id')
+    if user_id:
+        notifs = get_user_notifications(user_id, unread_only=True, limit=3)
+        if not notifs:
+            user = get_user(user_id)
+            email = (user.get('email') or '') if user else ''
+            digest = generate_weekly_digest_for_user(user_id, email, user.get('name') if user else '')
+            notifs = [{
+                'id': 'weekly_digest_auto',
+                'title': digest['title'],
+                'message': digest['message'],
+                'link': digest['link'],
+                'type': digest['type'],
+                'is_read': 0
+            }]
+        return jsonify({'notifications': notifs, 'has_unread': len(notifs) > 0})
+    else:
+        top = get_weekly_trending_podcasts(3)
+        primary = top[0] if top else {'video_id': 'aircAruvnKk', 'title': 'Foundational Video'}
+        return jsonify({
+            'notifications': [{
+                'id': 'trending_podcasts_guest',
+                'title': 'Here are the 3 most analyzed podcasts on LensYou this week.',
+                'message': f"Explore high-stakes takeaways, timeline heatmaps, and Bloom's taxonomy quizzes: \"{primary['title']}\" and more.",
+                'link': f"/v/{primary['video_id']}",
+                'type': 'weekly_digest',
+                'is_read': 0
+            }],
+            'has_unread': True
+        })
+
+@app.route('/api/notifications/mark-read/<notif_id>', methods=['POST'])
+def api_mark_notification_read(notif_id):
+    user_id = session.get('user_id')
+    success = mark_notification_read(notif_id, user_id=user_id)
+    return jsonify({'success': success})
+
+@app.route('/api/cron/weekly-retention', methods=['GET', 'POST'])
+def api_cron_weekly_retention():
+    """Trigger weekly retention email and notification digest across all Google accounts in SQLite."""
+    auth_header = request.headers.get('Authorization', '')
+    cron_token = os.getenv('CRON_SECRET_TOKEN', '')
+    if cron_token and auth_header != f"Bearer {cron_token}":
+        return jsonify({'error': 'Unauthorized'}), 401
+    result = run_weekly_retention_cycle()
+    return jsonify(result)
 
 @app.route('/api/analyze', methods=['POST'])
 def api_analyze():

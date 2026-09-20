@@ -80,7 +80,7 @@ PLAN_CONFIG = {
         'history_limit': 10,
         'price': 0,
         'price_display': 'Free',
-        'features': ['Google Account Sync', '5 video analyses', '10 history items', 'PDF summary export', 'Unlimited video length (1-4+ hr lectures)']
+        'features': ['Google Account Sync', '5 video analyses', '10 history items', 'PDF dossier export', 'Unlimited video length (1-4+ hr lectures)']
     },
     'pack10': {
         'name': '10-Video Pack',

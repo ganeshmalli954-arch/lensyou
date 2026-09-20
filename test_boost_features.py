@@ -303,5 +303,109 @@ class TestBoostFeatures(unittest.TestCase):
                 mock_exists.side_effect = lambda p: p == '/var/data'
                 self.assertEqual(resolve_database_path(), '/var/data/lensyou.db')
 
+    def test_12_weekly_retention_digest_and_spaced_repetition(self):
+        """Verify storing Google email and weekly retention / spaced repetition notifications"""
+        from services.retention_service import (
+            generate_weekly_digest_for_user, run_weekly_retention_cycle,
+            get_weekly_trending_podcasts
+        )
+        from services.storage_service import save_cached_analysis, get_user
+
+        # 1. Create a user with Google email
+        test_email = f"learner_{uuid.uuid4().hex[:6]}@gmail.com"
+        user_id = create_user('google', f'sub_g_{uuid.uuid4().hex[:6]}', test_email, 'High Performer', '')
+        user = get_user(user_id)
+        self.assertEqual(user['email'], test_email)
+
+        # 2. Before any flashcards saved -> digest is top analyzed podcasts
+        digest_no_decks = generate_weekly_digest_for_user(user_id, test_email, 'High Performer')
+        self.assertIn("3 most analyzed podcasts on LensYou this week", digest_no_decks['title'])
+        self.assertEqual(digest_no_decks['type'], 'weekly_digest')
+
+        # 3. Save 3 analyses with flashcards for this user
+        for i in range(3):
+            vid = f"deck_vid_{i}_{uuid.uuid4().hex[:4]}"
+            data = {
+                "_meta": {"video_id": vid, "title": f"Lecture Series Part {i+1}", "duration": "01:00:00"},
+                "video_overview": {"summary": f"Key principles of part {i+1}"},
+                "learning": {
+                    "flashcards": [
+                        {"front": f"Concept {i}-1", "back": "Answer 1", "concept": "Science"},
+                        {"front": f"Concept {i}-2", "back": "Answer 2", "concept": "Math"}
+                    ]
+                }
+            }
+            save_cached_analysis(vid, f"Lecture Series Part {i+1}", "Stanford", "01:00:00", data, user_id=user_id)
+
+        # 4. With 3 decks -> digest is spaced repetition review reminder
+        digest_decks = generate_weekly_digest_for_user(user_id, test_email, 'High Performer')
+        self.assertIn("Saved Flashcard Decks are ready for review (Spaced Repetition)", digest_decks['title'])
+        self.assertEqual(digest_decks['type'], 'spaced_repetition')
+        self.assertEqual(digest_decks['deck_count'], 3)
+
+        # 5. Check /api/notifications/retention for logged-in user
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = user_id
+
+        res_notif = self.client.get('/api/notifications/retention')
+        self.assertEqual(res_notif.status_code, 200)
+        notif_data = res_notif.get_json()
+        self.assertTrue(notif_data['has_unread'])
+        self.assertTrue(len(notif_data['notifications']) > 0)
+        self.assertIn("Spaced Repetition", notif_data['notifications'][0]['title'])
+
+        # 6. Check guest retention notification (weekly trending)
+        with self.client.session_transaction() as sess:
+            sess.clear()
+        res_guest = self.client.get('/api/notifications/retention')
+        self.assertEqual(res_guest.status_code, 200)
+        guest_data = res_guest.get_json()
+        self.assertTrue(guest_data['has_unread'])
+        self.assertIn("3 most analyzed podcasts on LensYou this week", guest_data['notifications'][0]['title'])
+
+        # 7. Run full weekly cycle
+        cycle_result = run_weekly_retention_cycle()
+        self.assertEqual(cycle_result['status'], 'success')
+        self.assertGreaterEqual(cycle_result['users_processed'], 1)
+
+    def test_13_blooms_taxonomy_quiz_and_keyboard_flashcards(self):
+        """Verify Bloom's taxonomy quiz structure, keyboard flashcard hints, and 1-click segments"""
+        res = self.client.get('/')
+        self.assertEqual(res.status_code, 200)
+        html = res.data.decode('utf-8')
+
+        # Bloom's taxonomy quiz header
+        self.assertIn("Bloom's Taxonomy Video Mastery Quiz", html)
+
+        # Flashcards keyboard shortcuts legend
+        self.assertIn("Space", html)
+        self.assertIn("Flip", html)
+        self.assertIn("Prev", html)
+        self.assertIn("Next", html)
+
+        # Multi-Hour Timeline Heatmap header
+        self.assertIn("Multi-Hour Timeline Heatmap &amp; Evidence Explorer", html)
+
+        # Target Segments 1-click links
+        self.assertIn("Analyze 3B1B Lecture (1-Click) →", html)
+        self.assertIn("Analyze Founder Interview (1-Click) →", html)
+        self.assertIn("Analyze Huberman Lab (1-Click) →", html)
+        self.assertIn("qmNCJxvs080", html)
+
+    def test_14_database_backup_service(self):
+        """Verify automated database snapshot and backup cycle"""
+        import tempfile
+        from services.backup_service import export_database_snapshot, run_daily_backup_cycle
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_file = export_database_snapshot(dest_dir=tmpdir)
+            self.assertTrue(os.path.exists(snapshot_file))
+            self.assertGreater(os.path.getsize(snapshot_file), 0)
+
+        cycle_res = run_daily_backup_cycle()
+        self.assertEqual(cycle_res['status'], 'success')
+        self.assertTrue(os.path.exists(cycle_res['snapshot_path']))
+
 if __name__ == '__main__':
     unittest.main()
+

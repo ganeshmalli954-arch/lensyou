@@ -18,15 +18,15 @@
     <meta property="og:type" content="article">
     <meta property="og:url" content="{{ dossier_meta.url if dossier_meta and dossier_meta.url else site_url ~ '/' }}">
     <meta property="og:site_name" content="LensYou">
-    <meta property="og:title" content="{{ dossier_meta.title if dossier_meta and dossier_meta.title else 'LensYou — AI Video Intelligence & Study Platform' }}">
-    <meta property="og:description" content="{{ dossier_meta.description if dossier_meta and dossier_meta.description else 'Turn any YouTube lecture or podcast into timestamped executive summaries, interactive study cards, visual mindmaps, and a grounded AI copilot in seconds.' }}">
+    <meta property="og:title" content="{{ dossier_meta.title if dossier_meta and dossier_meta.title else 'LensYou — Executive Video Intelligence & Learning Engine' }}">
+    <meta property="og:description" content="{{ dossier_meta.description if dossier_meta and dossier_meta.description else 'Turn any YouTube lecture or podcast into timestamped executive intelligence notes, 3D flashcards, Bloom quizzes, and a grounded AI copilot in seconds.' }}">
     <meta property="og:image" content="{{ dossier_meta.image if dossier_meta and dossier_meta.image else site_url ~ '/static/logo.svg' }}">
 
     <!-- Twitter / X -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ dossier_meta.url if dossier_meta and dossier_meta.url else site_url ~ '/' }}">
-    <meta property="twitter:title" content="{{ dossier_meta.title if dossier_meta and dossier_meta.title else 'LensYou — AI Video Intelligence & Study Platform' }}">
-    <meta property="twitter:description" content="{{ dossier_meta.description if dossier_meta and dossier_meta.description else 'Turn any YouTube lecture or podcast into timestamped executive summaries, interactive study cards, visual mindmaps, and a grounded AI copilot in seconds.' }}">
+    <meta property="twitter:title" content="{{ dossier_meta.title if dossier_meta and dossier_meta.title else 'LensYou — Executive Video Intelligence & Learning Engine' }}">
+    <meta property="twitter:description" content="{{ dossier_meta.description if dossier_meta and dossier_meta.description else 'Turn any YouTube lecture or podcast into timestamped executive intelligence notes, 3D flashcards, Bloom quizzes, and a grounded AI copilot in seconds.' }}">
     <meta property="twitter:image" content="{{ dossier_meta.image if dossier_meta and dossier_meta.image else site_url ~ '/static/logo.svg' }}">
 
     <!-- Progressive Web App & Icons -->
@@ -62,7 +62,7 @@
             "priceCurrency": "INR"
           },
           "featureList": [
-            "AI YouTube Executive Summaries",
+            "AI YouTube Executive Intelligence Dossiers",
             "Grounded Video Copilot Q&A",
             "3D Interactive Flashcards & Quizzes",
             "Timestamped Chapter Breakdown",
@@ -210,6 +210,21 @@
                 <section id="landingScreen" class="screen landing-screen">
                     <div class="hero-container">
                         
+                        <!-- Spaced Repetition & Weekly Retention Alert Bar -->
+                        <div id="retentionNotificationBanner" class="retention-alert-banner" style="display:none;">
+                            <div class="retention-banner-content">
+                                <span class="retention-banner-icon" id="retentionIcon">🧠</span>
+                                <div class="retention-banner-text-group">
+                                    <strong id="retentionTitle">Your Saved Flashcard Decks are ready for review</strong>
+                                    <span id="retentionMessage">Spaced repetition interval reached.</span>
+                                </div>
+                            </div>
+                            <div class="retention-banner-actions">
+                                <a id="retentionActionLink" href="#" class="retention-btn-action">Review Now →</a>
+                                <button type="button" class="retention-btn-dismiss" onclick="dismissRetentionBanner()">✕</button>
+                            </div>
+                        </div>
+
                         <div class="hero-badge eyebrow"><img src="/static/logo.svg" alt="" width="14" height="14" style="vertical-align:middle; margin-right:8px; display:inline-block; opacity:0.9;">LensYou • EXECUTIVE VIDEO INTELLIGENCE &amp; LEARNING ENGINE</div>
                         <h1 class="hero-title">Understand any 3-hour video in minutes.</h1>
                         <p class="hero-subtitle">LensYou is an Executive Video Intelligence &amp; Learning Engine. Built for time-poor high performers to turn multi-hour lectures, earnings calls, and podcasts into structured mastery.</p>
@@ -353,7 +368,7 @@
                                     </div>
                                     <button type="button" class="segment-cta-btn">Analyze Founder Interview (1-Click) →</button>
                                 </div>
-                                <div class="segment-card" onclick="pasteQuickUrl('https://www.youtube.com/watch?v=aircAruvnKk')">
+                                <div class="segment-card" onclick="pasteQuickUrl('https://www.youtube.com/watch?v=qmNCJxvs080')">
                                     <div class="segment-header">
                                         <span class="segment-icon">⚡</span>
                                         <span class="segment-title">Self-Improvement Junkies</span>
@@ -366,7 +381,7 @@
                                         <span class="segment-label">Why They Pay:</span>
                                         Actionable protocol list &amp; habit checklists with timeline evidence timestamps.
                                     </div>
-                                    <button type="button" class="segment-cta-btn">Analyze Deep-Dive Podcast (1-Click) →</button>
+                                    <button type="button" class="segment-cta-btn">Analyze Huberman Lab (1-Click) →</button>
                                 </div>
                             </div>
                         </div>
@@ -454,8 +469,8 @@
                                 <button class="btn-hero btn-secondary-hero" onclick="printReportPreview()" title="Printable preview">
                                     <span>🖨️ Print</span>
                                 </button>
-                                <button class="btn-hero btn-secondary-hero" onclick="copyShareableSummary(this)" title="Copy executive summary and dossier link">
-                                    <span>📋 Copy Summary</span>
+                                <button class="btn-hero btn-secondary-hero" onclick="copyShareableSummary(this)" title="Copy executive intelligence dossier link">
+                                    <span>📋 Copy Intelligence</span>
                                 </button>
                                 <button class="btn-hero btn-secondary-hero" onclick="openCommandPalette()">
                                     <span>⌘K Commands</span>
@@ -537,12 +552,12 @@
                             <!-- Executive Summary Card -->
                             <div class="glass-card summary-card mb-24">
                                 <div class="card-title-bar">
-                                    <h3><span class="accent-sparkle">✦</span> AI Executive Summary</h3>
+                                    <h3><span class="accent-sparkle">✦</span> AI Executive Intelligence &amp; Takeaways</h3>
                                     <span class="pill-tag">High-Level Synthesis</span>
                                 </div>
                                 <div class="card-content-body">
                                     <div class="executive-summary-text" id="overviewSummaryText">
-                                        Summary will appear here...
+                                        Executive intelligence notes will appear here...
                                     </div>
                                 </div>
                             </div>
@@ -595,7 +610,7 @@
                             <!-- Multi-Track Timeline Explorer (Blueprint Section 3) -->
                             <div class="glass-card mt-24" id="section-multitrack">
                                 <div class="card-title-bar">
-                                    <h3>⏳ Multi-Track Timeline Explorer</h3>
+                                    <h3>⏳ Multi-Hour Timeline Heatmap &amp; Evidence Explorer</h3>
                                     <div class="track-layer-toggles">
                                         <label class="track-toggle-label"><input type="checkbox" id="toggleTopics" checked onchange="toggleTimelineTrack('topics')"> Topics</label>
                                         <label class="track-toggle-label"><input type="checkbox" id="toggleSpeakers" checked onchange="toggleTimelineTrack('speakers')"> Speakers</label>
@@ -852,9 +867,19 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="flashcard-controls mt-16">
-                                        <button class="btn-hero btn-secondary-hero btn-sm" onclick="prevFlashcard()">← Previous</button>
-                                        <button class="btn-hero btn-primary-hero btn-sm" onclick="nextFlashcard()">Next Card →</button>
+                                    <div class="flashcard-controls mt-16" style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                                        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+                                            <button class="btn-hero btn-secondary-hero btn-sm" onclick="prevFlashcard()">← Previous</button>
+                                            <button class="btn-hero btn-secondary-hero btn-sm" onclick="flipCurrentFlashcard()">Flip Card ↺</button>
+                                            <button class="btn-hero btn-primary-hero btn-sm" onclick="nextFlashcard()">Next Card →</button>
+                                        </div>
+                                        <div class="flashcard-keyboard-legend" style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:8px; margin-top:4px;">
+                                            <span><kbd style="padding:1px 5px; border-radius:3px; background:rgba(255,255,255,0.08); border:1px solid var(--border); font-family:monospace;">Space</kbd> Flip</span>
+                                            <span>•</span>
+                                            <span><kbd style="padding:1px 5px; border-radius:3px; background:rgba(255,255,255,0.08); border:1px solid var(--border); font-family:monospace;">←</kbd> Prev</span>
+                                            <span>•</span>
+                                            <span><kbd style="padding:1px 5px; border-radius:3px; background:rgba(255,255,255,0.08); border:1px solid var(--border); font-family:monospace;">→</kbd> Next</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -862,7 +887,7 @@
                             <!-- Dynamic Interactive Quiz -->
                             <div class="glass-card">
                                 <div class="card-title-bar">
-                                    <h3>🎯 Video Mastery Quiz</h3>
+                                    <h3>🎯 Bloom's Taxonomy Video Mastery Quiz</h3>
                                     <span class="pill-tag" id="quizScoreBadge">Score: 0/0</span>
                                 </div>
                                 <div class="quiz-container" id="quizContainer">
@@ -1238,7 +1263,7 @@
                                 <span>💼 LinkedIn</span>
                             </button>
                             <button onclick="shareVia('summary')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; background:rgba(255, 255, 255, 0.05); border:1px solid var(--border-ui); border-radius:8px; color:var(--text-secondary); font-size:12px; font-weight:600; cursor:pointer;">
-                                <span>📋 Copy Summary</span>
+                                <span>📋 Copy Intelligence</span>
                             </button>
                         </div>
                         <div id="nativeShareRow" style="display:none; margin-top:8px;">

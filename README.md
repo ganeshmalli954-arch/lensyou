@@ -77,12 +77,21 @@ Open http://localhost:5000
 ## ☁️ Deployment on Render
 This repository includes a production-ready `render.yaml` blueprint with persistent disk storage.
 
-### Persistent Disk Configuration:
-To prevent database resets across redeploys on Render's ephemeral filesystem:
-- **Mount Path:** `/var/data`
-- **Disk Name:** `lensyou-data` (1GB)
-- **Environment Variable:** `DATABASE_PATH=/var/data/lensyou.db`
-- The application automatically detects `/var/data` on boot, creating or linking `/var/data/lensyou.db` with zero configuration needed.
+### Persistent Disk & Cloud Sync Configuration:
+To guarantee database persistence across redeploys:
+1. **Render Persistent Disk (Recommended):**
+   - **Mount Path:** `/var/data`
+   - **Disk Name:** `lensyou-data` (1GB)
+   - **Environment Variable:** `DATABASE_PATH=/var/data/lensyou.db`
+   - The application automatically detects `/var/data` on boot, creating or linking `/var/data/lensyou.db` with zero configuration needed.
+2. **Automated Daily Cloud Exports / Syncing:**
+   - Run `python -m services.backup_service` to create an atomic snapshot and sync to Cloudflare R2 / AWS S3 / Supabase bucket (`CLOUD_BACKUP_BUCKET`).
+
+### 🔁 Automated Spaced Repetition & Weekly Retention Loops:
+- Users signing in via Google have their email securely stored in SQLite to enable spaced repetition:
+  - Active recall reminder: `"Your 3 Saved Flashcard Decks are ready for review (Spaced Repetition)"`
+  - Viral podcast digest: `"Here are the 3 most analyzed podcasts on LensYou this week."`
+- Can be executed via `python -m services.retention_service` or cron endpoint `/api/cron/weekly-retention`.
 
 ### Deploy Steps:
 1. Push your repository to GitHub.

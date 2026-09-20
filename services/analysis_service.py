@@ -246,7 +246,8 @@ You must produce a rich, ultra-structured JSON response with EXACTLY this struct
         ],
         "quiz": [
             {{
-                "question": "Multiple choice question testing understanding of key argument?",
+                "question": "Multiple choice question testing conceptual understanding or application?",
+                "bloom_level": "Understand",
                 "options": ["Option A", "Option B", "Option C", "Option D"],
                 "correct_index": 0,
                 "explanation": "Explanation linking directly to what was stated around timestamp."
@@ -326,7 +327,7 @@ CRITICAL INSTRUCTIONS:
 2. In key_takeaways, mark the most important points as 'CRITICAL' and others as 'HIGH' or 'MEDIUM'.
 3. In claims, classify each as 'Fact', 'Opinion', 'Prediction', 'Statistic', or 'Speculation' with confidence 'High', 'Medium', or 'Low'.
 4. In repetitions, identify concepts or phrases reiterated across multiple timestamps.
-5. In learning, provide at least 4-8 key definitions, 4-8 in-depth study note sections (structured with key concepts, mechanisms, and exam-grade explanations ideal for university students), 6-12 flashcards, and 4-6 multiple-choice quiz questions with correct_index (0-3).
+5. In learning, provide at least 4-8 key definitions, 4-8 in-depth study note sections (structured with key concepts, mechanisms, and exam-grade explanations ideal for university students), 6-12 flashcards, and 4-6 multiple-choice quiz questions categorized by Bloom's taxonomy level ('Remember', 'Understand', 'Apply', 'Evaluate') with correct_index (0-3).
 6. In creator_repurposing, provide 3-6 high-potential viral clip segments with exact timestamps, titles, and viral hooks, plus complete social posts and raw YouTube chapters.
 7. In visual_moments, provide 3-8 key visual moments with scene_type ('Slide', 'Chart', 'Demo', 'Screen', 'Speaker', 'Diagram') and what on-screen content or OCR text was displayed.
 8. In knowledge_graph, provide 6-12 interconnected concept nodes and directional links.

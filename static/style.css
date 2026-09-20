@@ -4641,3 +4641,129 @@ button:hover .btn-arrow {
   color: #FFFFFF;
   border-color: var(--accent-primary);
 }
+
+/* Bloom's Taxonomy Quiz Badge */
+.quiz-bloom-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: rgba(139, 92, 246, 0.16);
+  border: 1px solid rgba(139, 92, 246, 0.38);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #A78BFA;
+  letter-spacing: 0.02em;
+}
+
+/* In-App Retention & Spaced Repetition Notification Banner */
+.retention-alert-banner {
+  width: 100%;
+  margin-bottom: 20px;
+  background: linear-gradient(90deg, rgba(30, 27, 75, 0.9) 0%, rgba(46, 16, 101, 0.9) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 12px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  animation: slideDownBanner 0.3s ease-out;
+}
+
+.retention-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.retention-banner-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.retention-banner-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.retention-banner-text-group strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #F5F5F5;
+}
+
+.retention-banner-text-group span {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.retention-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.retention-btn-action {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
+  color: #FFFFFF;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.retention-btn-action:hover {
+  opacity: 0.92;
+}
+
+.retention-btn-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.retention-btn-dismiss:hover {
+  color: var(--text-primary);
+}
+
+/* Mobile Responsiveness for Sticky Shared Banner & Retention */
+@media (max-width: 640px) {
+  .shared-dossier-sticky-bar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .shared-banner-text {
+    font-size: 11.5px;
+    text-align: center;
+    line-height: 1.35;
+  }
+  .shared-banner-cta-btn {
+    padding: 5px 12px;
+    font-size: 11px;
+  }
+  .retention-alert-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 14px;
+  }
+  .retention-banner-actions {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+}
+

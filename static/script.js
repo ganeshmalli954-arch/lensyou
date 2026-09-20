@@ -21,10 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUserState();
     checkCookieConsent();
     checkDossierUrlOnLoad();
-    const detectedRegion = detectUserRegion();
-    if (detectedRegion === 'usd') {
-        setPricingRegion('usd');
-    }
+    const savedRegion = localStorage.getItem('lensyou_region');
+    const detectedRegion = savedRegion || detectUserRegion();
+    setPricingRegion(detectedRegion === 'usd' ? 'usd' : 'inr');
+    fetchRetentionNotification();
     setInterval(updateUsageCounter, 30000);
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -43,15 +43,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sb) sb.classList.add('collapsed');
     }
 
-    // Keyboard navigation for 3D Flashcards
+    // Keyboard navigation for 3D Flashcards ([Space], [←], [→])
     window.addEventListener('keydown', (e) => {
+        const isInputActive = document.activeElement && (
+            document.activeElement.tagName === 'INPUT' ||
+            document.activeElement.tagName === 'TEXTAREA' ||
+            document.activeElement.isContentEditable ||
+            Boolean(document.activeElement.closest('.modal-card'))
+        );
+        if (isInputActive) return;
+
         const learnPane = document.getElementById('pane-learn');
-        if (learnPane && learnPane.classList.contains('active')) {
+        const flashcardEl = document.getElementById('activeFlashcard');
+        const isLearnVisible = learnPane && (learnPane.classList.contains('active') || window.getComputedStyle(learnPane).display !== 'none');
+
+        if (isLearnVisible && flashcardEl) {
             if (e.key === 'ArrowRight') {
+                e.preventDefault();
                 nextFlashcard();
             } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
                 prevFlashcard();
-            } else if (e.key === ' ' && document.activeElement.tagName !== 'INPUT') {
+            } else if (e.key === ' ' || e.code === 'Space') {
                 e.preventDefault();
                 flipCurrentFlashcard();
             }
@@ -1441,21 +1454,30 @@ function setupQuiz(quiz) {
         return;
     }
 
-    container.innerHTML = window.currentQuizQuestions.map((q, qIdx) => `
-        <div class="quiz-card" id="quiz-card-${qIdx}">
-            <div class="quiz-q-title">Q${qIdx + 1}: ${formatInlineMarkdown(q.question)}</div>
-            <div class="quiz-options-list">
-                ${(q.options || []).map((opt, optIdx) => `
-                    <button class="quiz-opt-btn" onclick="selectQuizAnswer(${qIdx}, ${optIdx}, ${q.correct_index})" id="qopt-${qIdx}-${optIdx}">
-                        ${String.fromCharCode(65 + optIdx)}. ${formatInlineMarkdown(opt)}
-                    </button>
-                `).join('')}
+    const defaultBloomLevels = ['Remember', 'Understand', 'Apply', 'Evaluate'];
+
+    container.innerHTML = window.currentQuizQuestions.map((q, qIdx) => {
+        const bloomLevel = q.bloom_level || defaultBloomLevels[qIdx % defaultBloomLevels.length];
+        return `
+            <div class="quiz-card" id="quiz-card-${qIdx}">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                    <span class="quiz-bloom-badge">🎓 Bloom's: ${escapeHtml(bloomLevel)}</span>
+                    <span style="font-size:11px; color:var(--text-muted);">Question ${qIdx + 1} of ${window.currentQuizQuestions.length}</span>
+                </div>
+                <div class="quiz-q-title">Q${qIdx + 1}: ${formatInlineMarkdown(q.question)}</div>
+                <div class="quiz-options-list">
+                    ${(q.options || []).map((opt, optIdx) => `
+                        <button class="quiz-opt-btn" onclick="selectQuizAnswer(${qIdx}, ${optIdx}, ${q.correct_index})" id="qopt-${qIdx}-${optIdx}">
+                            ${String.fromCharCode(65 + optIdx)}. ${formatInlineMarkdown(opt)}
+                        </button>
+                    `).join('')}
+                </div>
+                <div class="quiz-explanation-box" id="quiz-exp-${qIdx}">
+                    <strong>Explanation:</strong> ${escapeHtml(q.explanation || '')}
+                </div>
             </div>
-            <div class="quiz-explanation-box" id="quiz-exp-${qIdx}">
-                <strong>Explanation:</strong> ${escapeHtml(q.explanation || '')}
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function selectQuizAnswer(qIdx, selectedOptIdx, correctIdx) {
@@ -2285,17 +2307,20 @@ function triggerNativeShare() {
 
 function copyShareableSummary(btn = null) {
     if (!currentAnalysis) {
-        showToast('Please analyze a video first to copy summary.', 'warning');
+        showToast('Please analyze a video first to copy intelligence.', 'warning');
         return;
     }
     const title = currentAnalysis._meta?.title || 'Video';
     const summary = currentAnalysis.video_overview?.summary || '';
     const shareUrl = getShareableDossierUrl();
-    const text = `🎬 ${title}\n\n✦ AI Executive Summary:\n${summary}\n\n🔗 View full interactive dossier: ${shareUrl}\nAnalyzed with LensYou Video Intelligence Platform.`;
-    copyWithFeedback(text, btn, 'Executive summary & dossier link copied to clipboard!');
+    const text = `🎬 ${title}\n\n✦ AI Executive Intelligence Takeaways:\n${summary}\n\n🔗 View full interactive dossier: ${shareUrl}\nAnalyzed with LensYou Executive Video Intelligence & Learning Engine.`;
+    copyWithFeedback(text, btn, 'Executive intelligence & dossier link copied to clipboard!');
 }
 
 function handleSharedBannerAnalyze() {
+    if (window.history && window.history.pushState) {
+        window.history.pushState({}, '', '/');
+    }
     showScreen('landing');
     const input = document.getElementById('youtubeUrl');
     if (input) {
@@ -2577,6 +2602,10 @@ function detectUserRegion() {
 
 function setPricingRegion(region) {
     currentPricingRegion = region;
+    try {
+        localStorage.setItem('lensyou_region', region);
+    } catch (e) {}
+
     const btnInr = document.getElementById('toggleRegionInr');
     const btnUsd = document.getElementById('toggleRegionUsd');
     
@@ -2625,6 +2654,52 @@ function setPricingRegion(region) {
     }
 }
 
+async function fetchRetentionNotification() {
+    try {
+        const res = await fetch('/api/notifications/retention');
+        if (!res.ok) return;
+        const data = await res.json();
+        const banner = document.getElementById('retentionNotificationBanner');
+        if (!banner) return;
+
+        const notifs = data.notifications || [];
+        if (notifs.length > 0) {
+            const n = notifs[0];
+            const iconEl = document.getElementById('retentionIcon');
+            const titleEl = document.getElementById('retentionTitle');
+            const msgEl = document.getElementById('retentionMessage');
+            const linkEl = document.getElementById('retentionActionLink');
+
+            if (n.type === 'spaced_repetition') {
+                if (iconEl) iconEl.textContent = '🧠';
+                if (linkEl) linkEl.textContent = 'Review Flashcard Decks →';
+            } else {
+                if (iconEl) iconEl.textContent = '🔥';
+                if (linkEl) linkEl.textContent = 'Explore Podcasts →';
+            }
+
+            if (titleEl) titleEl.textContent = n.title;
+            if (msgEl) msgEl.textContent = n.message;
+            if (linkEl) {
+                linkEl.href = n.link || '#';
+                linkEl.onclick = (e) => {
+                    if (n.id && n.id !== 'weekly_digest_auto' && n.id !== 'trending_podcasts_guest') {
+                        fetch(`/api/notifications/mark-read/${n.id}`, { method: 'POST' }).catch(() => {});
+                    }
+                };
+            }
+            banner.style.display = 'flex';
+        } else {
+            banner.style.display = 'none';
+        }
+    } catch (e) {}
+}
+
+function dismissRetentionBanner() {
+    const banner = document.getElementById('retentionNotificationBanner');
+    if (banner) banner.style.display = 'none';
+}
+
 async function initiatePlanPurchase(plan) {
     if (!currentUser) {
         openAuthModal('Please sign in with Google first to upgrade your account.');
@@ -2638,7 +2713,9 @@ async function initiatePlanPurchase(plan) {
     showToast(`Initiating upgrade for ${plan} (${currency === 'USD' ? '$' + amount : '₹' + amount})...`, 'info');
 
     if (currency === 'USD') {
-        const bmcUrl = window.LENSYOU_BMC_URL || 'https://www.buymeacoffee.com/lensyou';
+        const baseBmc = window.LENSYOU_BMC_URL || 'https://www.buymeacoffee.com/lensyou';
+        const userIdentifier = currentUser.email || currentUser.id || 'Learner';
+        const bmcUrl = `${baseBmc}?note=${encodeURIComponent(`LensYou ${plan} (${userIdentifier})`)}&price=${amount}`;
         window.open(bmcUrl, '_blank');
         showToast('Opened international checkout (Buy Me a Coffee / Stripe). Supports Apple Pay, Google Pay & Credit Cards.', 'info');
     }

@@ -40,8 +40,11 @@ class BoundedCache(OrderedDict):
 CACHE = BoundedCache(20)
 
 def get_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=10.0)
+    db_path = resolve_database_path()
+    parent_dir = os.path.dirname(db_path)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
+    conn = sqlite3.connect(db_path, timeout=10.0)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -165,6 +168,21 @@ def init_db():
                 updated_at TEXT
             )
         ''')
+
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS notifications (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                title TEXT,
+                message TEXT,
+                link TEXT,
+                type TEXT,
+                created_at TEXT,
+                is_read INTEGER DEFAULT 0
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_notif_created ON notifications(created_at)')
 
         conn.commit()
         # Migrations: add columns if missing
@@ -912,5 +930,63 @@ def set_system_setting(key: str, value: str):
             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
         """, (key, str(value), now))
         conn.commit()
+
+
+def create_notification(user_id: str, title: str, message: str, link: str = None, notif_type: str = 'retention') -> str:
+    """Create a persistent in-app notification for a user."""
+    notif_id = f"notif_{uuid.uuid4().hex[:12]}"
+    now = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO notifications (id, user_id, title, message, link, type, created_at, is_read)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+        """, (notif_id, user_id, title, message, link, notif_type, now))
+        conn.commit()
+    return notif_id
+
+
+def get_user_notifications(user_id: str, unread_only: bool = True, limit: int = 5) -> list:
+    """Retrieve notifications for a given user."""
+    with get_db() as conn:
+        c = conn.cursor()
+        if unread_only:
+            c.execute("""
+                SELECT id, user_id, title, message, link, type, created_at, is_read
+                FROM notifications
+                WHERE user_id = ? AND is_read = 0
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, (user_id, limit))
+        else:
+            c.execute("""
+                SELECT id, user_id, title, message, link, type, created_at, is_read
+                FROM notifications
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, (user_id, limit))
+        return [dict(r) for r in c.fetchall()]
+
+
+def mark_notification_read(notification_id: str, user_id: str = None) -> bool:
+    """Mark a notification as read."""
+    with get_db() as conn:
+        c = conn.cursor()
+        if user_id:
+            c.execute("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", (notification_id, user_id))
+        else:
+            c.execute("UPDATE notifications SET is_read = 1 WHERE id = ?", (notification_id,))
+        conn.commit()
+        return c.rowcount > 0
+
+
+def get_all_users_with_email() -> list:
+    """Retrieve all users with legitimate email stored in SQLite."""
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT id, provider, provider_id, email, name, plan, created_at, last_active FROM users WHERE email IS NOT NULL AND email != ''")
+        return [dict(r) for r in c.fetchall()]
+
 
 
