@@ -1,0 +1,90 @@
+{
+  "samples": {
+    "deck_vid_1_5552": {
+      "video_id": "deck_vid_1_5552",
+      "title": "Lecture Series Part 2",
+      "author": "Creator",
+      "duration": "01:00:00",
+      "category": "General",
+      "custom_notes": "Curated bootstrap exemplar",
+      "word_count": 0,
+      "has_transcript": false,
+      "added_at": "2026-11-05T07:08:50.313096",
+      "verified_metrics": {
+        "key_takeaways_count": 0,
+        "chapters_count": 0,
+        "claims_count": 0,
+        "quiz_count": 0
+      }
+    },
+    "deck_vid_2_3ce2": {
+      "video_id": "deck_vid_2_3ce2",
+      "title": "Lecture Series Part 3",
+      "author": "Creator",
+      "duration": "01:00:00",
+      "category": "General",
+      "custom_notes": "Curated bootstrap exemplar",
+      "word_count": 0,
+      "has_transcript": false,
+      "added_at": "2026-11-05T07:08:50.313096",
+      "verified_metrics": {
+        "key_takeaways_count": 0,
+        "chapters_count": 0,
+        "claims_count": 0,
+        "quiz_count": 0
+      }
+    },
+    "deck_vid_0_73c7": {
+      "video_id": "deck_vid_0_73c7",
+      "title": "Lecture Series Part 1",
+      "author": "Creator",
+      "duration": "01:00:00",
+      "category": "General",
+      "custom_notes": "Curated bootstrap exemplar",
+      "word_count": 0,
+      "has_transcript": false,
+      "added_at": "2026-11-05T07:08:50.335853",
+      "verified_metrics": {
+        "key_takeaways_count": 0,
+        "chapters_count": 0,
+        "claims_count": 0,
+        "quiz_count": 0
+      }
+    },
+    "sticky_9a306f": {
+      "video_id": "sticky_9a306f",
+      "title": "AI in Medicine Lecture",
+      "author": "Creator",
+      "duration": "01:15:00",
+      "category": "General",
+      "custom_notes": "Curated bootstrap exemplar",
+      "word_count": 0,
+      "has_transcript": false,
+      "added_at": "2026-11-05T07:08:50.343092",
+      "verified_metrics": {
+        "key_takeaways_count": 0,
+        "chapters_count": 0,
+        "claims_count": 0,
+        "quiz_count": 0
+      }
+    },
+    "uid_vid_68e01b": {
+      "video_id": "uid_vid_68e01b",
+      "title": "Test Title",
+      "author": "Creator",
+      "duration": "N/A",
+      "category": "General",
+      "custom_notes": "Curated bootstrap exemplar",
+      "word_count": 0,
+      "has_transcript": false,
+      "added_at": "2026-11-05T07:08:50.352452",
+      "verified_metrics": {
+        "key_takeaways_count": 0,
+        "chapters_count": 0,
+        "claims_count": 0,
+        "quiz_count": 0
+      }
+    }
+  },
+  "updated_at": "2026-11-06T09:26:05.177351"
+}

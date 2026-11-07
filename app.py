@@ -32,7 +32,7 @@ from services.code_service import redeem_code
 from routes.admin_routes import admin_bp
 from services.analysis_service import call_gemini_with_fallback
 from utils.json_utils import safe_json_parse, sanitize_data_strings
-from utils.time_utils import prepare_transcript_for_analysis
+from utils.time_utils import prepare_transcript_for_analysis, search_transcript_segments
 from pdf_generator import generate_detailed_pdf
 
 # Fix Windows console encoding for unicode
@@ -700,66 +700,176 @@ def chat():
         return jsonify({"error": "No question provided"}), 400
 
     question = data["question"].strip()
-    client_summary = data.get("summary", "")
-    client_title = data.get("title", "Video")
-    client_thesis = data.get("thesis", "")
-    client_takeaways = data.get("takeaways", [])
-    client_concepts = data.get("concepts", [])
-    client_chapters = data.get("chapters", [])
-    client_applications = data.get("applications", [])
-    client_snippets = data.get("snippets", [])
+    video_id = data.get("video_id", "").strip()
+
+    # Hydrate directly from SQLite database if video_id is present
+    cached = get_cached_analysis(video_id) if video_id else None
+
+    # Retrieve video metadata
+    meta = (cached.get("_meta") or {}) if cached else {}
+    title = meta.get("title") or data.get("title", "YouTube Video")
+    author = meta.get("author") or meta.get("author_name") or data.get("author", "Creator")
+    duration = meta.get("duration") or data.get("duration", "")
+
+    # Retrieve intelligence sections (favoring verified database record)
+    ov = (cached.get("video_overview") or {}) if cached else {}
+    summary = ov.get("summary") or data.get("summary", "")
+
+    takeaways = (cached.get("key_takeaways") if cached else None) or data.get("key_takeaways") or data.get("takeaways", [])
+    chapters = (cached.get("chapters") if cached else None) or (cached.get("timeline") if cached else None) or data.get("chapters", [])
+    claims = (cached.get("claims") if cached else None) or data.get("claims", [])
+    quotes = (cached.get("quotes") if cached else None) or data.get("quotes", [])
+    insights = (cached.get("insights") if cached else None) or data.get("insights", [])
     
-    # Assemble comprehensive intelligence context
+    learning = (cached.get("learning") or {}) if cached else {}
+    study_notes = learning.get("study_notes") or data.get("concepts", [])
+    definitions = learning.get("key_definitions") or []
+    
+    # Transcript segments (from cached analysis or client payload)
+    raw_snippets = (cached.get("_transcript_sample") if cached else None) or data.get("snippets", [])
+
+    # Assemble structured intelligence context
     context_sections = []
-    if client_thesis:
-        context_sections.append(f"CORE THESIS & MISSION:\n{client_thesis}")
-    if client_summary:
-        context_sections.append(f"EXECUTIVE SUMMARY:\n{client_summary}")
-    if client_takeaways:
-        t_lines = [f"• {t.get('takeaway', t) if isinstance(t, dict) else t}" for t in client_takeaways[:12]]
-        context_sections.append("KEY TAKEAWAYS & PRINCIPLES:\n" + "\n".join(t_lines))
-    if client_concepts:
-        c_lines = [f"• {c.get('concept', '')}: {c.get('explanation', '')}" for c in client_concepts[:10] if isinstance(c, dict)]
-        if c_lines:
-            context_sections.append("CORE CONCEPTS & MECHANISMS:\n" + "\n".join(c_lines))
-    if client_chapters:
-        ch_lines = [f"• [{ch.get('timestamp', '')}] {ch.get('point', ch.get('title', ''))}" for ch in client_chapters[:16] if isinstance(ch, dict)]
+    if summary:
+        context_sections.append(f"EXECUTIVE SUMMARY:\n{summary}")
+
+    if chapters:
+        ch_lines = []
+        for ch in chapters[:20]:
+            if isinstance(ch, dict):
+                t = ch.get("timestamp") or ch.get("start_time") or ch.get("time") or ""
+                tit = ch.get("title") or ch.get("point") or ""
+                summ = ch.get("summary", "")
+                ch_lines.append(f"• [{t}] {tit}" + (f": {summ}" if summ else ""))
+            else:
+                ch_lines.append(f"• {ch}")
         if ch_lines:
-            context_sections.append("VIDEO CHAPTERS & TIMELINE:\n" + "\n".join(ch_lines))
-    if client_applications:
-        app_lines = [f"• {a.get('framework', a.get('point', a)) if isinstance(a, dict) else a}" for a in client_applications[:10]]
-        if app_lines:
-            context_sections.append("PRACTICAL APPLICATIONS & PROTOCOLS:\n" + "\n".join(app_lines))
+            context_sections.append("CHAPTER TIMELINE & STRUCTURE:\n" + "\n".join(ch_lines))
+
+    if takeaways:
+        t_lines = []
+        for t in takeaways[:12]:
+            if isinstance(t, dict):
+                tit = t.get("title") or t.get("takeaway") or ""
+                desc = t.get("description", "")
+                ts = t.get("timestamp", "")
+                imp = t.get("importance", "")
+                prefix = f"[{ts}] " if ts else ""
+                suffix = f" (Priority: {imp})" if imp else ""
+                t_lines.append(f"• {prefix}{tit}{suffix}: {desc}")
+            else:
+                t_lines.append(f"• {t}")
+        if t_lines:
+            context_sections.append("KEY TAKEAWAYS & EVIDENCE:\n" + "\n".join(t_lines))
+
+    if claims:
+        cl_lines = []
+        for cl in claims[:10]:
+            if isinstance(cl, dict):
+                c_text = cl.get("claim", "")
+                c_type = cl.get("type", "Claim")
+                c_conf = cl.get("confidence", "")
+                c_ts = cl.get("timestamp", "")
+                cl_lines.append(f"• [{c_ts}] ({c_type}, Confidence: {c_conf}): {c_text}")
+        if cl_lines:
+            context_sections.append("VERIFIED CLAIMS & FACTUAL STATEMENTS:\n" + "\n".join(cl_lines))
+
+    if quotes:
+        q_lines = []
+        for q in quotes[:8]:
+            if isinstance(q, dict):
+                q_text = q.get("quote", "")
+                q_spk = q.get("speaker", author)
+                q_ts = q.get("timestamp", "")
+                q_lines.append(f"• [{q_ts}] {q_spk}: \"{q_text}\"")
+        if q_lines:
+            context_sections.append("DIRECT MEMORABLE QUOTES:\n" + "\n".join(q_lines))
+
+    if definitions:
+        d_lines = [f"• {d.get('term')}: {d.get('definition')} [{d.get('timestamp', '')}]" for d in definitions[:8] if isinstance(d, dict)]
+        if d_lines:
+            context_sections.append("KEY TERMINOLOGY & DEFINITIONS:\n" + "\n".join(d_lines))
+
+    if study_notes:
+        sn_lines = []
+        for sn in study_notes[:8]:
+            if isinstance(sn, dict):
+                h = sn.get("heading") or sn.get("concept") or ""
+                bullets = sn.get("bullets", [])
+                if isinstance(bullets, list):
+                    b_str = " ".join(bullets)
+                else:
+                    b_str = str(bullets)
+                sn_lines.append(f"• {h}: {b_str}")
+        if sn_lines:
+            context_sections.append("STUDY NOTES & MECHANISMS:\n" + "\n".join(sn_lines))
+
+    if insights:
+        in_lines = [f"• [{i.get('timestamp', '')}] {i.get('text', '')}: {i.get('explanation', '')}" for i in insights[:6] if isinstance(i, dict)]
+        if in_lines:
+            context_sections.append("HIGH-LEVERAGE INSIGHTS:\n" + "\n".join(in_lines))
 
     analysis_context = "\n\n".join(context_sections)
-    transcript_sample = prepare_transcript_for_analysis(client_snippets, max_chars=400000) if client_snippets else client_summary
-    
-    copilot_prompt = f"""You are LensYou Copilot, an elite AI video intelligence researcher, executive analyst, and master tutor with comprehensive knowledge of this video and subject matter.
 
-VIDEO TITLE: {client_title}
+    # Transcript RAG: Retrieve top matching segment windows for this specific question
+    targeted_text = ""
+    overview_transcript = ""
+    if isinstance(raw_snippets, list) and raw_snippets:
+        targeted_segments = search_transcript_segments(raw_snippets, question, max_segments=16)
+        targeted_text = "\n".join([f"[{s.get('timestamp', '')}] {s.get('text', '')}" for s in targeted_segments if isinstance(s, dict)])
+        overview_transcript = prepare_transcript_for_analysis(raw_snippets, max_chars=180000)
+    elif isinstance(raw_snippets, str):
+        overview_transcript = raw_snippets[:180000]
+
+    # Format multi-turn conversation history
+    history = data.get("history", [])
+    history_str = ""
+    if isinstance(history, list) and history:
+        h_lines = []
+        for turn in history[-6:]:
+            role = "User" if turn.get("role") in ["user", "human"] else "Copilot"
+            content = turn.get("content") or turn.get("text") or ""
+            if content.strip():
+                h_lines.append(f"{role}: {content.strip()}")
+        if h_lines:
+            history_str = "PREVIOUS CONVERSATION HISTORY:\n" + "\n".join(h_lines) + "\n\n"
+
+    copilot_prompt = f"""You are LensYou Copilot, an elite AI video intelligence researcher, executive analyst, and master tutor with photographic recall of this video.
+
+VIDEO TITLE: {title}
+CHANNEL / SPEAKER: {author}
+{f"DURATION: {duration}" if duration else ""}
 
 {analysis_context}
 
-TIMESTAMPED TRANSCRIPT & EVIDENCE:
-\"\"\"
-{transcript_sample}
-\"\"\"
+{"HIGH-RELEVANCE TRANSCRIPT PASSAGES MATCHING USER'S QUERY:" if targeted_text else ""}
+{targeted_text}
 
-USER QUESTION:
+FULL TIMELINE EVIDENCE & TRANSCRIPT SAMPLE:
+---
+{overview_transcript}
+---
+
+{history_str}CURRENT USER QUESTION:
 {question}
 
-CRITICAL RESPONSE GUIDELINES:
-1. Deliver comprehensive, rich, authoritative, and actionable answers.
-2. When the user asks for a step-by-step implementation guide, habits, daily routines, protocols, or breakdown: produce an impeccably structured, multi-phase action plan (e.g. Morning Routine, Focus/Work Protocols, Evening Routine, Mindset Shifts) with exact actionable steps, biological/practical reasoning, and relevant timestamps [MM:SS].
-3. Reference timestamps [MM:SS] whenever relevant to ground your points in the video timeline.
-4. NEVER refuse to answer or output disclaimer excuses such as "the transcript is brief" or "specific habits are not elaborated upon". Use the video concepts, takeaways, and your deep expert knowledge to provide the most thorough, helpful guide possible.
-5. Format with beautiful, readable markdown: clear subheadings, numbered lists, and bold key terms.
+CRITICAL ACCURACY GUIDELINES:
+1. Deliver comprehensive, rich, authoritative, and 100% video-grounded answers.
+2. CITATION REQUIREMENT: For EVERY claim, insight, or quote, you MUST cite the exact timestamp in brackets like [MM:SS] (or [HH:MM:SS]) so the user can verify it directly in the video player.
+3. DIRECT QUOTES: When referencing what was said, include verbatim quotes from the speaker wherever possible.
+4. ACTIONABLE PROTOCOLS: When the user asks for a guide, routine, habit breakdown, or action plan: organize it logically into phases (e.g. Phase 1 / Morning, Phase 2 / Deep Work, Phase 3 / Evening) with explicit biological/practical rationale and corresponding video timestamps.
+5. NO DISCLAIMERS: Never refuse to answer or output generic excuses like "the transcript is brief". Use all the chapter intelligence, claims, takeaways, and your analytical mastery to provide a definitive, high-value answer.
+6. FORMATTING: Use clean markdown with clear subheadings (###), bullet points, and bold key terms.
 """
 
     try:
         key_pool = get_key_pool()
         res = call_gemini_with_fallback(copilot_prompt, key_pool=key_pool)
-        return jsonify({"answer": res.text.strip()})
+        return jsonify({
+            "answer": res.text.strip(),
+            "video_id": video_id,
+            "title": title
+        })
     except Exception as e:
         return jsonify({"error": f"Copilot error: {str(e)}"}), 500
 

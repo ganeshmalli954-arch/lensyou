@@ -93,7 +93,7 @@
                         <span class="pulse-dot"></span>
                         <span>Live SQLite</span>
                     </div>
-                    <button onclick="loadAdminDashboard()" style="background:var(--bg-elevated); border:1px solid var(--border-ui); color:var(--text-muted); font-size:11px; cursor:pointer; padding:3px 8px; border-radius:4px;" title="Refresh now">↻ Refresh</button>
+                    <button onclick="loadAdminDashboard(); loadTrainingStudio()" style="background:var(--bg-elevated); border:1px solid var(--border-ui); color:var(--text-muted); font-size:11px; cursor:pointer; padding:3px 8px; border-radius:4px;" title="Refresh now">↻ Refresh</button>
                 </div>
             </div>
 
@@ -103,6 +103,7 @@
                 <button class="side-nav-btn" onclick="switchAdminTab('search', this)">🔍 Search Analytics</button>
                 <button class="side-nav-btn" onclick="switchAdminTab('content', this)">🎬 Content Analytics</button>
                 <button class="side-nav-btn" onclick="switchAdminTab('videos', this)">📺 Analyzed Videos</button>
+                <button class="side-nav-btn" onclick="switchAdminTab('training', this)">🧠 Model Training Studio</button>
                 <button class="side-nav-btn" onclick="switchAdminTab('payments', this)">💳 Payments & Plans</button>
                 <button class="side-nav-btn" onclick="switchAdminTab('keys', this)">🔑 API Key Status</button>
                 <button class="side-nav-btn" onclick="switchAdminTab('codes', this)">🎟️ Promo Codes</button>
@@ -461,6 +462,83 @@
                                 <li>Enter the 6-digit verification code to confirm and lock down the Admin Portal.</li>
                             </ol>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+        
+            <!-- MODEL TRAINING & FINE-TUNING STUDIO TAB -->
+            <div id="tab-training" class="panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                    <div>
+                        <h1 style="font-size:24px; font-weight:700; margin:0 0 4px 0;">🧠 Model Training &amp; Exemplar Studio</h1>
+                        <p style="font-size:13px; color:var(--text-muted); margin:0;">Train the extraction engine and export fine-tuning datasets from actual analyzed YouTube links.</p>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <a href="/admin/api/training/export/gemini" class="side-nav-btn" style="background:linear-gradient(135deg, #4285F4 0%, #34A853 100%); color:#fff; font-weight:600; text-decoration:none; padding:8px 14px; border-radius:6px; display:inline-flex; align-items:center; gap:6px;">
+                            <span>📥</span> Export Gemini JSONL
+                        </a>
+                        <a href="/admin/api/training/export/openai" class="side-nav-btn" style="background:#18181b; border:1px solid #27272a; color:#e4e4e7; font-weight:600; text-decoration:none; padding:8px 14px; border-radius:6px; display:inline-flex; align-items:center; gap:6px;">
+                            <span>📥</span> Export OpenAI/LoRA
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Training Metrics Cards -->
+                <div class="stats-grid-top">
+                    <div class="stat-card">
+                        <div class="stat-lbl">Active Training Exemplars</div>
+                        <div class="stat-val" id="statTrainSamples">0</div>
+                        <div class="stat-sub">Curated YouTube intelligence pairs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Estimated Training Tokens</div>
+                        <div class="stat-val" id="statTrainTokens">0</div>
+                        <div class="stat-sub">SFT token budget ready</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-lbl">Domain Diversity</div>
+                        <div class="stat-val" id="statTrainCategories">0</div>
+                        <div class="stat-sub">Active content categories</div>
+                    </div>
+                </div>
+
+                <!-- Add Video to Training Store Form -->
+                <div class="glass-card">
+                    <h3 style="margin-top:0; font-size:16px;">➕ Add Analyzed YouTube Video to Training Set</h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Select any previously analyzed video or enter its YouTube Video ID to convert its verified transcript and intelligence dossier into a training exemplar.</p>
+                    <form onsubmit="handleAddToTraining(event)" style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <input type="text" id="trainVideoInput" placeholder="YouTube URL or Video ID (e.g. dQw4w9WgXcQ)" required style="flex:2; min-width:240px; padding:10px 14px; background:#080808; border:1px solid var(--border-ui); border-radius:6px; color:#fff; font-size:13px;">
+                        <input type="text" id="trainNotesInput" placeholder="Curator Notes / Benchmark Tag (optional)" style="flex:2; min-width:200px; padding:10px 14px; background:#080808; border:1px solid var(--border-ui); border-radius:6px; color:#fff; font-size:13px;">
+                        <button type="submit" style="background:var(--accent-purple); color:#fff; border:none; padding:10px 20px; border-radius:6px; font-weight:600; cursor:pointer; font-size:13px;">
+                            Add to Training
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Exemplar Samples Table -->
+                <div class="glass-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                        <h3 style="margin:0; font-size:16px;">📚 Curated Training Exemplars</h3>
+                        <button onclick="loadTrainingStudio()" style="background:transparent; border:1px solid var(--border-ui); color:var(--text-muted); padding:4px 10px; border-radius:4px; font-size:12px; cursor:pointer;">↻ Refresh</button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Video Title</th>
+                                    <th>Category</th>
+                                    <th>Duration</th>
+                                    <th>Word Count</th>
+                                    <th>Verified Assets</th>
+                                    <th>Added At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trainingTableBody">
+                                <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading training exemplars...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

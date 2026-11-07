@@ -2,6 +2,9 @@
 // Direction: Quiet luxury + advanced AI interface (Bloomberg-density data platform)
 
 let currentAnalysis = null;
+let copilotChatHistory = [];
+let isPlayerOpen = false;
+let currentPlayerSeconds = 0;
 let currentActiveSecond = 0;
 let currentFlashcardIdx = 0;
 let quizUserScore = 0;
@@ -591,6 +594,8 @@ function renderDashboard(data) {
     renderVideoMap(data.knowledge_graph || {});
     renderVisualMoments(data.visual_moments || [], meta.video_id);
     renderTranscript(data._transcript_sample || []);
+    copilotChatHistory = [];
+    renderCopilotPrecomputed(data.copilot_briefing);
 
     // 4. Render Mode 2: RESEARCH
     renderClaims(data.claims || []);
@@ -598,6 +603,7 @@ function renderDashboard(data) {
     renderRepetitions(data.repetitions || []);
     renderContradictions(data.contradictions || []);
     renderSpeakers(data.speakers || []);
+    renderQuotes(data.quotes || []);
 
     // 5. Render Mode 3: LEARN
     renderDefinitions(data.learning?.key_definitions || []);
@@ -770,6 +776,9 @@ function renderTakeaways(takeaways) {
                     <button class="timestamp-pill" onclick="jumpToSecond(${seconds})">
                         <span>▶</span> ${escapeHtml(t.timestamp || '00:00')}
                     </button>
+                    <button class="btn-hero btn-secondary-hero btn-sm" onclick="askCopilot('Deeply analyze and provide supporting evidence for takeaway: ${escapeJsString(t.title)}')">
+                        Ask Copilot ✦
+                    </button>
                     <span class="confidence-tag">${escapeHtml(t.confidence || 'Directly stated')}</span>
                 </div>
             </div>
@@ -887,9 +896,14 @@ function renderChapters(chapters) {
                         <span class="chapter-number">${escapeHtml(ch.number || '01')}</span>
                         <h4 class="chapter-title">${escapeHtml(ch.title)}</h4>
                     </div>
-                    <button class="timestamp-pill" onclick="jumpToSecond(${startSec})">
-                        <span>▶</span> ${escapeHtml(ch.start_time || '00:00')} - ${escapeHtml(ch.end_time || '')}
-                    </button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button class="timestamp-pill" onclick="jumpToSecond(${startSec})">
+                            <span>▶</span> ${escapeHtml(ch.start_time || '00:00')} - ${escapeHtml(ch.end_time || '')}
+                        </button>
+                        <button class="btn-hero btn-secondary-hero btn-sm" onclick="askCopilot('Break down the concepts covered in chapter: ${escapeJsString(ch.title)} at [${escapeJsString(ch.start_time || '00:00')}]')">
+                            Ask Copilot ✦
+                        </button>
+                    </div>
                 </div>
                 <p class="chapter-summary">${escapeHtml(ch.summary || '')}</p>
                 <div class="chapter-bullets">
@@ -1208,9 +1222,14 @@ function renderClaims(claims) {
                     ${c.verification_note ? `<div class="claim-context text-muted mt-4"><em>Verification:</em> ${formatInlineMarkdown(c.verification_note)}</div>` : ''}
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0;">
-                    <button class="timestamp-pill" onclick="jumpToSecond(${sec}); event.stopPropagation();">
-                        <span>▶</span> ${escapeHtml(c.timestamp || '00:00')}
-                    </button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button class="timestamp-pill" onclick="jumpToSecond(${sec}); event.stopPropagation();">
+                            <span>▶</span> ${escapeHtml(c.timestamp || '00:00')}
+                        </button>
+                        <button class="btn-hero btn-secondary-hero btn-sm" onclick="askCopilot('What is the context and evidence for claim: ${escapeJsString(c.claim)}?'); event.stopPropagation();">
+                            Ask Copilot ✦
+                        </button>
+                    </div>
                     <span class="confidence-tag">${escapeHtml(c.confidence || 'High')}</span>
                 </div>
             </div>
@@ -1350,6 +1369,37 @@ function renderSpeakers(speakers) {
         </div>
     `).join('');
 }
+function renderQuotes(quotes) {
+    const list = document.getElementById('quotesList');
+    if (!list) return;
+
+    if (!quotes || quotes.length === 0) {
+        list.innerHTML = '<p class="text-muted" style="padding:16px;">No verbatim quotes highlighted for this video.</p>';
+        return;
+    }
+
+    list.innerHTML = quotes.map(q => {
+        const sec = q.seconds || parseTimestampToSeconds(q.timestamp);
+        return `
+            <div class="quote-card">
+                <div class="quote-body">"${formatInlineMarkdown(q.quote)}"</div>
+                <div class="quote-meta">
+                    <span class="quote-speaker">— ${escapeHtml(q.speaker || 'Speaker')}</span>
+                    ${q.context ? `<span class="quote-context">(${escapeHtml(q.context)})</span>` : ''}
+                </div>
+                <div class="takeaway-footer mt-12">
+                    <button class="timestamp-pill" onclick="jumpToSecond(${sec})">
+                        <span>▶</span> ${escapeHtml(q.timestamp || '00:00')}
+                    </button>
+                    <button class="btn-hero btn-secondary-hero btn-sm" onclick="askCopilot('Analyze the context and significance of this quote by ${escapeJsString(q.speaker || 'the speaker')}: &quot;${escapeJsString(q.quote)}&quot;')">
+                        Ask Copilot ✦
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 
 // ===== Mode 3: LEARN MODE =====
 function renderDefinitions(definitions) {
@@ -1845,6 +1895,36 @@ function executeCommand(idx) {
 }
 
 // ===== Mode 6: AI Copilot & Evidence Grounding =====
+function renderCopilotPrecomputed(briefing) {
+    const sec = document.getElementById('copilotPrecomputedSection');
+    const container = document.getElementById('copilotPrecomputedCards');
+    if (!sec || !container) return;
+
+    const qas = briefing?.precomputed_qa || [];
+    if (!qas || qas.length === 0) {
+        sec.style.display = 'none';
+        return;
+    }
+
+    sec.style.display = 'block';
+    container.innerHTML = qas.map(qa => `
+        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:12px; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+            <div>
+                <div style="font-size:12px; font-weight:600; color:#fff; margin-bottom:4px;">${escapeHtml(qa.question)}</div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">${formatInlineMarkdown(qa.answer)}</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <button class="timestamp-pill" onclick="jumpToSecond(parseTimestampToSeconds('${qa.timestamp || "00:00"}'))" style="font-size:11px;">
+                    ▶ ${escapeHtml(qa.timestamp || '00:00')}
+                </button>
+                <button class="btn-hero btn-secondary-hero btn-sm" onclick="askCopilot('Elaborate further on: ${escapeJsString(qa.question)}')">
+                    Follow-up ✦
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
 function askCopilot(question) {
     switchMainMode('copilot');
     const input = document.getElementById('copilotQueryInput');
@@ -1862,12 +1942,15 @@ async function handleCopilotSubmit(e) {
 
     const evidenceMode = document.getElementById('evidenceModeToggle')?.checked !== false;
 
-    // Append User Message
+    // Append to local multi-turn history
+    copilotChatHistory.push({ role: 'user', content: query });
+
+    // Append User Message in UI
     appendCopilotMessage('user', query);
     input.value = '';
 
     // Append AI Loading Indicator
-    const loaderId = appendCopilotMessage('ai', '<span class="copilot-thinking-pulse">✦ Deeply cross-referencing full transcript & grounded evidence...</span>', true);
+    const loaderId = appendCopilotMessage('ai', '<span class="copilot-thinking-pulse">✦ Cross-referencing verified SQLite dossier, timestamps &amp; transcript...</span>', true);
 
     try {
         const res = await fetch('/api/chat', {
@@ -1876,20 +1959,26 @@ async function handleCopilotSubmit(e) {
             body: JSON.stringify({
                 question: query,
                 mode: evidenceMode ? "evidence" : "general",
-                title: currentAnalysis._meta?.title || '',
+                history: copilotChatHistory.slice(-6),
+                title: currentAnalysis._meta?.title || currentAnalysis.video_overview?.title || '',
                 video_id: currentAnalysis._meta?.video_id || '',
+                author: currentAnalysis._meta?.author || currentAnalysis.video_overview?.channel || '',
+                duration: currentAnalysis._meta?.duration || '',
                 summary: currentAnalysis.video_overview?.summary || '',
-                thesis: currentAnalysis.video_overview?.key_thesis || '',
-                takeaways: currentAnalysis.core_takeaways || [],
-                concepts: currentAnalysis.deep_dive_concepts || [],
-                chapters: currentAnalysis.timestamped_breakdown || currentAnalysis.chronological_narrative || [],
-                applications: currentAnalysis.practical_applications || currentAnalysis.actionable_frameworks || [],
+                key_takeaways: currentAnalysis.key_takeaways || currentAnalysis.core_takeaways || [],
+                chapters: currentAnalysis.chapters || currentAnalysis.timeline || [],
+                claims: currentAnalysis.claims || [],
+                quotes: currentAnalysis.quotes || [],
+                insights: currentAnalysis.insights || [],
+                concepts: currentAnalysis.learning?.study_notes || currentAnalysis.deep_dive_concepts || [],
+                definitions: currentAnalysis.learning?.key_definitions || [],
                 snippets: currentAnalysis._transcript_sample || []
             })
         });
 
         const data = await res.json();
         if (data.answer) {
+            copilotChatHistory.push({ role: 'model', content: data.answer });
             updateCopilotMessage(loaderId, formatCopilotAnswer(data.answer));
         } else {
             updateCopilotMessage(loaderId, '<p class="chat-p">I could not find a specific answer to that in the video.</p>');
@@ -1995,18 +2084,64 @@ function formatCopilotAnswer(rawText) {
     return html;
 }
 
-// ===== Video Jumper =====
+// ===== Video Jumper & Synchronized In-App Player =====
+function toggleEmbeddedPlayer(forceOpen = null) {
+    const container = document.getElementById('embeddedPlayerContainer');
+    const iframe = document.getElementById('lensyouIframePlayer');
+    if (!container || !iframe || !currentAnalysis || !currentAnalysis._meta) return;
+
+    const vidId = currentAnalysis._meta.video_id;
+    const isCurrentlyOpen = container.style.display !== 'none';
+    const shouldOpen = forceOpen !== null ? forceOpen : !isCurrentlyOpen;
+
+    if (shouldOpen) {
+        container.style.display = 'block';
+        isPlayerOpen = true;
+        if (!iframe.src || !iframe.src.includes(vidId)) {
+            iframe.src = `https://www.youtube.com/embed/${vidId}?enablejsapi=1&autoplay=1&start=${Math.floor(currentPlayerSeconds)}`;
+        }
+        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        container.style.display = 'none';
+        isPlayerOpen = false;
+        iframe.src = '';
+    }
+}
+
+function seekVideoOffset(offsetSeconds) {
+    currentPlayerSeconds = Math.max(0, currentPlayerSeconds + offsetSeconds);
+    jumpToSecond(currentPlayerSeconds);
+}
+
 function jumpToSecond(seconds) {
     if (!currentAnalysis || !currentAnalysis._meta) return;
     const videoId = currentAnalysis._meta.video_id;
-    const url = `https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(seconds)}s`;
+    const sec = Math.floor(Number(seconds) || 0);
+    currentPlayerSeconds = sec;
+
+    const container = document.getElementById('embeddedPlayerContainer');
+    const iframe = document.getElementById('lensyouIframePlayer');
+    const timeLabel = document.getElementById('playerCurrentTime');
+
+    if (timeLabel) {
+        timeLabel.innerText = `Synced at ${formatSeconds(sec)}`;
+    }
+
+    if (container && iframe) {
+        container.style.display = 'block';
+        isPlayerOpen = true;
+        iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&start=${sec}`;
+        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        showToast(`🎬 Playing from ${formatSeconds(sec)} in player`, 'info');
+        return;
+    }
+
+    const url = `https://www.youtube.com/watch?v=${videoId}&t=${sec}s`;
     window.open(url, '_blank');
 }
 
 function openVideoPlayer() {
-    if (currentAnalysis && currentAnalysis._meta) {
-        window.open(currentAnalysis._meta.video_url, '_blank');
-    }
+    toggleEmbeddedPlayer();
 }
 
 // ===== LocalStorage History Manager =====

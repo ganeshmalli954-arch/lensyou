@@ -657,6 +657,33 @@ def generate_detailed_pdf(data: dict) -> io.BytesIO:
             ]))
             story.append(vb_table)
 
+        # -------------------------------------------------------------
+    # HEADING 13: COPILOT EVIDENCE BRIEFING & CRITICAL Q&A
+    # -------------------------------------------------------------
+    copilot_data = data.get("copilot_briefing", {})
+    if copilot_data and copilot_data.get("precomputed_qa"):
+        story.append(Spacer(1, 10))
+        story.append(Paragraph("13. COPILOT GROUNDED BRIEFING & ESSENTIAL EVIDENCE Q&A", h1_style))
+        story.append(HRFlowable(width="100%", thickness=1, color=color_accent, spaceBefore=1, spaceAfter=6))
+        
+        fc_score = copilot_data.get("fact_check_score", 90)
+        tension = sanitize_text(copilot_data.get("key_tension", ""))
+        story.append(Paragraph(f"<b>Evidence Grounding Score:</b> {fc_score}/100", body_style))
+        if tension:
+            story.append(Paragraph(f"<b>Analytical Nuance:</b> {tension}", body_style))
+        story.append(Spacer(1, 4))
+        
+        for qa in copilot_data.get("precomputed_qa", []):
+            q_txt = sanitize_text(qa.get("question", ""))
+            a_txt = sanitize_text(qa.get("answer", ""))
+            ts = qa.get("timestamp", "")
+            qa_elements = [
+                Paragraph(f"<b>Q: {q_txt}</b>", ParagraphStyle('QStyle', parent=body_style, textColor=colors.HexColor('#1e40af'))),
+                Paragraph(f"{a_txt} <i>[{ts}]</i>", ParagraphStyle('AStyle', parent=body_style, leftIndent=12)),
+                Spacer(1, 6)
+            ]
+            story.append(KeepTogether(qa_elements))
+
     # Build the document with running header/footer
     doc.build(story, canvasmaker=NumberedCanvas)
     buf.seek(0)

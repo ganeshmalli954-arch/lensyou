@@ -319,6 +319,14 @@ You must produce a rich, ultra-structured JSON response with EXACTLY this struct
     "executive_assessment": {{
         "best_for": ["Students", "Entrepreneurs", "Researchers", "Practitioners"],
         "recommendation": "A concise 2-sentence verdict on whether and why someone should watch this video."
+    }},
+    "copilot_briefing": {{
+        "fact_check_score": 92,
+        "key_tension": "Nuanced analysis of opposing viewpoints or friction points",
+        "precomputed_qa": [
+            {{"question": "What is the primary breakthrough or core thesis of this video?", "answer": "Direct evidence-grounded answer with verbatim context and [MM:SS] citation.", "timestamp": "02:15"}},
+            {{"question": "What actionable protocol or recommendation is provided?", "answer": "Actionable step-by-step breakdown referencing [MM:SS].", "timestamp": "14:30"}}
+        ]
     }}
 }}
 
@@ -433,6 +441,18 @@ def _ensure_complete_schema(data: dict, duration_str: str, video_title: str, aut
             {"time": "00:00", "seconds": 0, "score": 68, "highlight": "Intro"},
             {"time": "05:00", "seconds": 300, "score": 82, "highlight": "Core"}
         ]
+        
+    cb = data.setdefault("copilot_briefing", {})
+    cb.setdefault("fact_check_score", 90)
+    cb.setdefault("key_tension", "Balanced exploration of core claims.")
+    if not cb.get("precomputed_qa"):
+        cb["precomputed_qa"] = [
+            {
+                "question": "What is the primary breakthrough or thesis?",
+                "answer": f"The video explores foundational mechanisms and actionable principles of {video_title}.",
+                "timestamp": "01:00"
+            }
+        ]
     return data
 
 def run_videolens_analysis(segments: list, duration_str: str, video_title: str, author_name: str, key_pool=None, is_paid=False) -> dict:
@@ -440,8 +460,16 @@ def run_videolens_analysis(segments: list, duration_str: str, video_title: str, 
     transcript_sample = prepare_transcript_for_analysis(segments, max_chars=max_chars)
     
     extra_instructions = ""
+    try:
+        from services.training_service import get_exemplars_for_prompt
+        exemplar_bench = get_exemplars_for_prompt()
+        if exemplar_bench:
+            extra_instructions += f"\n\nTRAINING BENCHMARK EXEMPLAR (Learn from this target structural depth and formatting):\n{exemplar_bench[:3000]}"
+    except Exception:
+        pass
+
     if is_paid:
-        extra_instructions = "\n\nPREMIUM DIRECTIVE: Provide deep analytical granularity, comprehensive timestamps, rich takeaways with 'CRITICAL' ratings, detailed claims verification, and thorough study notes."
+        extra_instructions += "\n\nPREMIUM DIRECTIVE: Provide deep analytical granularity, comprehensive timestamps, rich takeaways with 'CRITICAL' ratings, detailed claims verification, and thorough study notes."
 
     prompt = VIDEOLENS_PROMPT.format(
         title=video_title or "YouTube Video",

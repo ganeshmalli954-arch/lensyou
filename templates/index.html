@@ -457,6 +457,9 @@
                             </div>
 
                             <div class="hero-action-buttons">
+                                <button class="btn-hero btn-primary-hero" id="togglePlayerBtn" onclick="toggleEmbeddedPlayer()" title="Watch synchronized video inside LensYou">
+                                    <span>🎬 In-App Player</span>
+                                </button>
                                 <a id="dashWatchBtn" href="#" target="_blank" class="btn-hero btn-primary-hero">
                                     <span>▶ Watch on YouTube</span>
                                 </a>
@@ -476,6 +479,25 @@
                                     <span>⌘K Commands</span>
                                 </button>
                             </div>
+                        </div>
+                    </div>
+
+                    
+                    <!-- Synchronized Embedded Video Player Box -->
+                    <div id="embeddedPlayerContainer" class="embedded-player-box" style="display:none; margin:16px 0; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.12); background:#080808; box-shadow:0 10px 30px rgba(0,0,0,0.6);">
+                        <div class="embedded-player-bar" style="display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:#121214; border-bottom:1px solid #27272a;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:13px; font-weight:700; color:#fff;">🎬 Synchronized Video Player</span>
+                                <span id="playerCurrentTime" style="font-size:11px; color:#a1a1aa; font-family:'JetBrains Mono', monospace;">Synced with Copilot &amp; Timestamps</span>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <button onclick="seekVideoOffset(-10)" style="cursor:pointer; background:#1c1c1f; border:1px solid #3f3f46; color:#e4e4e7; border-radius:6px; padding:4px 10px; font-size:11px;">↺ 10s</button>
+                                <button onclick="seekVideoOffset(10)" style="cursor:pointer; background:#1c1c1f; border:1px solid #3f3f46; color:#e4e4e7; border-radius:6px; padding:4px 10px; font-size:11px;">↻ 10s</button>
+                                <button onclick="toggleEmbeddedPlayer()" style="cursor:pointer; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); color:#ef4444; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:700;">✕ Close</button>
+                            </div>
+                        </div>
+                        <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
+                            <iframe id="lensyouIframePlayer" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         </div>
                     </div>
 
@@ -756,6 +778,18 @@
                                 </div>
                                 <div class="claims-list" id="claimsList">
                                     <!-- Claims injected dynamically -->
+                                </div>
+                            </div>
+
+                            
+                            <!-- Direct Quotes & High-Impact Statements -->
+                            <div class="glass-card mb-24">
+                                <div class="card-title-bar">
+                                    <h3>💬 Direct Quotes &amp; Key Statements</h3>
+                                    <span class="pill-tag">Verbatim Spoken Citations</span>
+                                </div>
+                                <div class="quotes-grid" id="quotesList">
+                                    <!-- Quotes injected dynamically -->
                                 </div>
                             </div>
 
@@ -1059,6 +1093,12 @@
                                 </div>
 
                                 <!-- Suggested Questions Chips -->
+                                <!-- Pre-Computed Video Intelligence Q&A -->
+                                <div id="copilotPrecomputedSection" style="margin-bottom:16px; display:none;">
+                                    <div style="font-size:11px; font-weight:700; color:var(--accent-purple); text-transform:uppercase; margin-bottom:10px; letter-spacing:0.8px;">🎯 Pre-Computed Video Intelligence Q&amp;A</div>
+                                    <div id="copilotPrecomputedCards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px;"></div>
+                                </div>
+                                
                                 <div class="copilot-suggested-prompts">
                                     <button class="copilot-chip" onclick="askCopilot('What specific tools, software, or frameworks were recommended?')">🛠️ Tools & Frameworks</button>
                                     <button class="copilot-chip" onclick="askCopilot('What are the 3 strongest arguments and turning points in this video?')">💡 Core Arguments</button>

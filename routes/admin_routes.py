@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session, render_template, redirect
+from flask import Blueprint, request, jsonify, session, render_template, redirect, send_file
 import psutil
 import os
 import time
@@ -444,3 +444,50 @@ def admin_payments():
     payments = get_all_payments()
     stats = get_payment_stats()
     return jsonify({'payments': payments, 'stats': stats})
+
+
+# --- Model Training & Fine-Tuning Studio Routes ---
+
+@admin_bp.route('/api/training/stats')
+@require_admin
+def admin_training_stats():
+    from services.training_service import get_training_stats
+    return jsonify(get_training_stats())
+
+@admin_bp.route('/api/training/samples')
+@require_admin
+def admin_training_samples():
+    from services.training_service import list_training_samples
+    return jsonify(list_training_samples())
+
+@admin_bp.route('/api/training/add/<video_id>', methods=['POST'])
+@require_admin
+def admin_training_add(video_id):
+    from services.training_service import add_video_to_training
+    data = request.get_json(silent=True) or {}
+    notes = data.get('notes', '')
+    res = add_video_to_training(video_id, custom_notes=notes)
+    status_code = 200 if res.get('success') else 400
+    return jsonify(res), status_code
+
+@admin_bp.route('/api/training/remove/<video_id>', methods=['POST'])
+@require_admin
+def admin_training_remove(video_id):
+    from services.training_service import remove_video_from_training
+    res = remove_video_from_training(video_id)
+    status_code = 200 if res.get('success') else 400
+    return jsonify(res), status_code
+
+@admin_bp.route('/api/training/export/gemini')
+@require_admin
+def admin_training_export_gemini():
+    from services.training_service import export_gemini_jsonl
+    filepath = export_gemini_jsonl()
+    return send_file(filepath, as_attachment=True, download_name='gemini_fine_tuning.jsonl', mimetype='application/x-jsonlines')
+
+@admin_bp.route('/api/training/export/openai')
+@require_admin
+def admin_training_export_openai():
+    from services.training_service import export_openai_jsonl
+    filepath = export_openai_jsonl()
+    return send_file(filepath, as_attachment=True, download_name='openai_fine_tuning.jsonl', mimetype='application/x-jsonlines')
