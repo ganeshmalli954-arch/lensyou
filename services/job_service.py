@@ -157,8 +157,11 @@ def run_analysis_job(job_id, video_id, user_id, session_key, key_pool):
         segments = transcript_res.get("segments", [])
         max_seg_end = int(max((float(s.get("start", 0)) + float(s.get("duration", 0)) for s in segments), default=0)) if segments else 0
         
-        # Select authoritative maximum length
-        final_secs = max(real_secs, max_seg_end, transcript_res.get("duration_seconds", 0))
+        # Select authoritative length: real_secs is ground truth if discovered
+        if real_secs > 0:
+            final_secs = real_secs
+        else:
+            final_secs = max(max_seg_end, transcript_res.get("duration_seconds", 0))
         if final_secs > 0:
             duration_secs = final_secs
             duration_str = format_seconds(final_secs)

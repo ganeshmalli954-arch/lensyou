@@ -312,13 +312,19 @@ def get_transcript_tier4_metadata(video_id: str) -> dict:
                         "timestamp": format_seconds(float(total_s))
                     })
 
+        from services.metadata_service import extract_duration_from_title
+        title_hint = extract_duration_from_title(title)
+
         if not duration_secs or duration_secs < max_chapter_sec:
             if max_chapter_sec > 0:
-                duration_secs = max_chapter_sec + 180
+                duration_secs = max_chapter_sec + 60
+            elif title_hint > 0:
+                duration_secs = title_hint
             elif desc:
-                duration_secs = max(1800, int((len(desc.split()) / 130) * 60))
+                word_est = int((len(desc.split()) / 130) * 60)
+                duration_secs = max(300, min(1800, word_est))
             else:
-                duration_secs = 3600
+                duration_secs = 600
 
         if not segments:
             # Construct segments from description paragraphs

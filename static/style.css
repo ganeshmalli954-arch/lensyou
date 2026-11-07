@@ -797,20 +797,21 @@ a {
   margin: 0 auto var(--space-32);
 }
 
-/* Hero URL Input Card */
+/* Hero URL Input Card - Seamless, clean container with zero inner borders */
 .url-input-card {
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
   padding: 8px 8px 8px 20px;
   box-shadow: var(--shadow-card);
-  transition: border-color var(--dur-card) var(--easing-smooth), box-shadow var(--dur-card) var(--easing-smooth);
+  transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   margin-bottom: var(--space-24);
+  position: relative;
 }
 
 .url-input-card:focus-within {
   border-color: var(--accent-primary);
-  box-shadow: var(--shadow-card), 0 0 0 1px var(--accent-subtle);
+  box-shadow: 0 0 0 1px var(--accent-primary), 0 8px 28px rgba(129, 140, 248, 0.18);
 }
 
 .hero-form {
@@ -822,14 +823,45 @@ a {
 
 .hero-form input[type="text"] {
   flex: 1;
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   font-size: 15px;
   color: var(--text-primary);
+  padding: 8px 4px;
+}
+
+.hero-form input[type="text"]:focus,
+.hero-form input[type="text"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 .hero-form input[type="text"]::placeholder {
   color: var(--text-muted);
+}
+
+.clear-hero-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 50%;
+  font-size: 13px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+}
+
+.clear-hero-btn:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.1);
 }
 
 .analyze-lg-btn, .primary-analyze-btn {
@@ -1199,12 +1231,14 @@ a {
 .video-hero-card {
   background: var(--surface-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  border-radius: 16px;
   padding: var(--space-24);
   display: flex;
   gap: var(--space-24);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   align-items: center;
+  margin-bottom: 24px;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.2s ease;
 }
 
 .video-hero-left {
@@ -1361,36 +1395,38 @@ a {
   font-size: 12px;
 }
 
-/* Key Metrics Strip - Equal Component Geometry (132-148px desktop) */
+/* Key Metrics Strip - Generous Spacing & High-Polish Geometry */
 .metrics-strip {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: var(--space-12);
+  gap: 16px;
+  margin-bottom: 26px;
   align-items: stretch;
 }
 
 .metric-card {
   background: var(--surface-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: var(--space-20) var(--space-16);
+  border-radius: 14px;
+  padding: 22px 16px;
   text-align: center;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 136px;
-  box-shadow: var(--shadow-card);
-  transition: transform var(--dur-card) var(--easing-smooth), 
-              border-color var(--dur-card) var(--easing-smooth), 
-              box-shadow var(--dur-card) var(--easing-smooth);
+  min-height: 128px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .metric-card:hover,
 .metric-card:focus-within {
-  transform: translateY(-2px);
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+  border-color: rgba(168, 85, 247, 0.45);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), 0 0 14px rgba(168, 85, 247, 0.16);
 }
 
 .metric-value {
@@ -1420,16 +1456,17 @@ a {
   display: flex;
   background: rgba(12, 12, 14, 0.85);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: 4px;
-  gap: 4px;
+  border-radius: 14px;
+  padding: 6px;
+  gap: 8px;
   position: sticky;
   top: calc(var(--header-height) + 8px);
   z-index: 90;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 32px rgba(0, 0, 0, 0.5);
-  transition: border-color var(--dur-tab) var(--easing-smooth);
+  margin-bottom: 26px;
+  transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mode-tab-btn {
@@ -1437,10 +1474,15 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 12px;
-  border-radius: var(--radius-btn);
+  padding: 12px 14px;
+  border-radius: 10px;
   color: var(--text-muted);
-  transition: all var(--dur-tab) var(--easing-smooth);
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.2s ease,
+              color 0.2s ease,
+              box-shadow 0.2s ease;
+  will-change: transform;
 }
 
 .mode-tab-btn:hover {
@@ -1752,27 +1794,31 @@ a {
 .takeaways-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-16);
+  gap: 20px;
+  margin-top: 16px;
+  margin-bottom: 28px;
 }
 
 .takeaway-card {
   background: var(--surface-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: var(--space-20);
+  border-radius: 14px;
+  padding: 22px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform var(--dur-card) var(--easing-smooth), 
-              border-color var(--dur-card) var(--easing-smooth), 
-              box-shadow var(--dur-card) var(--easing-smooth);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .takeaway-card:hover,
 .takeaway-card:focus-within {
-  transform: translateY(-2px);
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+  border-color: rgba(168, 85, 247, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32), 0 0 12px rgba(168, 85, 247, 0.12);
 }
 
 .takeaway-top-bar {
@@ -1987,20 +2033,27 @@ a {
 .chapters-accordion {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
+  margin-top: 16px;
+  margin-bottom: 28px;
 }
 
 .chapter-card {
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  padding: 14px 18px;
-  transition: all var(--dur-fast) ease;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.25s ease, 
+              box-shadow 0.25s ease;
+  will-change: transform;
 }
 
 .chapter-card:hover {
-  border-color: var(--border-hover);
-  background: var(--surface-card);
+  border-color: rgba(168, 85, 247, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
 }
 
 .chapter-top-line {
@@ -2612,24 +2665,31 @@ a {
 /* Key Definitions Dictionary */
 .definitions-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-16);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 18px;
+  margin-bottom: 26px;
 }
 
 .definition-card {
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-card);
-  padding: var(--space-20);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: all var(--dur-fast) ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .definition-card:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-2px);
+  border-color: rgba(168, 85, 247, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 12px rgba(168, 85, 247, 0.12);
 }
 
 .definition-term {
@@ -2854,24 +2914,30 @@ a {
 .viral-clips-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-16);
+  gap: 20px;
+  margin-top: 18px;
+  margin-bottom: 28px;
 }
 
 .viral-clip-card {
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-card);
-  padding: var(--space-20);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: all var(--dur-fast) ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .viral-clip-card:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card-hover);
+  border-color: rgba(245, 158, 11, 0.5);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 12px rgba(245, 158, 11, 0.15);
 }
 
 .viral-score-tag {
@@ -3224,9 +3290,36 @@ a {
   color: var(--cyan);
 }
 
-.chat-h3, .chat-h4, .chat-h5 {
+.chat-h3 {
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
-  margin: 10px 0 6px;
+  margin: 14px 0 6px;
+  line-height: 1.4;
+}
+
+.chat-h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 12px 0 5px;
+  line-height: 1.4;
+}
+
+.chat-h5 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c4b5fd;
+  margin: 10px 0 4px;
+  line-height: 1.4;
+}
+
+.chat-h6 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 8px 0 4px;
+  line-height: 1.4;
 }
 
 .copilot-thinking-pulse {

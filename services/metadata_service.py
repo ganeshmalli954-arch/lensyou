@@ -76,10 +76,41 @@ def parse_iso8601_duration(pt_str: str) -> int:
     s = int(m.group(3) or 0)
     return h * 3600 + m_val * 60 + s
 
+def extract_duration_from_title(title: str) -> int:
+    """Extract approximate duration in seconds from title cues like 'in 10 Minutes', '15 min crash course', '1 hour full course'."""
+    if not title:
+        return 0
+    t = str(title).lower()
+    # 'in 10 minutes', 'in 15 mins'
+    m = re.search(r'\bin\s+(\d+)\s*(?:mins?|minutes?)\b', t)
+    if m:
+        return int(m.group(1)) * 60
+    # '10 minute', '15-minute', '10 min', '10 mins'
+    m = re.search(r'\b(\d+)\s*[- ]?(?:mins?|minutes?)\b', t)
+    if m:
+        val = int(m.group(1))
+        if 1 <= val <= 300:
+            return val * 60
+    # '1 hour', '2 hours', '3 hrs'
+    m = re.search(r'\b(\d+)\s*[- ]?(?:hours?|hrs?)\b', t)
+    if m:
+        val = int(m.group(1))
+        if 1 <= val <= 24:
+            return val * 3600
+    # '30 seconds', '60s'
+    m = re.search(r'\b(\d+)\s*[- ]?(?:seconds?|secs?)\b', t)
+    if m:
+        val = int(m.group(1))
+        if 10 <= val <= 180:
+            return val
+    return 0
+
 def get_video_duration_seconds(video_id: str) -> int:
-    """Fetch exact video duration in seconds via ISO 8601 meta tag, YouTube Search data, yt-dlp, and HTML fallback."""
+    """Fetch exact video duration in seconds via ISO 8601 meta tag, YouTube Search data, oEmbed title cues, yt-dlp, and HTML fallback."""
     if not video_id:
         return 0
+
+    title_hint_sec = 0
 
     # 1. HTML parsing: ISO duration meta tag, lengthSeconds, approxDurationMs
     try:
@@ -111,22 +142,36 @@ def get_video_duration_seconds(video_id: str) -> int:
     except Exception as e_html:
         print(f"  [Warning] Watch HTML duration lookup note: {e_html}", flush=True)
 
-    # 2. Fast, highly reliable YouTube Search query (works seamlessly in cloud/Render environments)
+    # 2. oEmbed metadata lookup + targeted YouTube search by title & author (highly reliable in cloud/Render environments)
     try:
-        results = search_youtube(f'"{video_id}"', limit=3)
+        oembed = get_video_oembed(video_id)
+        video_title = oembed.get('title', '')
+        author_name = oembed.get('author_name', '')
+        if video_title:
+            title_hint_sec = extract_duration_from_title(video_title)
+            # Targeted search with full title & author to find exact match
+            search_query = f"{video_title} {author_name}".strip()
+            results = search_youtube(search_query, limit=6)
+            for it in results:
+                if it.get('video_id') == video_id and it.get('duration'):
+                    secs = parse_duration_string(it['duration'])
+                    if secs > 0:
+                        return secs
+    except Exception as e_oembed_search:
+        print(f"  [Warning] oEmbed/search duration lookup note: {e_oembed_search}", flush=True)
+
+    # 3. Direct video_id search query
+    try:
+        results = search_youtube(f'"{video_id}"', limit=5)
         for it in results:
             if it.get('video_id') == video_id and it.get('duration'):
                 secs = parse_duration_string(it['duration'])
                 if secs > 0:
                     return secs
-        if results and results[0].get('duration'):
-            secs = parse_duration_string(results[0]['duration'])
-            if secs > 0:
-                return secs
     except Exception as e_search:
-        print(f"  [Warning] Search duration lookup note: {e_search}", flush=True)
+        print(f"  [Warning] Direct video ID search duration lookup note: {e_search}", flush=True)
 
-    # 3. yt-dlp duration extractor
+    # 4. yt-dlp duration extractor
     import subprocess
     try:
         cmd = [
@@ -143,6 +188,10 @@ def get_video_duration_seconds(video_id: str) -> int:
                 return int(line)
     except Exception as e:
         print(f"  [Warning] yt-dlp duration lookup note: {e}", flush=True)
+
+    # 5. Return duration hint inferred from video title if detected
+    if title_hint_sec > 0:
+        return title_hint_sec
 
     return 0
 
@@ -178,7 +227,22 @@ def search_youtube(query: str, limit: int = 6) -> list:
                                 vid_id = v['videoId']
                                 title = v.get('title', {}).get('runs', [{}])[0].get('text', '')
                                 author = v.get('ownerText', {}).get('runs', [{}])[0].get('text', 'YouTube Creator')
-                                duration = v.get('lengthText', {}).get('simpleText', '')
+                                duration = ''
+                                lt = v.get('lengthText')
+                                if isinstance(lt, dict):
+                                    duration = lt.get('simpleText', '')
+                                if not duration:
+                                    for ov in v.get('thumbnailOverlays', []):
+                                        t_stat = ov.get('thumbnailOverlayTimeStatusRenderer', {})
+                                        if t_stat and isinstance(t_stat.get('text'), dict):
+                                            duration = t_stat['text'].get('simpleText', '')
+                                            if duration:
+                                                break
+                                if not duration and title:
+                                    th = extract_duration_from_title(title)
+                                    if th > 0:
+                                        from utils.time_utils import format_seconds
+                                        duration = format_seconds(th)
                                 if vid_id and title:
                                     results.append({
                                         'video_id': vid_id,

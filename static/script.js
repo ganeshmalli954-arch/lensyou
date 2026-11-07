@@ -77,11 +77,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function setupEventListeners() {
     const form = document.getElementById('analyzeForm');
+    const heroInput = document.getElementById('youtubeUrl');
+    const clearHeroBtn = document.getElementById('clearHeroInputBtn');
+    if (heroInput && clearHeroBtn) {
+        heroInput.addEventListener('input', () => {
+            clearHeroBtn.style.display = heroInput.value.trim().length > 0 ? 'inline-flex' : 'none';
+        });
+    }
     if (form) {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            const input = document.getElementById('youtubeUrl');
-            const url = input ? input.value.trim() : '';
+            const url = heroInput ? heroInput.value.trim() : '';
             if (url) {
                 handleAnalyzeOrSearch(url);
             }
@@ -103,6 +109,17 @@ function setupEventListeners() {
             closeShareModal();
         }
     });
+}
+
+function clearHeroSearchInput() {
+    const input = document.getElementById('youtubeUrl');
+    const clearBtn = document.getElementById('clearHeroInputBtn');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+    if (clearBtn) clearBtn.style.display = 'none';
+    clearSearchResults();
 }
 
 // ===== Unified Analyze or Keyword Search Handler =====
@@ -336,6 +353,7 @@ function setAnalyzeButtonLoading(loading) {
 function formatCleanText(str) {
     if (!str) return '';
     return String(str)
+        .replace(/^#+\s*/, '')
         .replace(/\*\*([^*]+)\*\*/g, '$1')
         .replace(/\*\*/g, '')
         .trim();
@@ -1416,7 +1434,7 @@ function renderDefinitions(definitions) {
         return `
             <div class="definition-card">
                 <div>
-                    <div class="definition-term"># ${formatCleanText(d.term)}</div>
+                    <div class="definition-term">${formatCleanText(d.term)}</div>
                     <div class="definition-body">${formatInlineMarkdown(d.definition)}</div>
                 </div>
                 <div class="takeaway-footer mt-12">
@@ -2015,10 +2033,15 @@ function formatCopilotAnswer(rawText) {
     if (!rawText) return '';
     let text = rawText.trim();
 
-    // 1. Convert markdown headers
-    text = text.replace(/^###\s+(.+)$/gm, '<h5 class="chat-h5">$1</h5>');
-    text = text.replace(/^##\s+(.+)$/gm, '<h4 class="chat-h4">$1</h4>');
-    text = text.replace(/^#\s+(.+)$/gm, '<h3 class="chat-h3">$1</h3>');
+    // 1. Convert markdown headers (deep to shallow, supporting #### and up)
+    text = text.replace(/^######\s*(.+)$/gm, '<h6 class="chat-h6">$1</h6>');
+    text = text.replace(/^#####\s*(.+)$/gm, '<h6 class="chat-h6">$1</h6>');
+    text = text.replace(/^####\s*(.+)$/gm, '<h5 class="chat-h5">$1</h5>');
+    text = text.replace(/^###\s*(.+)$/gm, '<h5 class="chat-h5">$1</h5>');
+    text = text.replace(/^##\s*(.+)$/gm, '<h4 class="chat-h4">$1</h4>');
+    text = text.replace(/^#\s*(.+)$/gm, '<h3 class="chat-h3">$1</h3>');
+    // Strip any lingering hashtag prefixes at the start of a line
+    text = text.replace(/^#+\s*/gm, '');
 
     // 2. Line-by-line list and paragraph processor
     const lines = text.split('\n');

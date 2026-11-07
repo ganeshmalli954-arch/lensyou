@@ -339,9 +339,9 @@ CRITICAL INSTRUCTIONS:
 6. In creator_repurposing, provide 3-6 high-potential viral clip segments with exact timestamps, titles, and viral hooks, plus complete social posts and raw YouTube chapters.
 7. In visual_moments, provide 3-8 key visual moments with scene_type ('Slide', 'Chart', 'Demo', 'Screen', 'Speaker', 'Diagram') and what on-screen content or OCR text was displayed.
 8. In knowledge_graph, provide 6-12 interconnected concept nodes and directional links.
-9. Make every timestamp accurate and realistic based on transcript progression spanning the whole duration up to {duration}.
+9. Make every timestamp accurate and realistic based on transcript progression spanning the whole duration up to {duration}. NEVER invent or produce timestamps greater than {duration}. All timestamps MUST be <= {duration}.
 10. Return ONLY valid JSON, with no wrapping markdown fences.
-11. Return clean text values in all JSON fields. NEVER include raw markdown bold asterisks (**) inside JSON string values."""
+11. Return clean text values in all JSON fields. NEVER include raw markdown bold asterisks (**) or raw hashtag symbols (#) inside JSON string values (e.g. for key_definitions term, write "Commit", never "# Commit" or "#### Commit")."""
 
 
 def _call_model(model: str, contents, client, response_mime_type=None, retries=MAX_RETRIES):
@@ -455,6 +455,71 @@ def _ensure_complete_schema(data: dict, duration_str: str, video_title: str, aut
         ]
     return data
 
+def _sanitize_and_bound_timestamps(data: dict, duration_str: str) -> dict:
+    from services.metadata_service import parse_duration_string
+    from utils.time_utils import format_seconds
+    import re
+
+    dur_sec = parse_duration_string(duration_str)
+    if dur_sec <= 0:
+        return data
+
+    def clamp_ts(ts_val, max_s):
+        if not ts_val:
+            return ts_val, 0
+        s = parse_duration_string(str(ts_val))
+        if s > max_s:
+            s = max(0, max_s - 10)
+            return format_seconds(s), s
+        return str(ts_val), s
+
+    # 1. Chapters
+    for ch in data.get("chapters", []):
+        if isinstance(ch, dict):
+            t_orig = ch.get("timestamp") or ch.get("time") or ""
+            new_t, new_s = clamp_ts(t_orig, dur_sec)
+            if "timestamp" in ch:
+                ch["timestamp"] = new_t
+            if "time" in ch:
+                ch["time"] = new_t
+            ch["seconds"] = new_s
+
+    # 2. Key takeaways
+    for t in data.get("key_takeaways", []):
+        if isinstance(t, dict) and t.get("timestamp"):
+            new_t, new_s = clamp_ts(t["timestamp"], dur_sec)
+            t["timestamp"] = new_t
+            t["seconds"] = new_s
+
+    # 3. Key definitions
+    learning = data.get("learning", {})
+    if isinstance(learning, dict):
+        for d in learning.get("key_definitions", []):
+            if isinstance(d, dict):
+                if "term" in d:
+                    d["term"] = re.sub(r'^[#* \t]+', '', str(d["term"])).strip()
+                if d.get("timestamp"):
+                    new_t, new_s = clamp_ts(d["timestamp"], dur_sec)
+                    d["timestamp"] = new_t
+                    d["seconds"] = new_s
+
+    # 4. Claims
+    for cl in data.get("claims", []):
+        if isinstance(cl, dict) and cl.get("timestamp"):
+            new_t, new_s = clamp_ts(cl["timestamp"], dur_sec)
+            cl["timestamp"] = new_t
+            cl["seconds"] = new_s
+
+    # 5. Viral clips
+    repurposing = data.get("creator_repurposing", {})
+    if isinstance(repurposing, dict):
+        for clip in repurposing.get("viral_clips", []):
+            if isinstance(clip, dict) and clip.get("timestamp"):
+                new_t, new_s = clamp_ts(clip["timestamp"], dur_sec)
+                clip["timestamp"] = new_t
+
+    return data
+
 def run_videolens_analysis(segments: list, duration_str: str, video_title: str, author_name: str, key_pool=None, is_paid=False) -> dict:
     max_chars = 600000 if is_paid else 500000
     transcript_sample = prepare_transcript_for_analysis(segments, max_chars=max_chars)
@@ -506,4 +571,6 @@ def run_videolens_analysis(segments: list, duration_str: str, video_title: str, 
         data["metrics"]["duration"] = duration_str
     if "video_overview" in data and duration_str:
         data["video_overview"]["estimated_duration"] = duration_str
+
+    data = _sanitize_and_bound_timestamps(data, duration_str)
     return data

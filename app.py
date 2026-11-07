@@ -859,14 +859,17 @@ CRITICAL ACCURACY GUIDELINES:
 3. DIRECT QUOTES: When referencing what was said, include verbatim quotes from the speaker wherever possible.
 4. ACTIONABLE PROTOCOLS: When the user asks for a guide, routine, habit breakdown, or action plan: organize it logically into phases (e.g. Phase 1 / Morning, Phase 2 / Deep Work, Phase 3 / Evening) with explicit biological/practical rationale and corresponding video timestamps.
 5. NO DISCLAIMERS: Never refuse to answer or output generic excuses like "the transcript is brief". Use all the chapter intelligence, claims, takeaways, and your analytical mastery to provide a definitive, high-value answer.
-6. FORMATTING: Use clean markdown with clear subheadings (###), bullet points, and bold key terms.
+6. FORMATTING: Use clean markdown with clear subheadings (###), bullet points, and bold key terms. Never output raw hashtag symbols (#) as prefixes or section headers (e.g. write "### Phase 1: ...", never "#### Phase" or "# Phase").
 """
 
     try:
         key_pool = get_key_pool()
         res = call_gemini_with_fallback(copilot_prompt, key_pool=key_pool)
+        ans_text = res.text.strip()
+        # Normalize any #### or deeper markdown headers to ### and clean raw hash prefixes
+        ans_text = re.sub(r'^\s*#{4,6}\s*', '### ', ans_text, flags=re.MULTILINE)
         return jsonify({
-            "answer": res.text.strip(),
+            "answer": ans_text,
             "video_id": video_id,
             "title": title
         })
