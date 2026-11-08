@@ -24,7 +24,7 @@ def sanitize_text(text):
     for k, v in replacements.items():
         s = s.replace(k, v)
     s = re.sub(r'[^\x00-\xFF]', ' ', s)
-    return html.escape(s).replace('&amp;', '&')
+    return html.escape(html.unescape(s), quote=True)
 
 
 class NumberedCanvas(canvas.Canvas):

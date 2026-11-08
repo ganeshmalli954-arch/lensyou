@@ -48,9 +48,245 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+def init_relational_db(conn=None):
+    """Initializes the 12 normalized relational tables in SQLite for LensYou architecture."""
+    close_conn = False
+    if conn is None:
+        conn = get_db()
+        close_conn = True
+    try:
+        c = conn.cursor()
+        # 1. users
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                provider TEXT,
+                provider_id TEXT,
+                email TEXT,
+                name TEXT,
+                avatar_url TEXT,
+                plan TEXT,
+                quota_used INTEGER DEFAULT 0,
+                quota_limit INTEGER DEFAULT 5,
+                role TEXT DEFAULT 'user',
+                login_count INTEGER DEFAULT 0,
+                created_at TEXT,
+                last_active TEXT,
+                UNIQUE(provider, provider_id)
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
+
+        # 2. videos (MUST include idx_videos_video_id and analysis_json)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS videos (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                title TEXT,
+                author TEXT,
+                duration TEXT,
+                analysis_json TEXT,
+                user_id TEXT,
+                session_key TEXT,
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_videos_video_id ON videos(video_id)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_videos_user ON videos(user_id)')
+
+        # 3. analysis_jobs
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS analysis_jobs (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                user_id TEXT,
+                session_key TEXT,
+                status TEXT NOT NULL DEFAULT 'QUEUED',
+                stage INTEGER DEFAULT 0,
+                stage_name TEXT DEFAULT 'queued',
+                progress INTEGER DEFAULT 0,
+                error TEXT,
+                result_summary TEXT,
+                modules_completed TEXT DEFAULT '[]',
+                retry_count INTEGER DEFAULT 0,
+                created_at TEXT,
+                updated_at TEXT,
+                completed_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_analysis_jobs_video_id ON analysis_jobs(video_id)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_analysis_jobs_status ON analysis_jobs(status)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_analysis_jobs_user ON analysis_jobs(user_id)')
+
+        # 4. transcript_segments
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS transcript_segments (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                segment_index INTEGER NOT NULL,
+                start_seconds REAL NOT NULL,
+                duration REAL NOT NULL,
+                end_seconds REAL,
+                text TEXT NOT NULL,
+                speaker TEXT,
+                is_synthesized INTEGER DEFAULT 0,
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_transcript_segments_vid ON transcript_segments(video_id)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_transcript_segments_time ON transcript_segments(video_id, start_seconds)')
+
+        # 5. summaries
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS summaries (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                summary_type TEXT DEFAULT 'overview',
+                content TEXT NOT NULL,
+                key_takeaways TEXT,
+                target_audience TEXT,
+                sentiment TEXT,
+                model_used TEXT,
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_summaries_video_id ON summaries(video_id)')
+
+        # 6. chapters
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS chapters (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                chapter_index INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                start_seconds REAL NOT NULL,
+                end_seconds REAL,
+                timestamp_label TEXT,
+                summary TEXT,
+                key_points TEXT,
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_chapters_video_id ON chapters(video_id)')
+
+        # 7. claims
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS claims (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                claim_text TEXT NOT NULL,
+                category TEXT DEFAULT 'factual',
+                timestamp_label TEXT,
+                start_seconds REAL,
+                end_seconds REAL,
+                confidence_score REAL DEFAULT 1.0,
+                verified INTEGER DEFAULT 1,
+                verification_note TEXT,
+                transcript_segment_id TEXT,
+                speaker TEXT,
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_claims_video_id ON claims(video_id)')
+
+        # 8. entities
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS entities (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                entity_type TEXT DEFAULT 'Concept',
+                description TEXT,
+                relevance_score REAL DEFAULT 1.0,
+                mention_count INTEGER DEFAULT 1,
+                first_seen_seconds REAL,
+                metadata_json TEXT,
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_entities_video_id ON entities(video_id)')
+
+        # 9. flashcards
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS flashcards (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                card_index INTEGER,
+                front TEXT NOT NULL,
+                back TEXT NOT NULL,
+                topic TEXT,
+                difficulty TEXT DEFAULT 'medium',
+                bloom_level TEXT,
+                review_interval INTEGER DEFAULT 1,
+                ease_factor REAL DEFAULT 2.5,
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_flashcards_video_id ON flashcards(video_id)')
+
+        # 10. quizzes
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS quizzes (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                question_index INTEGER,
+                bloom_level TEXT DEFAULT 'Understand',
+                question TEXT NOT NULL,
+                options_json TEXT NOT NULL,
+                correct_index INTEGER NOT NULL,
+                explanation TEXT,
+                timestamp_label TEXT,
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_quizzes_video_id ON quizzes(video_id)')
+
+        # 11. exports
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS exports (
+                id TEXT PRIMARY KEY,
+                video_id TEXT NOT NULL,
+                user_id TEXT,
+                session_key TEXT,
+                export_type TEXT NOT NULL,
+                file_path TEXT,
+                file_size INTEGER,
+                status TEXT DEFAULT 'completed',
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_exports_video_id ON exports(video_id)')
+
+        # 12. usage_logs
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS usage_logs (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                session_key TEXT,
+                ip_address TEXT,
+                action TEXT NOT NULL,
+                video_id TEXT,
+                video_duration_seconds INTEGER,
+                tokens_used INTEGER DEFAULT 0,
+                plan TEXT,
+                status TEXT DEFAULT 'allowed',
+                details TEXT,
+                created_at TEXT
+            )
+        ''')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_usage_logs_user ON usage_logs(user_id)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_usage_logs_ip ON usage_logs(ip_address)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_usage_logs_created ON usage_logs(created_at)')
+
+        conn.commit()
+    finally:
+        if close_conn:
+            conn.close()
+
 def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with get_db() as conn:
+        init_relational_db(conn)
         c = conn.cursor()
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
@@ -226,10 +462,340 @@ def get_logs(limit=200) -> list:
         c.execute('SELECT * FROM app_logs ORDER BY created_at DESC LIMIT ?', (limit,))
         return [dict(row) for row in c.fetchall()]
 
-def save_cached_analysis(video_id: str, title: str, author: str, duration: str, analysis: dict, user_id: str = None, session_key: str = None) -> str:
-    """Save completed video analysis to SQLite database for instant caching and public sharing."""
-    if not video_id or not analysis:
+def save_analysis_modular(video_id: str, modules: dict, user_id: str = None, session_key: str = None) -> bool:
+    """Persists modular analysis records into relational tables in SQLite."""
+    if not video_id or not isinstance(modules, dict):
+        return False
+    now = datetime.utcnow().isoformat()
+    try:
+        with get_db() as conn:
+            c = conn.cursor()
+            
+            # 1. Summaries
+            overview = modules.get('video_overview') or {}
+            summary_content = overview.get('summary') if isinstance(overview, dict) else (modules.get('summary') or "")
+            takeaways = modules.get('key_takeaways') or []
+            target_aud = overview.get('target_audience', '') if isinstance(overview, dict) else ""
+            sentiment = overview.get('sentiment_label', '') if isinstance(overview, dict) else ""
+            model_used = modules.get('_meta', {}).get('model_used', '') if isinstance(modules.get('_meta'), dict) else ""
+            
+            if summary_content or takeaways:
+                c.execute('DELETE FROM summaries WHERE video_id = ?', (video_id,))
+                sum_id = f"sum_{video_id}_{uuid.uuid4().hex[:8]}"
+                c.execute('''
+                    INSERT INTO summaries (id, video_id, summary_type, content, key_takeaways, target_audience, sentiment, model_used, created_at)
+                    VALUES (?, ?, 'overview', ?, ?, ?, ?, ?, ?)
+                ''', (sum_id, video_id, str(summary_content), json.dumps(takeaways), target_aud, sentiment, model_used, now))
+
+            # 2. Chapters
+            raw_chapters = modules.get('chapters') or modules.get('timeline') or modules.get('timestamped_chapters') or []
+            if isinstance(raw_chapters, list) and raw_chapters:
+                c.execute('DELETE FROM chapters WHERE video_id = ?', (video_id,))
+                for idx, chap in enumerate(raw_chapters):
+                    chap_id = f"chap_{video_id}_{idx}"
+                    title = chap.get('title') or chap.get('highlight') or f"Chapter {idx+1}"
+                    sec = chap.get('seconds') or 0.0
+                    end_sec = chap.get('end_seconds')
+                    ts_label = chap.get('time') or chap.get('timestamp') or ""
+                    summary = chap.get('summary') or ""
+                    kp = json.dumps(chap.get('key_points', []))
+                    c.execute('''
+                        INSERT INTO chapters (id, video_id, chapter_index, title, start_seconds, end_seconds, timestamp_label, summary, key_points, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (chap_id, video_id, idx, title, float(sec), float(end_sec) if end_sec is not None else None, str(ts_label), summary, kp, now))
+
+            # 3. Claims
+            raw_claims = modules.get('factual_claims') or modules.get('claims') or []
+            if isinstance(raw_claims, list) and raw_claims:
+                c.execute('DELETE FROM claims WHERE video_id = ?', (video_id,))
+                for idx, clm in enumerate(raw_claims):
+                    claim_id = f"claim_{video_id}_{idx}"
+                    text = clm.get('claim') or clm.get('claim_text') or str(clm)
+                    cat = clm.get('category', 'factual')
+                    ts_label = clm.get('timestamp') or clm.get('time') or ""
+                    sec = clm.get('seconds') or 0.0
+                    end_sec = clm.get('end_seconds')
+                    conf = clm.get('confidence_score', 1.0)
+                    if isinstance(conf, str):
+                        try:
+                            conf = float(conf.replace('%', '')) / 100.0 if '%' in conf else float(conf)
+                        except Exception:
+                            conf = 1.0
+                    verified = 1 if clm.get('verified', True) else 0
+                    note = clm.get('verification_note', '')
+                    seg_id = clm.get('transcript_segment_id')
+                    speaker = clm.get('speaker', '')
+                    c.execute('''
+                        INSERT INTO claims (id, video_id, claim_text, category, timestamp_label, start_seconds, end_seconds, confidence_score, verified, verification_note, transcript_segment_id, speaker, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (claim_id, video_id, text, cat, str(ts_label), float(sec), float(end_sec) if end_sec is not None else None, float(conf), verified, note, seg_id, speaker, now))
+
+            # 4. Entities
+            raw_entities = modules.get('key_concepts') or modules.get('entities') or []
+            if isinstance(raw_entities, dict) and 'nodes' in raw_entities:
+                raw_entities = raw_entities['nodes']
+            if isinstance(raw_entities, list) and raw_entities:
+                c.execute('DELETE FROM entities WHERE video_id = ?', (video_id,))
+                for idx, ent in enumerate(raw_entities):
+                    ent_id = f"ent_{video_id}_{idx}"
+                    name = ent.get('concept') or ent.get('name') or ent.get('id') or f"Entity {idx+1}"
+                    etype = ent.get('type') or ent.get('entity_type', 'Concept')
+                    desc = ent.get('explanation') or ent.get('description', '')
+                    rel = ent.get('relevance_score', 1.0)
+                    mcount = ent.get('mention_count', 1)
+                    first_sec = ent.get('first_seen_seconds')
+                    c.execute('''
+                        INSERT INTO entities (id, video_id, name, entity_type, description, relevance_score, mention_count, first_seen_seconds, metadata_json, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (ent_id, video_id, name, etype, desc, float(rel), int(mcount), float(first_sec) if first_sec is not None else None, json.dumps(ent), now))
+
+            # 5. Flashcards
+            raw_learning = modules.get('learning') or {}
+            raw_cards = raw_learning.get('flashcards') or modules.get('flashcards') or []
+            if isinstance(raw_cards, list) and raw_cards:
+                c.execute('DELETE FROM flashcards WHERE video_id = ?', (video_id,))
+                for idx, fc in enumerate(raw_cards):
+                    fc_id = f"fc_{video_id}_{idx}"
+                    front = fc.get('front') or fc.get('question') or ""
+                    back = fc.get('back') or fc.get('answer') or ""
+                    topic = fc.get('topic', '')
+                    diff = fc.get('difficulty', 'medium')
+                    bloom = fc.get('bloom_level', '')
+                    c.execute('''
+                        INSERT INTO flashcards (id, video_id, card_index, front, back, topic, difficulty, bloom_level, review_interval, ease_factor, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 2.5, ?)
+                    ''', (fc_id, video_id, idx, front, back, topic, diff, bloom, now))
+
+            # 6. Quizzes
+            raw_quiz = raw_learning.get('quiz') or modules.get('quizzes') or []
+            if isinstance(raw_quiz, list) and raw_quiz:
+                c.execute('DELETE FROM quizzes WHERE video_id = ?', (video_id,))
+                for idx, qz in enumerate(raw_quiz):
+                    qz_id = f"quiz_{video_id}_{idx}"
+                    q_text = qz.get('question') or ""
+                    opts = qz.get('options') or []
+                    corr = qz.get('correct_index', 0)
+                    exp = qz.get('explanation', '')
+                    bloom = qz.get('bloom_level', 'Understand')
+                    ts = qz.get('timestamp', '')
+                    c.execute('''
+                        INSERT INTO quizzes (id, video_id, question_index, bloom_level, question, options_json, correct_index, explanation, timestamp_label, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (qz_id, video_id, idx, bloom, q_text, json.dumps(opts), int(corr), exp, str(ts), now))
+
+            # 7. Transcript segments
+            raw_segments = modules.get('transcript_segments') or modules.get('transcript') or []
+            if isinstance(raw_segments, dict) and 'segments' in raw_segments:
+                raw_segments = raw_segments['segments']
+            if isinstance(raw_segments, list) and raw_segments:
+                c.execute('DELETE FROM transcript_segments WHERE video_id = ?', (video_id,))
+                for idx, seg in enumerate(raw_segments):
+                    seg_id = f"seg_{video_id}_{idx}"
+                    start = float(seg.get('start', 0.0))
+                    dur = float(seg.get('duration', 0.0))
+                    end = float(start + dur)
+                    txt = seg.get('text', '')
+                    spk = seg.get('speaker', '')
+                    synth = 1 if seg.get('is_synthesized') else 0
+                    c.execute('''
+                        INSERT INTO transcript_segments (id, video_id, segment_index, start_seconds, duration, end_seconds, text, speaker, is_synthesized, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (seg_id, video_id, idx, start, dur, end, txt, spk, synth, now))
+
+            conn.commit()
+            return True
+    except Exception as e:
+        print(f"  [Modular Save Error]: {e}", flush=True)
+        return False
+
+def get_modular_analysis(video_id: str) -> dict | None:
+    """Reconstructs complete analysis dictionary from 12 normalized relational tables."""
+    if not video_id:
+        return None
+    try:
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute('SELECT * FROM videos WHERE video_id = ? ORDER BY created_at DESC LIMIT 1', (video_id,))
+            v_row = c.fetchone()
+            
+            # Base data from videos table if analysis_json exists
+            base_data = {}
+            if v_row and v_row['analysis_json']:
+                try:
+                    base_data = json.loads(v_row['analysis_json'])
+                except Exception:
+                    base_data = {}
+
+            # Fetch summaries
+            c.execute('SELECT * FROM summaries WHERE video_id = ? ORDER BY created_at DESC LIMIT 1', (video_id,))
+            s_row = c.fetchone()
+            if s_row:
+                if 'video_overview' not in base_data:
+                    base_data['video_overview'] = {}
+                base_data['video_overview']['summary'] = s_row['content']
+                base_data['video_overview']['target_audience'] = s_row['target_audience']
+                base_data['video_overview']['sentiment_label'] = s_row['sentiment']
+                if s_row['key_takeaways']:
+                    try:
+                        base_data['key_takeaways'] = json.loads(s_row['key_takeaways'])
+                    except Exception:
+                        pass
+
+            # Fetch chapters
+            c.execute('SELECT * FROM chapters WHERE video_id = ? ORDER BY chapter_index ASC, start_seconds ASC', (video_id,))
+            c_rows = c.fetchall()
+            if c_rows:
+                timeline = []
+                for cr in c_rows:
+                    kp = []
+                    if cr['key_points']:
+                        try:
+                            kp = json.loads(cr['key_points'])
+                        except Exception:
+                            pass
+                    timeline.append({
+                        'title': cr['title'],
+                        'time': cr['timestamp_label'],
+                        'seconds': cr['start_seconds'],
+                        'end_seconds': cr['end_seconds'],
+                        'summary': cr['summary'],
+                        'key_points': kp
+                    })
+                base_data['timeline'] = timeline
+                base_data['chapters'] = timeline
+
+            # Fetch claims
+            c.execute('SELECT * FROM claims WHERE video_id = ? ORDER BY start_seconds ASC', (video_id,))
+            cl_rows = c.fetchall()
+            if cl_rows:
+                claims = []
+                for cl in cl_rows:
+                    claims.append({
+                        'id': cl['id'],
+                        'claim': cl['claim_text'],
+                        'claim_text': cl['claim_text'],
+                        'category': cl['category'],
+                        'timestamp': cl['timestamp_label'],
+                        'seconds': cl['start_seconds'],
+                        'end_seconds': cl['end_seconds'],
+                        'confidence_score': cl['confidence_score'],
+                        'verified': bool(cl['verified']),
+                        'verification_note': cl['verification_note'],
+                        'transcript_segment_id': cl['transcript_segment_id'],
+                        'speaker': cl['speaker']
+                    })
+                base_data['factual_claims'] = claims
+
+            # Fetch entities
+            c.execute('SELECT * FROM entities WHERE video_id = ? ORDER BY relevance_score DESC', (video_id,))
+            e_rows = c.fetchall()
+            if e_rows:
+                entities = []
+                for er in e_rows:
+                    entities.append({
+                        'concept': er['name'],
+                        'name': er['name'],
+                        'type': er['entity_type'],
+                        'explanation': er['description'],
+                        'relevance_score': er['relevance_score'],
+                        'mention_count': er['mention_count'],
+                        'first_seen_seconds': er['first_seen_seconds']
+                    })
+                base_data['key_concepts'] = entities
+
+            # Fetch flashcards and quizzes
+            c.execute('SELECT * FROM flashcards WHERE video_id = ? ORDER BY card_index ASC', (video_id,))
+            fc_rows = c.fetchall()
+            c.execute('SELECT * FROM quizzes WHERE video_id = ? ORDER BY question_index ASC', (video_id,))
+            qz_rows = c.fetchall()
+
+            if fc_rows or qz_rows:
+                if 'learning' not in base_data:
+                    base_data['learning'] = {}
+                if fc_rows:
+                    cards = []
+                    for fcr in fc_rows:
+                        cards.append({
+                            'front': fcr['front'],
+                            'back': fcr['back'],
+                            'topic': fcr['topic'],
+                            'difficulty': fcr['difficulty'],
+                            'bloom_level': fcr['bloom_level']
+                        })
+                    base_data['learning']['flashcards'] = cards
+                    base_data['flashcards'] = cards
+                if qz_rows:
+                    quizzes = []
+                    for qzr in qz_rows:
+                        opts = []
+                        if qzr['options_json']:
+                            try:
+                                opts = json.loads(qzr['options_json'])
+                            except Exception:
+                                pass
+                        quizzes.append({
+                            'question': qzr['question'],
+                            'options': opts,
+                            'correct_index': qzr['correct_index'],
+                            'explanation': qzr['explanation'],
+                            'bloom_level': qzr['bloom_level'],
+                            'timestamp': qzr['timestamp_label']
+                        })
+                    base_data['learning']['quiz'] = quizzes
+                    base_data['quizzes'] = quizzes
+
+            # Fetch transcript segments
+            c.execute('SELECT * FROM transcript_segments WHERE video_id = ? ORDER BY segment_index ASC, start_seconds ASC', (video_id,))
+            seg_rows = c.fetchall()
+            if seg_rows:
+                segments = []
+                for sr in seg_rows:
+                    segments.append({
+                        'text': sr['text'],
+                        'start': sr['start_seconds'],
+                        'duration': sr['duration'],
+                        'end': sr['end_seconds'],
+                        'speaker': sr['speaker'],
+                        'is_synthesized': bool(sr['is_synthesized'])
+                    })
+                base_data['transcript_segments'] = segments
+
+            if not base_data and not v_row:
+                return None
+
+            # Ensure _meta is set
+            if '_meta' not in base_data and v_row:
+                base_data['_meta'] = {
+                    'video_id': v_row['video_id'],
+                    'title': v_row['title'],
+                    'author': v_row['author'],
+                    'duration': v_row['duration']
+                }
+
+            return base_data if base_data else None
+    except Exception as e:
+        print(f"  [Modular Retrieval Error]: {e}", flush=True)
+        return None
+
+def save_cached_analysis(video_id: str, title: str = "", author: str = "", duration: str = "", analysis: dict = None, user_id: str = None, session_key: str = None, **kwargs) -> str:
+    """Save completed video analysis to SQLite database for instant caching and public sharing.
+    Saves both the relational records and videos.analysis_json for 100% backward compatibility."""
+    if not video_id:
         return ""
+    if isinstance(title, dict) and analysis is None:
+        analysis = title
+        title = analysis.get('_meta', {}).get('title', '')
+        author = analysis.get('_meta', {}).get('author', '')
+        duration = analysis.get('_meta', {}).get('duration', '')
+    if not analysis:
+        return ""
+    if not title and isinstance(analysis, dict):
+        title = analysis.get('_meta', {}).get('title') or analysis.get('video_overview', {}).get('title', '')
+    if not author and isinstance(analysis, dict):
+        author = analysis.get('_meta', {}).get('author') or analysis.get('video_overview', {}).get('channel', '')
+    if not duration and isinstance(analysis, dict):
+        duration = analysis.get('_meta', {}).get('duration') or analysis.get('video_overview', {}).get('estimated_duration', '')
+
     CACHE[video_id] = analysis
     record_id = str(uuid.uuid4())
     now_str = datetime.utcnow().isoformat()
@@ -246,13 +812,18 @@ def save_cached_analysis(video_id: str, title: str, author: str, duration: str, 
                         user_id = COALESCE(?, user_id), session_key = COALESCE(?, session_key), created_at = ?
                     WHERE video_id = ?
                 ''', (title, author, duration, raw_json, user_id, session_key, now_str, video_id))
+                ret_id = existing['id']
             else:
                 c.execute('''
                     INSERT INTO videos (id, video_id, title, author, duration, analysis_json, user_id, session_key, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (record_id, video_id, title, author, duration, raw_json, user_id, session_key, now_str))
+                ret_id = record_id
             conn.commit()
-            return existing['id'] if existing else record_id
+
+        # Save into normalized relational tables
+        save_analysis_modular(video_id, analysis, user_id=user_id, session_key=session_key)
+        return ret_id
     except Exception as e:
         print(f"  [Cache Save Error]: {e}", flush=True)
         return ""
@@ -274,11 +845,266 @@ def get_cached_analysis(video_id: str) -> dict | None:
                 data = json.loads(row['analysis_json'])
                 CACHE[video_id] = data
                 return data
+        # Fallback to modular reconstruction if analysis_json missing
+        modular_data = get_modular_analysis(video_id)
+        if modular_data:
+            CACHE[video_id] = modular_data
+            return modular_data
     except Exception as e:
         print(f"  [Cache Retrieval Error]: {e}", flush=True)
     return None
 
 get_analysis = get_cached_analysis
+
+# --- Persistent Analysis Jobs State Machine ---
+
+def create_analysis_job(job_id: str = None, video_id: str = "", user_id: str = None, session_key: str = None) -> dict:
+    """Creates a persistent job record in SQLite table analysis_jobs."""
+    if not job_id:
+        job_id = f"job_{uuid.uuid4().hex[:12]}"
+    now = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO analysis_jobs (id, video_id, user_id, session_key, status, stage, stage_name, progress, retry_count, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'QUEUED', 0, 'queued', 0, 0, ?, ?)
+        ''', (job_id, video_id, user_id, session_key, now, now))
+        conn.commit()
+    return {
+        'id': job_id,
+        'video_id': video_id,
+        'user_id': user_id,
+        'session_key': session_key,
+        'status': 'QUEUED',
+        'stage': 0,
+        'stage_name': 'queued',
+        'progress': 0,
+        'error': None,
+        'result_summary': {},
+        'modules_completed': [],
+        'retry_count': 0,
+        'created_at': now,
+        'updated_at': now,
+        'completed_at': None
+    }
+
+def update_job_status(job_id: str, status: str, stage: int = None, stage_name: str = None, error: str = None, result_summary: dict = None, modules_completed: list = None, progress: int = None, retry_count: int = None) -> bool:
+    """Updates persistent job status in table analysis_jobs."""
+    now = datetime.utcnow().isoformat()
+    is_terminal = str(status).upper() in ('COMPLETED', 'PARTIAL', 'FAILED') or str(status).lower() in ('completed', 'partial', 'failed', 'error')
+    completed_at = now if is_terminal else None
+
+    with get_db() as conn:
+        c = conn.cursor()
+        updates = ["status = ?", "updated_at = ?"]
+        params = [status, now]
+
+        if stage is not None:
+            updates.append("stage = ?")
+            params.append(stage)
+        if stage_name is not None:
+            updates.append("stage_name = ?")
+            params.append(stage_name)
+        if progress is not None:
+            updates.append("progress = ?")
+            params.append(progress)
+        if error is not None:
+            updates.append("error = ?")
+            params.append(str(error))
+        if result_summary is not None:
+            updates.append("result_summary = ?")
+            params.append(json.dumps(result_summary) if isinstance(result_summary, (dict, list)) else str(result_summary))
+        if modules_completed is not None:
+            updates.append("modules_completed = ?")
+            params.append(json.dumps(modules_completed) if isinstance(modules_completed, list) else str(modules_completed))
+        if retry_count is not None:
+            updates.append("retry_count = ?")
+            params.append(retry_count)
+        if completed_at is not None:
+            updates.append("completed_at = COALESCE(completed_at, ?)")
+            params.append(completed_at)
+
+        params.append(job_id)
+        sql = f"UPDATE analysis_jobs SET {', '.join(updates)} WHERE id = ?"
+        c.execute(sql, params)
+        conn.commit()
+        return c.rowcount > 0
+
+def get_analysis_job(job_id: str) -> dict | None:
+    """Retrieves persistent analysis job record by id."""
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM analysis_jobs WHERE id = ?", (job_id,))
+        row = c.fetchone()
+        if not row:
+            return None
+        job = dict(row)
+        if job.get('result_summary'):
+            try:
+                job['result_summary'] = json.loads(job['result_summary'])
+            except Exception:
+                pass
+        else:
+            job['result_summary'] = {}
+
+        if job.get('modules_completed'):
+            try:
+                job['modules_completed'] = json.loads(job['modules_completed'])
+            except Exception:
+                job['modules_completed'] = []
+        else:
+            job['modules_completed'] = []
+        return job
+
+def list_analysis_jobs(limit: int = 50, status: str = None, user_id: str = None) -> list:
+    """Lists recent persistent analysis jobs."""
+    with get_db() as conn:
+        c = conn.cursor()
+        clauses = []
+        params = []
+        if status:
+            clauses.append("status = ?")
+            params.append(status)
+        if user_id:
+            clauses.append("user_id = ?")
+            params.append(user_id)
+        where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        params.append(limit)
+        c.execute(f"SELECT * FROM analysis_jobs{where} ORDER BY created_at DESC LIMIT ?", params)
+        jobs = []
+        for row in c.fetchall():
+            j = dict(row)
+            if j.get('result_summary'):
+                try:
+                    j['result_summary'] = json.loads(j['result_summary'])
+                except Exception:
+                    pass
+            if j.get('modules_completed'):
+                try:
+                    j['modules_completed'] = json.loads(j['modules_completed'])
+                except Exception:
+                    pass
+            jobs.append(j)
+        return jobs
+
+# --- Usage Logs & Export Management ---
+
+def log_usage_entry(user_id=None, session_key=None, ip_address=None, action="", video_id=None, video_duration_seconds=0, tokens_used=0, plan="free", status="allowed", details=None) -> str:
+    """Records granular usage events in table usage_logs to track resource consumption."""
+    log_id = f"usg_{uuid.uuid4().hex[:12]}"
+    now = datetime.utcnow().isoformat()
+    det_str = json.dumps(details) if isinstance(details, (dict, list)) else (str(details) if details else None)
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO usage_logs (id, user_id, session_key, ip_address, action, video_id, video_duration_seconds, tokens_used, plan, status, details, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (log_id, user_id, session_key, ip_address, action, video_id, video_duration_seconds, tokens_used, plan, status, det_str, now))
+        conn.commit()
+    return log_id
+
+def get_usage_logs(user_id=None, ip_address=None, action=None, limit=50) -> list:
+    """Retrieves usage logs from table usage_logs."""
+    with get_db() as conn:
+        c = conn.cursor()
+        clauses = []
+        params = []
+        if user_id:
+            clauses.append("user_id = ?")
+            params.append(user_id)
+        if ip_address:
+            clauses.append("ip_address = ?")
+            params.append(ip_address)
+        if action:
+            clauses.append("action = ?")
+            params.append(action)
+        where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        params.append(limit)
+        c.execute(f"SELECT * FROM usage_logs{where} ORDER BY created_at DESC LIMIT ?", params)
+        return [dict(r) for r in c.fetchall()]
+
+def record_export(video_id: str, export_type: str, file_path: str = None, file_size: int = 0, user_id: str = None, session_key: str = None, status: str = 'completed') -> str:
+    """Stores record of generated export file in table exports."""
+    exp_id = f"exp_{uuid.uuid4().hex[:12]}"
+    now = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO exports (id, video_id, user_id, session_key, export_type, file_path, file_size, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (exp_id, video_id, user_id, session_key, export_type, file_path, file_size, status, now))
+        conn.commit()
+    return exp_id
+
+def get_exports_for_video(video_id: str) -> list:
+    """Retrieves all export records for a given video."""
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM exports WHERE video_id = ? ORDER BY created_at DESC', (video_id,))
+        return [dict(r) for r in c.fetchall()]
+
+# --- Relational Entity Select Queries ---
+
+def get_transcript_segments(video_id: str) -> list:
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM transcript_segments WHERE video_id = ? ORDER BY segment_index ASC, start_seconds ASC', (video_id,))
+        return [dict(r) for r in c.fetchall()]
+
+def get_chapters(video_id: str) -> list:
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM chapters WHERE video_id = ? ORDER BY chapter_index ASC, start_seconds ASC', (video_id,))
+        return [dict(r) for r in c.fetchall()]
+
+def get_claims(video_id: str) -> list:
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM claims WHERE video_id = ? ORDER BY start_seconds ASC', (video_id,))
+        return [dict(r) for r in c.fetchall()]
+
+def get_entities(video_id: str) -> list:
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM entities WHERE video_id = ? ORDER BY relevance_score DESC', (video_id,))
+        return [dict(r) for r in c.fetchall()]
+
+def get_flashcards(video_id: str) -> list:
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM flashcards WHERE video_id = ? ORDER BY card_index ASC', (video_id,))
+        return [dict(r) for r in c.fetchall()]
+
+def get_quizzes(video_id: str) -> list:
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM quizzes WHERE video_id = ? ORDER BY question_index ASC', (video_id,))
+        return [dict(r) for r in c.fetchall()]
+
+def get_summaries(video_id: str) -> list:
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM summaries WHERE video_id = ? ORDER BY created_at DESC', (video_id,))
+        return [dict(r) for r in c.fetchall()]
+
+def record_export(video_id: str, export_type: str, user_id: str = None, session_key: str = None, file_path: str = None, file_size: int = 0, status: str = 'completed') -> str:
+    export_id = f"exp_{uuid.uuid4().hex[:12]}"
+    now = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO exports (id, video_id, user_id, session_key, export_type, file_path, file_size, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (export_id, video_id, user_id, session_key, export_type, file_path, file_size, status, now))
+        conn.commit()
+    return export_id
+
+def get_exports(video_id: str) -> list:
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM exports WHERE video_id = ? ORDER BY created_at DESC', (video_id,))
+        return [dict(r) for r in c.fetchall()]
+
 
 def get_recent_videos(limit=100) -> list:
     """Retrieve list of recently analyzed videos for admin portal and caching overview."""

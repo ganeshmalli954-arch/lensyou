@@ -23,7 +23,7 @@ from services.retention_service import (
     get_weekly_trending_podcasts
 )
 from services.metadata_service import extract_video_id, get_video_oembed, search_youtube
-from services.job_service import create_job, get_job, start_job, JOBS
+from services.job_service import create_job, get_job, start_job, submit_or_attach, JOBS
 from services.auth_service import (
     get_session_key, check_quota, get_or_create_user,
     is_owner, PLAN_CONFIG, get_plan_history_limit
@@ -654,8 +654,9 @@ def api_analyze():
         plan=user_plan
     )
 
-    job_id = create_job()
-    start_job(job_id, video_id=video_id, user_id=user_id, session_key=session_key, key_pool=key_pool)
+    job_id, is_new = submit_or_attach(video_id, user_id=user_id, session_key=session_key)
+    if is_new:
+        start_job(job_id, video_id=video_id, user_id=user_id, session_key=session_key, key_pool=key_pool)
     
     return jsonify({"job_id": job_id})
 

@@ -4931,3 +4931,489 @@ button:hover .btn-arrow {
   color: #71717A;
   font-size: 11px;
 }
+
+/* ==========================================================================
+   MILESTONE 4: STREAMLINED UX, VIEW SEGREGATION & PROGRESSIVE DELIVERY
+   ========================================================================== */
+
+/* 1. F14: Guided First-Time Onboarding Micro-Guide */
+.first-time-onboarding-card {
+  background: linear-gradient(180deg, rgba(139, 124, 255, 0.08) 0%, rgba(12, 12, 13, 0.8) 100%);
+  border: 1px solid rgba(139, 124, 255, 0.25);
+  border-radius: var(--radius-card, 12px);
+  padding: 14px 18px;
+  margin-bottom: var(--space-20, 20px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 24px rgba(139, 124, 255, 0.08);
+  text-align: left;
+}
+
+.onboarding-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.onboarding-sparkle-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-primary, #8b7cff);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.onboarding-dismiss-btn {
+  background: transparent;
+  border: 1px solid var(--border, #27272a);
+  color: var(--text-muted, #a1a1aa);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.onboarding-dismiss-btn:hover {
+  color: var(--text-primary, #f4f4f5);
+  border-color: var(--border-hover, #3f3f46);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.onboarding-steps-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.onboarding-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 180px;
+  background: var(--surface-card, #121214);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.onboarding-step-pill.active {
+  border-color: var(--accent-primary, #8b7cff);
+  background: rgba(139, 124, 255, 0.06);
+}
+
+.step-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-primary, #8b7cff);
+  color: #000;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-main {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #f4f4f5);
+}
+
+.step-sub {
+  font-size: 10.5px;
+  color: var(--text-muted, #a1a1aa);
+}
+
+.onboarding-step-arrow {
+  color: var(--text-graphite, #71717a);
+  font-size: 14px;
+}
+
+/* 2. Floating Input Tooltip */
+.focused-hero-input-card {
+  position: relative;
+}
+
+.first-time-floating-tooltip {
+  position: absolute;
+  bottom: -34px;
+  left: 20px;
+  background: #18181B;
+  border: 1px solid var(--accent-border, rgba(139, 124, 255, 0.4));
+  color: var(--text-primary, #f4f4f5);
+  font-size: 11.5px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill, 9999px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 10;
+  animation: bounceHint 2s infinite ease-in-out;
+}
+
+.tooltip-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-primary, #8b7cff);
+  box-shadow: 0 0 8px var(--accent-primary, #8b7cff);
+}
+
+@keyframes bounceHint {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* 3. Hero Quick-Start 1-Click Samples */
+.hero-quick-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  margin-bottom: var(--space-32, 32px);
+}
+
+.quick-start-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #d4d4d8);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.quick-bolt {
+  color: #F59E0B;
+}
+
+.quick-start-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.quick-start-pill {
+  background: var(--surface-card, #121214);
+  border: 1px solid var(--border, #27272a);
+  border-radius: var(--radius-pill, 9999px);
+  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--text-primary, #f4f4f5);
+}
+
+.quick-start-pill:hover {
+  border-color: var(--accent-primary, #8b7cff);
+  background: var(--surface-elevated, #1c1c1f);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(139, 124, 255, 0.15);
+}
+
+.pill-icon {
+  font-size: 14px;
+}
+
+.pill-title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pill-channel {
+  font-size: 11px;
+  color: var(--text-muted, #a1a1aa);
+  border-left: 1px solid var(--border, #27272a);
+  padding-left: 6px;
+}
+
+/* 4. Dashboard Density Toolbar (R3 View Segregation) */
+.dashboard-density-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-card, #121214);
+  border: 1px solid var(--border, #27272a);
+  border-radius: var(--radius-card, 12px);
+  padding: 10px 18px;
+  margin-bottom: var(--space-20, 20px);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.density-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.density-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #d4d4d8);
+}
+
+.density-toggle-group {
+  display: flex;
+  background: var(--surface-elevated, #1c1c1f);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.density-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #a1a1aa);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.density-toggle-btn.active {
+  background: #F5F5F5;
+  color: #09090B;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.btn-sub-chip {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.density-toggle-btn.active .btn-sub-chip {
+  background: rgba(0, 0, 0, 0.15);
+  color: #09090B;
+}
+
+.density-notice-pill {
+  font-size: 11.5px;
+  color: var(--text-muted, #a1a1aa);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill, 9999px);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+}
+
+.density-notice-pill.active {
+  color: var(--accent-primary, #8b7cff);
+  border-color: var(--accent-border, rgba(139, 124, 255, 0.4));
+}
+
+/* 5. Collapsible Advanced Tool Container */
+.advanced-analytical-tool {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.advanced-analytical-tool.collapsed > *:not(.card-title-bar):not(.copilot-header) {
+  display: none !important;
+}
+
+.advanced-analytical-tool.collapsed {
+  opacity: 0.85;
+  border-style: dashed;
+}
+
+.advanced-analytical-tool.collapsed:hover {
+  opacity: 1;
+  border-color: var(--border-hover, #3f3f46);
+  cursor: pointer;
+}
+
+.advanced-tool-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: rgba(139, 124, 255, 0.15);
+  color: var(--accent-primary, #8b7cff);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(139, 124, 255, 0.3);
+  margin-left: 10px;
+}
+
+/* 6. Advanced Research Tools Suite Drawer */
+.advanced-research-section {
+  width: 100%;
+}
+
+.advanced-tools-toggle-card {
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.95) 0%, rgba(30, 25, 45, 0.85) 100%);
+  border: 1px solid rgba(139, 124, 255, 0.3);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.advanced-tools-toggle-card:hover {
+  border-color: rgba(139, 124, 255, 0.6);
+  background: linear-gradient(135deg, rgba(25, 25, 32, 0.98) 0%, rgba(38, 30, 60, 0.9) 100%);
+  transform: translateY(-1px);
+}
+
+.toggle-card-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toggle-card-icon-badge {
+  font-size: 28px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 124, 255, 0.12);
+  border: 1px solid rgba(139, 124, 255, 0.25);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.toggle-card-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.secondary-tools-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #8b7cff;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.tools-count-chip {
+  font-size: 10.5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #d4d4d8);
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.toggle-card-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #f4f4f5);
+}
+
+.toggle-card-desc {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted, #a1a1aa);
+}
+
+.btn-expand-advanced {
+  background: rgba(139, 124, 255, 0.15);
+  border: 1px solid rgba(139, 124, 255, 0.35);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-expand-advanced:hover {
+  background: rgba(139, 124, 255, 0.3);
+  border-color: rgba(139, 124, 255, 0.6);
+}
+
+.advanced-subnav-bar {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0 16px 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.advanced-subnav-btn {
+  background: var(--surface-card, #121214);
+  border: 1px solid var(--border, #27272a);
+  color: var(--text-muted, #a1a1aa);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.advanced-subnav-btn.active, .advanced-subnav-btn:hover {
+  background: rgba(139, 124, 255, 0.15);
+  border-color: rgba(139, 124, 255, 0.4);
+  color: #fff;
+}
+
+.advanced-subtool-panel {
+  display: none;
+}
+
+.advanced-subtool-panel.active {
+  display: block;
+}
+
+/* 7. F16: Progressive Module Delivery Feed */
+.progressive-delivery-feed {
+  background: rgba(18, 18, 20, 0.95);
+  border: 1px solid var(--border, #27272a);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.prog-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

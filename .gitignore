@@ -20,6 +20,7 @@ data/backups/
 # Operating System files
 .DS_Store
 Thumbs.db
+.agents/
 
 # Virtual environments
 venv/

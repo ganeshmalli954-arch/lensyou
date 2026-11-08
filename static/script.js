@@ -57,8 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isInputActive) return;
 
         const learnPane = document.getElementById('pane-learn');
+        const coreLearning = document.getElementById('section-core-learning');
         const flashcardEl = document.getElementById('activeFlashcard');
-        const isLearnVisible = learnPane && (learnPane.classList.contains('active') || window.getComputedStyle(learnPane).display !== 'none');
+        const isLearnVisible = (learnPane && (learnPane.classList.contains('active') || window.getComputedStyle(learnPane).display !== 'none')) ||
+            (coreLearning && window.getComputedStyle(coreLearning).display !== 'none');
 
         if (isLearnVisible && flashcardEl) {
             if (e.key === 'ArrowRight') {
@@ -73,6 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    initFirstTimeExperience();
 });
 
 function setupEventListeners() {
@@ -225,6 +229,170 @@ function handleQuickAnalyze() {
     }
 }
 
+// ===== FEATURE F14: GUIDED FIRST-TIME UX CONTROLLER =====
+const FIRST_VISIT_KEY = 'lensyou_first_visit';
+const VIEW_MODE_KEY = 'lensyou_view_mode';
+
+let currentDashboardViewMode = 'core'; // 'core' (executive) or 'advanced'
+
+function initFirstTimeExperience() {
+    const isFirstVisit = localStorage.getItem(FIRST_VISIT_KEY) === null;
+    const banner = document.getElementById('firstTimeOnboardingBanner');
+    const tooltip = document.getElementById('firstTimeInputTooltip');
+
+    if (isFirstVisit) {
+        if (banner) banner.style.display = 'block';
+        if (tooltip) tooltip.style.display = 'flex';
+        currentDashboardViewMode = 'core';
+    } else {
+        if (banner) banner.style.display = 'none';
+        if (tooltip) tooltip.style.display = 'none';
+        const savedMode = localStorage.getItem(VIEW_MODE_KEY);
+        if (savedMode === 'advanced') {
+            currentDashboardViewMode = 'advanced';
+        }
+    }
+
+    // Dismiss tooltip on input focus or interaction
+    const input = document.getElementById('youtubeUrl');
+    if (input) {
+        input.addEventListener('focus', () => hideFirstTimeTooltip());
+        input.addEventListener('input', () => hideFirstTimeTooltip());
+    }
+}
+
+function dismissFirstTimeGuide() {
+    localStorage.setItem(FIRST_VISIT_KEY, 'dismissed');
+    const banner = document.getElementById('firstTimeOnboardingBanner');
+    if (banner) {
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateY(-8px)';
+        banner.style.transition = 'all 0.25s ease';
+        setTimeout(() => { banner.style.display = 'none'; }, 250);
+    }
+    hideFirstTimeTooltip();
+}
+
+function hideFirstTimeTooltip() {
+    const tooltip = document.getElementById('firstTimeInputTooltip');
+    if (tooltip && tooltip.style.display !== 'none') {
+        tooltip.style.opacity = '0';
+        tooltip.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => { tooltip.style.display = 'none'; }, 200);
+    }
+}
+
+// ===== FEATURE F15: VIEW SEGREGATION CONTROLLER =====
+let isAdvancedToolsExpanded = false;
+let currentAdvancedSubtool = 'graph';
+
+function setDashboardViewMode(mode) {
+    currentDashboardViewMode = mode;
+    localStorage.setItem(VIEW_MODE_KEY, mode);
+
+    const btnCore = document.getElementById('btnViewCore');
+    const btnAdv = document.getElementById('btnViewAdvanced');
+    const notice = document.getElementById('densityModeNotice');
+
+    if (btnCore) btnCore.classList.toggle('active', mode === 'core');
+    if (btnAdv) btnAdv.classList.toggle('active', mode === 'advanced');
+
+    const advancedSections = document.querySelectorAll('.advanced-analytical-tool');
+    advancedSections.forEach(sec => {
+        if (mode === 'core') {
+            sec.classList.add('collapsed');
+        } else {
+            sec.classList.remove('collapsed');
+        }
+    });
+
+    if (notice) {
+        notice.innerHTML = mode === 'core' 
+            ? '<span class="density-notice-pill">✦ Executive View: Advanced tools collapsed</span>'
+            : '<span class="density-notice-pill active">🔬 Full Research View: All tools expanded</span>';
+    }
+
+    toggleAdvancedResearchTools(mode === 'advanced');
+}
+
+function toggleAdvancedTool(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.classList.toggle('collapsed');
+    }
+}
+
+function toggleAdvancedResearchTools(forceState = null) {
+    const drawer = document.getElementById('advancedToolsDrawerContent');
+    const header = document.getElementById('advancedToolsToggleCard');
+    const btnText = document.getElementById('advancedToggleBtnText');
+    const arrow = document.getElementById('advancedToggleArrow');
+    
+    if (!drawer) return;
+
+    if (forceState !== null) {
+        isAdvancedToolsExpanded = forceState;
+    } else {
+        isAdvancedToolsExpanded = !isAdvancedToolsExpanded;
+    }
+
+    if (isAdvancedToolsExpanded) {
+        drawer.style.display = 'block';
+        if (header) {
+            header.setAttribute('aria-expanded', 'true');
+            header.classList.add('expanded');
+        }
+        if (btnText) btnText.textContent = 'Collapse Advanced Tools';
+        if (arrow) arrow.textContent = '▲';
+        
+        if (currentAdvancedSubtool === 'graph') {
+            window.dispatchEvent(new Event('resize'));
+        }
+    } else {
+        drawer.style.display = 'none';
+        if (header) {
+            header.setAttribute('aria-expanded', 'false');
+            header.classList.remove('expanded');
+        }
+        if (btnText) btnText.textContent = 'Explore Advanced Tools';
+        if (arrow) arrow.textContent = '▼';
+    }
+}
+
+function ensureAdvancedToolsExpanded(targetElementId = null) {
+    if (!isAdvancedToolsExpanded) {
+        toggleAdvancedResearchTools(true);
+    }
+    
+    if (targetElementId) {
+        if (['section-videomap', 'section-multitrack', 'entitiesPeopleList', 'visualMomentsGrid', 'section-entities', 'section-visualmoments', 'section-scorecard'].includes(targetElementId)) {
+            switchAdvancedSubtool('graph');
+        } else if (['speakersGrid', 'quotesList', 'repetitionsList', 'section-speakers', 'section-quotes', 'section-repetitions'].includes(targetElementId)) {
+            switchAdvancedSubtool('speakers');
+        } else if (['contradictionsList', 'claimsList', 'section-contradictions', 'section-claims'].includes(targetElementId)) {
+            switchAdvancedSubtool('contradictions');
+        } else if (['copilotMessages', 'copilotQueryInput', 'compareMatrixTable', 'section-copilot', 'section-compare'].includes(targetElementId)) {
+            switchAdvancedSubtool('copilot');
+        } else if (['studyNotesContainer', 'definitionsGrid', 'viralClipsGrid', 'section-notes', 'section-clips', 'section-exports'].includes(targetElementId)) {
+            switchAdvancedSubtool('exports');
+        }
+    }
+}
+
+function switchAdvancedSubtool(subtoolKey) {
+    currentAdvancedSubtool = subtoolKey;
+    document.querySelectorAll('.advanced-subnav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-subtool') === subtoolKey);
+    });
+    document.querySelectorAll('.advanced-subtool-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === 'subtool-panel-' + subtoolKey);
+    });
+
+    if (subtoolKey === 'graph') {
+        window.dispatchEvent(new Event('resize'));
+    }
+}
+
 // ===== Screen Routing =====
 function showScreen(screenId) {
     const screens = ['landingScreen', 'loadingScreen', 'dashboardScreen'];
@@ -248,6 +416,10 @@ function showScreen(screenId) {
             navCenter.classList.add('hidden');
             navCenter.style.display = 'none';
         }
+    }
+
+    if (screenId === 'dashboard') {
+        setDashboardViewMode(currentDashboardViewMode);
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -277,12 +449,12 @@ function pasteQuickUrl(url) {
 }
 
 function scrollToElement(elementId) {
+    ensureAdvancedToolsExpanded(elementId);
     const el = document.getElementById(elementId);
     if (el) {
-        switchMainMode('understand');
         setTimeout(() => {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 80);
+        }, 120);
     }
 }
 
@@ -369,6 +541,7 @@ function formatInlineMarkdown(str) {
 }
 
 // ===== 6-Mode Primary Navigation =====
+// ===== 6-Mode Primary Navigation & View Modes =====
 function switchMainMode(modeKey) {
     // 1. Update Mode Tabs Bar
     document.querySelectorAll('.mode-tab-btn').forEach(btn => {
@@ -385,17 +558,35 @@ function switchMainMode(modeKey) {
         tab.classList.toggle('active', tab.getAttribute('data-mode') === modeKey);
     });
 
-    // 4. Activate Pane
+    // 4. Activate Mode Panes (support consolidated pane-understand)
     document.querySelectorAll('.mode-pane').forEach(pane => {
-        pane.classList.toggle('active', pane.id === 'pane-' + modeKey);
+        const isTarget = pane.id === 'pane-' + modeKey || pane.id === 'pane-understand';
+        pane.classList.toggle('active', isTarget);
     });
 
-    // 5. Special handling for compare mode dropdown
-    if (modeKey === 'compare') {
-        populateCompareDropdown();
+    // 5. Intelligent Routing across Core Executive and Advanced Secondary Tools
+    if (modeKey === 'understand') {
+        setDashboardViewMode('core');
+        window.scrollTo({ top: 380, behavior: 'smooth' });
+    } else if (modeKey === 'learn') {
+        const learnEl = document.getElementById('section-core-learning') || document.getElementById('pane-learn');
+        if (learnEl) learnEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        setDashboardViewMode('advanced');
+        ensureAdvancedToolsExpanded();
+        if (modeKey === 'research') {
+            switchAdvancedSubtool('contradictions');
+        } else if (modeKey === 'create') {
+            switchAdvancedSubtool('exports');
+        } else if (modeKey === 'compare') {
+            switchAdvancedSubtool('copilot');
+            populateCompareDropdown();
+        } else if (modeKey === 'copilot') {
+            switchAdvancedSubtool('copilot');
+        }
+        const drawerEl = document.getElementById('advancedResearchSection');
+        if (drawerEl) drawerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
-    window.scrollTo({ top: 380, behavior: 'smooth' });
 }
 
 function handleCapCardClick(mode) {
@@ -409,6 +600,145 @@ function handleCapCardClick(mode) {
             input.scrollIntoView({ behavior: 'smooth', block: 'center' });
             showToast(`Paste a YouTube video link to explore ${mode} mode!`, 'info');
         }
+    }
+}
+
+// ===== FEATURE F16: PROGRESSIVE MODULE DELIVERY CONTROLLER =====
+let renderedProgressiveModules = {
+    metadata: false,
+    transcript: false,
+    summary: false,
+    chapters: false
+};
+
+function resetProgressiveModules() {
+    renderedProgressiveModules = {
+        metadata: false,
+        transcript: false,
+        summary: false,
+        chapters: false
+    };
+    const feed = document.getElementById('progressiveDeliveryFeed');
+    if (feed) feed.style.display = 'none';
+    ['Metadata', 'Transcript', 'Summary', 'Chapters'].forEach(m => {
+        const card = document.getElementById('progCard' + m);
+        if (card) {
+            card.style.display = 'none';
+            card.classList.remove('prog-card-pop');
+        }
+    });
+}
+
+function updateProgressiveModulesUI(modules) {
+    if (!modules || typeof modules !== 'object') return;
+
+    const feed = document.getElementById('progressiveDeliveryFeed');
+    let hasAnyModule = false;
+
+    // 1. Metadata Module (Stage 2)
+    if (modules.metadata && !renderedProgressiveModules.metadata) {
+        const m = modules.metadata;
+        const card = document.getElementById('progCardMetadata');
+        const thumb = document.getElementById('progMetaThumb');
+        const title = document.getElementById('progMetaTitle');
+        const author = document.getElementById('progMetaAuthor');
+        const duration = document.getElementById('progMetaDuration');
+
+        if (card) {
+            if (thumb && m.thumbnail_url) thumb.src = m.thumbnail_url;
+            if (title && m.title) title.textContent = m.title;
+            if (author && (m.author || m.channel)) author.textContent = m.author || m.channel;
+            if (duration && m.duration) duration.textContent = m.duration;
+            card.style.display = 'block';
+            card.classList.add('prog-card-pop');
+            hasAnyModule = true;
+            renderedProgressiveModules.metadata = true;
+
+            // Early DOM population in video analysis view
+            const dashTitle = document.getElementById('dashTitle');
+            const dashAuthor = document.getElementById('dashAuthor');
+            const dashDuration = document.getElementById('dashDuration');
+            const dashThumb = document.getElementById('dashThumbnail');
+            if (dashTitle && m.title) dashTitle.textContent = m.title;
+            if (dashAuthor && (m.author || m.channel)) dashAuthor.textContent = m.author || m.channel;
+            if (dashDuration && m.duration) dashDuration.textContent = m.duration;
+            if (dashThumb && m.thumbnail_url) dashThumb.src = m.thumbnail_url;
+        }
+    }
+
+    // 2. Transcript Module (Stage 3)
+    if (modules.transcript && !renderedProgressiveModules.transcript) {
+        const t = modules.transcript;
+        const card = document.getElementById('progCardTranscript');
+        const count = document.getElementById('progTranscriptCount');
+        const preview = document.getElementById('progTranscriptPreview');
+
+        if (card) {
+            const segCount = Array.isArray(t) ? t.length : (t.segments ? t.segments.length : 0);
+            if (count) count.textContent = `${segCount} segments retrieved`;
+            
+            let previewText = '';
+            if (Array.isArray(t) && t.length > 0) {
+                previewText = t.slice(0, 3).map(s => s.text || '').join(' ');
+            } else if (typeof t === 'string') {
+                previewText = t.slice(0, 200);
+            }
+            if (preview && previewText) {
+                preview.textContent = `"${previewText.slice(0, 180)}..."`;
+            }
+            card.style.display = 'block';
+            card.classList.add('prog-card-pop');
+            hasAnyModule = true;
+            renderedProgressiveModules.transcript = true;
+        }
+    }
+
+    // 3. Executive Summary Module (Stage 4)
+    if (modules.overview && !renderedProgressiveModules.summary) {
+        const o = modules.overview;
+        const card = document.getElementById('progCardSummary');
+        const preview = document.getElementById('progSummaryPreview');
+
+        if (card && o.summary) {
+            if (preview) preview.textContent = o.summary.slice(0, 240) + '...';
+            card.style.display = 'block';
+            card.classList.add('prog-card-pop');
+            hasAnyModule = true;
+            renderedProgressiveModules.summary = true;
+
+            // Early DOM population in dashboard
+            const dashSummary = document.getElementById('overviewSummaryText');
+            if (dashSummary && o.summary) {
+                dashSummary.textContent = o.summary;
+            }
+        }
+    }
+
+    // 4. Chapters Module (Stage 5)
+    if (modules.chapters && !renderedProgressiveModules.chapters) {
+        const chList = Array.isArray(modules.chapters) ? modules.chapters : (modules.chapters.chapters || []);
+        const card = document.getElementById('progCardChapters');
+        const count = document.getElementById('progChaptersCount');
+        const preview = document.getElementById('progChaptersPreview');
+
+        if (card && chList.length > 0) {
+            if (count) count.textContent = `${chList.length} chapters mapped`;
+            if (preview) {
+                preview.innerHTML = chList.slice(0, 4).map(c => `
+                    <span style="font-size:11px; padding:3px 8px; background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:12px; color:var(--text-secondary);">
+                        ⏱ ${escapeHtml(c.start_time || formatSeconds(c.start_seconds || 0))} ${escapeHtml(c.title || 'Chapter')}
+                    </span>
+                `).join('');
+            }
+            card.style.display = 'block';
+            card.classList.add('prog-card-pop');
+            hasAnyModule = true;
+            renderedProgressiveModules.chapters = true;
+        }
+    }
+
+    if (feed && (hasAnyModule || Object.values(renderedProgressiveModules).some(Boolean))) {
+        feed.style.display = 'block';
     }
 }
 
@@ -437,13 +767,16 @@ function stopElapsedTimer() {
     }
 }
 
-function updatePipelineStageUI(stageNum, stageName) {
+function updatePipelineStageUI(stageNum, stageName, progressPct = null) {
     const fill = document.getElementById('progressBarFill');
     const taskEl = document.getElementById('loadingVideoTitle');
     if (taskEl && stageName) {
         taskEl.textContent = `Stage ${stageNum}/9: ${stageName}...`;
     }
-    const pct = Math.min(100, Math.round((stageNum / 9) * 100));
+    const pct = (progressPct !== null && progressPct !== undefined && !isNaN(progressPct))
+        ? Math.min(100, Math.max(0, Math.round(progressPct)))
+        : Math.min(100, Math.round((stageNum / 9) * 100));
+
     if (fill) fill.style.width = `${pct}%`;
 
     for (let i = 1; i <= 9; i++) {
@@ -473,7 +806,8 @@ async function startAnalysis(url) {
 
     showScreen('loading');
     startElapsedTimer();
-    updatePipelineStageUI(1, 'Submitting URL & allocating queue');
+    resetProgressiveModules();
+    updatePipelineStageUI(1, 'Submitting URL & allocating queue', 5);
 
     try {
         const response = await fetch('/api/analyze', {
@@ -509,7 +843,7 @@ async function startAnalysis(url) {
             throw new Error('No job identifier returned by the server.');
         }
 
-        // Begin Polling (with immediate check for instant cache hits)
+        // Begin Polling (with 900ms cadence & immediate check)
         if (pollingInterval) clearInterval(pollingInterval);
         const checkStatus = async () => {
             try {
@@ -517,15 +851,25 @@ async function startAnalysis(url) {
                 if (!jobRes.ok) return;
                 const jobData = await jobRes.json();
 
+                const progressPct = (jobData.progress !== undefined && jobData.progress !== null)
+                    ? jobData.progress
+                    : (jobData.stage ? Math.min(100, Math.round((jobData.stage / 9) * 100)) : 0);
+
                 if (jobData.stage) {
-                    updatePipelineStageUI(jobData.stage, jobData.stage_name);
+                    updatePipelineStageUI(jobData.stage, jobData.stage_name, progressPct);
                 }
 
-                if (jobData.status === 'completed' && jobData.result) {
+                if (jobData.modules) {
+                    updateProgressiveModulesUI(jobData.modules);
+                }
+
+                const isCompleted = (jobData.status === 'completed' || jobData.status === 'partial') && jobData.result;
+
+                if (isCompleted) {
                     if (pollingInterval) clearInterval(pollingInterval);
                     pollingInterval = null;
                     stopElapsedTimer();
-                    updatePipelineStageUI(9, 'Dossier ready');
+                    updatePipelineStageUI(9, jobData.is_partial ? 'Partial Dossier Ready' : 'Dossier ready', 100);
 
                     setTimeout(() => {
                         currentAnalysis = jobData.result;
@@ -536,6 +880,10 @@ async function startAnalysis(url) {
                         loadUserState();
                         isAnalyzing = false;
                         setAnalyzeButtonLoading(false);
+
+                        if (jobData.is_partial || jobData.status === 'partial') {
+                            showToast('⚠️ Video analysis ready (auxiliary modules partially delivered)', 'info');
+                        }
                     }, 50);
 
                 } else if (jobData.status === 'error' || jobData.status === 'failed') {
@@ -554,7 +902,7 @@ async function startAnalysis(url) {
         // Check immediately
         await checkStatus();
         if (isAnalyzing) {
-            pollingInterval = setInterval(checkStatus, 1200);
+            pollingInterval = setInterval(checkStatus, 900);
         }
 
     } catch (err) {
@@ -2372,6 +2720,102 @@ async function exportDetailedPDF() {
 
 function printReportPreview() {
     window.print();
+}
+
+function exportMarkdownDossier() {
+    if (!currentAnalysis) {
+        showToast('⚠️ Please analyze a video first to export Markdown.', 'warning');
+        return;
+    }
+    const meta = currentAnalysis._meta || {};
+    const overview = currentAnalysis.video_overview || {};
+    const title = meta.title || overview.title || 'Video Intelligence Dossier';
+    const author = meta.author || overview.channel || 'Unknown Creator';
+    const duration = meta.duration || 'N/A';
+    const cleanTitle = title.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
+
+    let md = `# ${title}\n\n`;
+    md += `**Creator**: ${author} | **Duration**: ${duration}\n`;
+    md += `**URL**: ${meta.video_url || `https://www.youtube.com/watch?v=${meta.video_id}`}\n\n`;
+
+    if (overview.summary) {
+        md += `## Executive Summary\n\n${overview.summary}\n\n`;
+    }
+
+    if (currentAnalysis.key_takeaways && currentAnalysis.key_takeaways.length) {
+        md += `## Key Strategic Takeaways\n\n`;
+        currentAnalysis.key_takeaways.forEach((t, i) => {
+            const point = typeof t === 'string' ? t : (t.point || t.takeaway || '');
+            md += `${i + 1}. ${point}\n`;
+        });
+        md += `\n`;
+    }
+
+    if (currentAnalysis.chapters && currentAnalysis.chapters.length) {
+        md += `## Smart Chapters & Timeline\n\n`;
+        currentAnalysis.chapters.forEach(c => {
+            const time = c.start_time || (c.start_seconds ? formatSeconds(c.start_seconds) : '00:00');
+            md += `- **${time}** — ${c.title || 'Chapter'}\n`;
+            if (c.summary) md += `  > ${c.summary}\n`;
+        });
+        md += `\n`;
+    }
+
+    if (currentAnalysis.learning && currentAnalysis.learning.flashcards) {
+        md += `## Study Flashcards\n\n`;
+        currentAnalysis.learning.flashcards.forEach((f, i) => {
+            md += `### Card ${i + 1}: ${f.front || f.question || ''}\n`;
+            md += `${f.back || f.answer || ''}\n\n`;
+        });
+    }
+
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `LensYou_${cleanTitle}_Dossier.md`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    showToast('✓ Markdown dossier downloaded!', 'success');
+}
+
+function exportTranscriptCSV() {
+    if (!currentAnalysis) {
+        showToast('⚠️ Please analyze a video first to export Transcript CSV.', 'warning');
+        return;
+    }
+    const meta = currentAnalysis._meta || {};
+    const title = meta.title || 'transcript';
+    const cleanTitle = title.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
+
+    const segments = currentAnalysis._transcript_sample || currentAnalysis.timeline || [];
+    let csv = 'Timestamp,Seconds,Text\n';
+
+    if (segments.length > 0) {
+        segments.forEach(s => {
+            const time = s.timestamp || (s.start !== undefined ? formatSeconds(s.start) : '');
+            const sec = s.seconds !== undefined ? s.seconds : (s.start !== undefined ? Math.floor(s.start) : 0);
+            const text = (s.text || s.event || '').replace(/"/g, '""');
+            csv += `"${time}",${sec},"${text}"\n`;
+        });
+    } else {
+        csv += '"00:00",0,"Full transcript not available in memory."\n';
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `LensYou_${cleanTitle}_Transcript.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    showToast('✓ Transcript CSV downloaded!', 'success');
 }
 
 // ===== Shareable Public Dossier & Virality =====

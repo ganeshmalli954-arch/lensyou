@@ -176,8 +176,8 @@ You must produce a rich, ultra-structured JSON response with EXACTLY this struct
     ],
     "quotes": [
         {{
-            "quote": "Memorable direct quote from video",
-            "speaker": "{author}",
+            "quote": "Verbatim quote spoken in the video",
+            "speaker": "Exact name of speaker from dialogue (e.g. 'Dr. Alice Vance', 'Prof. Bob Chen', or 'Speaker' if unverified. Never default to channel author unless explicitly confirmed)",
             "timestamp": "02:14",
             "seconds": 134,
             "context": "Context of statement"
