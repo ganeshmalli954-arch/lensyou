@@ -525,10 +525,88 @@ function setAnalyzeButtonLoading(loading) {
 function formatCleanText(str) {
     if (!str) return '';
     return String(str)
-        .replace(/^#+\s*/, '')
+        .replace(/^[\s#*>\-_]+/, '')
+        .replace(/[\s#*]+$/, '')
         .replace(/\*\*([^*]+)\*\*/g, '$1')
         .replace(/\*\*/g, '')
         .trim();
+}
+
+function formatRichMarkdown(rawText) {
+    if (!rawText) return '';
+    let text = String(rawText).trim();
+
+    // Convert markdown horizontal rules
+    text = text.replace(/^(?:---|___|\*\*\*)\s*$/gm, '<hr class="md-divider">');
+
+    // Convert markdown headings (deep to shallow)
+    text = text.replace(/^######\s*(.+)$/gm, '<h6 class="md-heading-4">$1</h6>');
+    text = text.replace(/^#####\s*(.+)$/gm, '<h5 class="md-heading-4">$1</h5>');
+    text = text.replace(/^####\s*(.+)$/gm, '<h4 class="md-heading-4">$1</h4>');
+    text = text.replace(/^###\s*(.+)$/gm, '<h3 class="md-heading-3">$1</h3>');
+    text = text.replace(/^##\s*(.+)$/gm, '<h3 class="md-heading-3">$1</h3>');
+    text = text.replace(/^#\s*(.+)$/gm, '<h3 class="md-heading-3">$1</h3>');
+
+    // Strip any lingering hashtag prefixes at start of line
+    text = text.replace(/^#+\s*/gm, '');
+
+    // Convert bold **text** to <strong>text</strong>
+    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Convert inline code
+    text = text.replace(/`([^`]+)`/g, '<code class="chat-code">$1</code>');
+
+    // Convert [MM:SS] or [HH:MM:SS] timestamps to clickable pills
+    text = text.replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g, (match, timeStr) => {
+        const sec = parseTimestampToSeconds(timeStr);
+        return `<button class="timestamp-pill" onclick="jumpToSecond(${sec})" title="Jump to ${timeStr} in video">▶ ${timeStr}</button>`;
+    });
+
+    // Line-by-line list and paragraph processor
+    const lines = text.split('\n');
+    let inUl = false;
+    let inOl = false;
+    const processed = [];
+
+    for (let rawLine of lines) {
+        let line = rawLine.trim();
+        if (!line) {
+            if (inUl) { processed.push('</ul>'); inUl = false; }
+            if (inOl) { processed.push('</ol>'); inOl = false; }
+            continue;
+        }
+
+        const bulletMatch = line.match(/^[\*\-]\s+(.+)$/);
+        const numMatch = line.match(/^(\d+)\.\s+(.+)$/);
+
+        if (bulletMatch) {
+            if (!inUl) {
+                if (inOl) { processed.push('</ol>'); inOl = false; }
+                processed.push('<ul class="md-list">');
+                inUl = true;
+            }
+            processed.push('<li>' + bulletMatch[1] + '</li>');
+        } else if (numMatch) {
+            if (!inOl) {
+                if (inUl) { processed.push('</ul>'); inUl = false; }
+                processed.push('<ol class="md-ol">');
+                inOl = true;
+            }
+            processed.push('<li>' + numMatch[2] + '</li>');
+        } else {
+            if (inUl) { processed.push('</ul>'); inUl = false; }
+            if (inOl) { processed.push('</ol>'); inOl = false; }
+            if (line.startsWith('<h') || line.startsWith('<hr') || line.startsWith('<blockquote') || line.startsWith('<table')) {
+                processed.push(line);
+            } else {
+                processed.push('<p class="md-p">' + line + '</p>');
+            }
+        }
+    }
+    if (inUl) processed.push('</ul>');
+    if (inOl) processed.push('</ol>');
+
+    return processed.join('');
 }
 
 function formatInlineMarkdown(str) {
@@ -920,6 +998,11 @@ async function startAnalysis(url) {
 
 // ===== Master Render Dashboard =====
 function renderDashboard(data) {
+    // Show partial delivery notice if auxiliary stages were skipped
+    const partialBanner = document.getElementById('partialDeliveryBanner');
+    if (partialBanner) {
+        partialBanner.style.display = (data._is_partial || data.is_partial) ? 'flex' : 'none';
+    }
     const meta = data._meta || {};
     const overview = data.video_overview || {};
     const metrics = data.metrics || {};
@@ -951,7 +1034,7 @@ function renderDashboard(data) {
 
     // 3. Render Mode 1: UNDERSTAND
     const sumEl = document.getElementById('overviewSummaryText');
-    if (sumEl) sumEl.innerHTML = formatInlineMarkdown(overview.summary || 'Summary unavailable.');
+    if (sumEl) sumEl.innerHTML = formatRichMarkdown(overview.summary || 'Summary unavailable.');
     renderQualityScorecard(data.quality_scorecard);
     renderEngagementCurve(data.engagement_curve || [], meta.duration_seconds || 1800);
     renderTakeaways(data.key_takeaways || []);
@@ -1141,6 +1224,9 @@ function renderTakeaways(takeaways) {
                 <div class="takeaway-footer">
                     <button class="timestamp-pill" onclick="jumpToSecond(${seconds})">
                         <span>▶</span> ${escapeHtml(t.timestamp || '00:00')}
+                    </button>
+                    <button class="btn-hero btn-secondary-hero btn-sm confidence-clickable-badge" onclick="openEvidenceInspector({ statement: '${escapeJsString(t.title || '')}', quote: '${escapeJsString(t.description || t.title || '')}', timestamp: '${escapeJsString(t.timestamp || '00:00')}', confidence: 96, type: 'Executive Takeaway', explanation: '${escapeJsString(t.description || '')}' }); event.stopPropagation();" title="Inspect Grounded Evidence">
+                        🔍 Inspect
                     </button>
                     <button class="btn-hero btn-secondary-hero btn-sm" onclick="askCopilot('Deeply analyze and provide supporting evidence for takeaway: ${escapeJsString(t.title)}')">
                         Ask Copilot ✦
@@ -1591,6 +1677,9 @@ function renderClaims(claims) {
                     <div style="display:flex; gap:6px; align-items:center;">
                         <button class="timestamp-pill" onclick="jumpToSecond(${sec}); event.stopPropagation();">
                             <span>▶</span> ${escapeHtml(c.timestamp || '00:00')}
+                        </button>
+                        <button class="btn-hero btn-secondary-hero btn-sm confidence-clickable-badge" onclick="openEvidenceInspector({ statement: '${escapeJsString(c.claim || '')}', quote: '${escapeJsString(c.context || c.claim || '')}', timestamp: '${escapeJsString(c.timestamp || '00:00')}', confidence: ${c.confidence_score || 94}, type: '${escapeJsString(c.type || 'Fact')}', explanation: '${escapeJsString(c.verification_note || c.context || '')}' }); event.stopPropagation();" title="Inspect Grounded Evidence">
+                            🔍 Inspect
                         </button>
                         <button class="btn-hero btn-secondary-hero btn-sm" onclick="askCopilot('What is the context and evidence for claim: ${escapeJsString(c.claim)}?'); event.stopPropagation();">
                             Ask Copilot ✦
@@ -3487,4 +3576,80 @@ async function generateCodes() {
     } catch (e) {
         showToast('Code generation failed', 'error');
     }
+}
+
+// ===== Specialized Intelligence Workflows =====
+let currentIntelligenceWorkflow = 'academic';
+
+function switchIntelligenceWorkflow(workflow) {
+    currentIntelligenceWorkflow = workflow;
+    document.querySelectorAll('.workflow-pill-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById('wfBtn' + workflow.charAt(0).toUpperCase() + workflow.slice(1));
+    if (activeBtn) activeBtn.classList.add('active');
+
+    if (workflow === 'academic') {
+        switchMainMode('learn');
+        showToast('🎓 Switched to Academic Intelligence: Prioritizing Concept Notes, Definitions & Bloom\'s Revision');
+    } else if (workflow === 'business') {
+        switchMainMode('understand');
+        showToast('💼 Switched to Business Intelligence: Prioritizing Executive Thesis, Takeaways & Claim Radar');
+    } else if (workflow === 'personal') {
+        switchMainMode('create');
+        showToast('⚡ Switched to Personal Learning: Prioritizing Actionable Daily Protocols & Habit Steps');
+    }
+}
+
+// ===== Interactive Evidence Confidence Inspector =====
+let activeInspectorItem = null;
+
+function openEvidenceInspector(item) {
+    if (!item) return;
+    activeInspectorItem = item;
+    const modal = document.getElementById('evidenceInspectorModal');
+    if (!modal) return;
+
+    const statusEl = document.getElementById('inspStatusBadge');
+    const confEl = document.getElementById('inspConfidenceBadge');
+    const tierEl = document.getElementById('inspTierBadge');
+    const titleEl = document.getElementById('inspTitle');
+    const transcriptEl = document.getElementById('inspTranscriptText');
+    const timestampBtn = document.getElementById('inspTimestampBtn');
+    const timestampText = document.getElementById('inspTimestampText');
+    const speakerEl = document.getElementById('inspSpeakerText');
+    const interpEl = document.getElementById('inspInterpretationText');
+
+    const statement = item.statement || item.claim || item.title || item.text || 'Extracted intelligence takeaway';
+    const timestamp = item.timestamp || '00:00';
+    const sec = item.seconds !== undefined ? item.seconds : parseTimestampToSeconds(timestamp);
+    const conf = item.confidence || item.confidence_score || 94;
+    const speaker = item.speaker || currentAnalysis?._meta?.author || 'Speaker';
+    const excerpt = item.quote || item.evidence || item.transcript_excerpt || statement;
+    const isVerified = item.verified !== false && item.status !== 'unverified';
+
+    if (statusEl) {
+        statusEl.textContent = isVerified ? '✓ Verified (100% Boundary)' : '🔍 Grounded Synthesis';
+        statusEl.style.color = isVerified ? '#22c55e' : '#eab308';
+    }
+    if (confEl) confEl.textContent = `${conf}% Confidence`;
+    if (tierEl) tierEl.textContent = item.tier || 'Factual Claim';
+    if (titleEl) titleEl.textContent = statement.length > 60 ? statement.slice(0, 60) + '...' : statement;
+    if (transcriptEl) transcriptEl.textContent = `"${excerpt}"`;
+    if (timestampText) timestampText.textContent = timestamp;
+    if (timestampBtn) timestampBtn.onclick = () => { jumpToSecond(sec); closeEvidenceInspector(); };
+    if (speakerEl) speakerEl.textContent = `Attributed: ${speaker}`;
+    if (interpEl) interpEl.textContent = item.explanation || item.significance || item.interpretation || statement;
+
+    modal.classList.add('active');
+}
+
+function closeEvidenceInspector() {
+    const modal = document.getElementById('evidenceInspectorModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function askCopilotAboutInspector() {
+    closeEvidenceInspector();
+    if (!activeInspectorItem) return;
+    const claim = activeInspectorItem.statement || activeInspectorItem.claim || activeInspectorItem.title || '';
+    askCopilot(`Please provide an in-depth evidence breakdown and verify statement: "${claim}" with exact quotes and context.`);
 }

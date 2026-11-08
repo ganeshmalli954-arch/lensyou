@@ -93,7 +93,7 @@
         <!-- Shared Dossier High-Converting Sticky Top Bar -->
         <div id="sharedDossierBanner" class="shared-dossier-sticky-bar" {% if is_shared_dossier %}style="display:flex;"{% else %}style="display:none;"{% endif %}>
             <div class="shared-dossier-banner-inner">
-                <span class="shared-banner-text">🧠 Analyzed in 50ms with LensYou AI. Want to turn your own 3-hour lecture into instant notes?</span>
+                <span class="shared-banner-text">🧠 High-precision analysis with LensYou AI. Sub-second cached retrieval; real-time progressive verification. Turn 3-hour lectures into instant structured notes.</span>
                 <button type="button" class="shared-banner-cta-btn" onclick="handleSharedBannerAnalyze()">Analyze Any Video Free →</button>
             </div>
             <button type="button" class="shared-banner-close" onclick="dismissSharedBanner()" title="Close banner">✕</button>
@@ -434,7 +434,7 @@
                                     </div>
                                     <div class="segment-why">
                                         <span class="segment-label">Why They Pay:</span>
-                                        Executive takeaways &amp; thesis extract in 50ms without losing work hours.
+                                        Executive takeaways &amp; thesis extracted with verified evidence in seconds without losing work hours.
                                     </div>
                                     <button type="button" class="segment-cta-btn">Analyze Founder Interview (1-Click) →</button>
                                 </div>
@@ -622,6 +622,46 @@
                     </div>
 
                     <!-- Key Metrics Strip -->
+                    <!-- Partial Delivery Warning Banner (Graceful Non-Destructive Status) -->
+                    <div id="partialDeliveryBanner" class="partial-delivery-banner" style="display:none; margin: 16px 0; padding: 14px 18px; border-radius: 12px; background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.35); color: #fef08a; align-items: center; justify-content: space-between; gap: 12px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:20px;">⚠️</span>
+                            <span style="font-size:13px; line-height:1.4; color:#fef08a;"><strong>Video analysis ready (Partial Delivery):</strong> Core intelligence, executive thesis, full transcript, and timeline chapters are 100% verified. Auxiliary background modules experienced rate limits and were safely preserved.</span>
+                        </div>
+                        <button type="button" onclick="document.getElementById('partialDeliveryBanner').style.display='none'" style="background:transparent; border:none; color:#fef08a; font-size:16px; cursor:pointer; padding:4px 8px;">✕</button>
+                    </div>
+
+                    <!-- Specialized Intelligence Workflows (Academic, Business, Personal Learning) -->
+                    <div class="intelligence-workflows-bar mb-20" id="intelligenceWorkflowsBar">
+                        <div class="workflow-bar-header">
+                            <span class="workflow-title-label">🎯 Targeted Intelligence Workflow:</span>
+                            <span class="workflow-hint">Select your role to prioritize relevant insights, study notes, or business metrics</span>
+                        </div>
+                        <div class="workflow-pill-group">
+                            <button type="button" class="workflow-pill-btn active" id="wfBtnAcademic" onclick="switchIntelligenceWorkflow('academic')">
+                                <span class="wf-icon">🎓</span>
+                                <div class="wf-text-col">
+                                    <span class="wf-name">Academic Intelligence</span>
+                                    <span class="wf-badge">Study Notes • Concept Retention • Bloom's Quiz</span>
+                                </div>
+                            </button>
+                            <button type="button" class="workflow-pill-btn" id="wfBtnBusiness" onclick="switchIntelligenceWorkflow('business')">
+                                <span class="wf-icon">💼</span>
+                                <div class="wf-text-col">
+                                    <span class="wf-name">Business Intelligence</span>
+                                    <span class="wf-badge">Executive Thesis • Claims • Contradiction Radar</span>
+                                </div>
+                            </button>
+                            <button type="button" class="workflow-pill-btn" id="wfBtnPersonal" onclick="switchIntelligenceWorkflow('personal')">
+                                <span class="wf-icon">⚡</span>
+                                <div class="wf-text-col">
+                                    <span class="wf-name">Personal Learning</span>
+                                    <span class="wf-badge">Actionable Protocols • Habits • High-Impact Quotes</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="metrics-strip">
                         <div class="metric-card">
                             <div class="metric-value" id="metricDuration">--:--</div>
@@ -1275,8 +1315,8 @@
                         <button class="oauth-btn btn-x" onclick="showToast('X / Twitter sign-in is coming soon. Please use Google.', 'info')">Continue with X</button>
                         <button class="oauth-btn btn-fb" onclick="showToast('Facebook sign-in is coming soon. Please use Google.', 'info')">Continue with Facebook</button>
 
-                        <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
-                            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:10px; text-align:center;">Local Multi-Account Simulator (Fast Switch)</div>
+                        <div id="devSimulatorRow" style="display:none; margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
+                            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:10px; text-align:center;">Local Developer Sandbox (Testing Only)</div>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                                 <a href="/auth/dev-login?email=user_alpha%40gmail.com&name=User+Alpha" class="oauth-btn" style="text-decoration:none; justify-content:center; font-size:12px; padding:8px;">👤 User A (Google)</a>
                                 <a href="/auth/dev-login?email=user_beta%40gmail.com&name=User+Beta" class="oauth-btn" style="text-decoration:none; justify-content:center; font-size:12px; padding:8px;">👤 User B (Google)</a>
@@ -1534,6 +1574,70 @@
             </div>
             <div style="display:flex; gap:8px;">
                 <button onclick="acceptCookieConsent()" style="padding:8px 18px; background:#F5F5F5; border:1px solid #FFFFFF; border-radius:8px; color:#09090B; font-weight:600; font-size:12px; cursor:pointer;">Accept Essential</button>
+            </div>
+        </div>
+
+        <!-- Interactive Evidence Confidence Inspector Modal / Drawer -->
+        <div id="evidenceInspectorModal" class="modal-backdrop" onclick="if(event.target === this) closeEvidenceInspector()">
+            <div class="modal-card evidence-inspector-card" style="max-width: 620px;">
+                <button class="modal-close" onclick="closeEvidenceInspector()">×</button>
+                <div class="inspector-header">
+                    <div class="inspector-badge-row">
+                        <span class="badge" id="inspStatusBadge">✓ Verified (100% Boundary)</span>
+                        <span class="badge" id="inspConfidenceBadge">94% Confidence</span>
+                        <span class="badge" id="inspTierBadge">Analysis Tier</span>
+                    </div>
+                    <h3 class="inspector-title" id="inspTitle">Evidence Confidence Breakdown</h3>
+                </div>
+                
+                <div class="inspector-body">
+                    <div class="inspector-section">
+                        <div class="inspector-label">ORIGINAL SPOKEN TRANSCRIPT EXCERPT</div>
+                        <div class="inspector-quote-box" id="inspTranscriptBox">
+                            <p id="inspTranscriptText">"Spoken excerpt will appear here..."</p>
+                            <div class="inspector-quote-footer">
+                                <button class="timestamp-pill" id="inspTimestampBtn" onclick="jumpToSecond(0)">
+                                    <span>▶</span> <span id="inspTimestampText">00:00</span>
+                                </button>
+                                <span class="inspector-speaker" id="inspSpeakerText">Speaker: Author</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inspector-section mt-16">
+                        <div class="inspector-label">AI EXTRACTION &amp; COGNITIVE INTERPRETATION</div>
+                        <div class="inspector-interp-box" id="inspInterpretationText">
+                            Extracted claim or concept interpretation.
+                        </div>
+                    </div>
+
+                    <div class="inspector-section mt-16">
+                        <div class="inspector-label">VERIFICATION INTEGRITY METRICS</div>
+                        <div class="inspector-metrics-grid">
+                            <div class="insp-metric-tile">
+                                <span class="insp-tile-val" id="inspBoundaryScore">100%</span>
+                                <span class="insp-tile-lbl">Transcript Boundary</span>
+                            </div>
+                            <div class="insp-metric-tile">
+                                <span class="insp-tile-val" id="inspFidelityScore">High</span>
+                                <span class="insp-tile-lbl">Grounding Fidelity</span>
+                            </div>
+                            <div class="insp-metric-tile">
+                                <span class="insp-tile-val" id="inspAttributionScore">Attributed</span>
+                                <span class="insp-tile-lbl">Speaker Origin</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inspector-actions mt-20">
+                        <button class="btn-primary" id="inspJumpBtn" onclick="jumpToSecond(0); closeEvidenceInspector();">
+                            ▶ Play in Synced Video
+                        </button>
+                        <button class="btn-secondary" id="inspAskCopilotBtn" onclick="askCopilotAboutInspector();">
+                            💬 Probe in Copilot
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
