@@ -38,7 +38,9 @@ def run_analysis_job(
     video_id: str,
     user_id: Optional[str] = None,
     session_key: Optional[str] = None,
-    key_pool: Optional[List[str]] = None
+    key_pool: Optional[List[str]] = None,
+    simulate_failures: Optional[Dict[str, bool]] = None,
+    **kwargs
 ):
     """
     Executes the analysis pipeline synchronously on the caller's thread,
@@ -49,7 +51,9 @@ def run_analysis_job(
         video_id,
         user_id=user_id,
         session_key=session_key,
-        key_pool=key_pool
+        key_pool=key_pool,
+        simulate_failures=simulate_failures,
+        **kwargs
     )
 
 def start_job(job_id: str, **kwargs):

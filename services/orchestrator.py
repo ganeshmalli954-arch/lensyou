@@ -12,7 +12,7 @@ from services.storage_service import (
     log_event, record_processing_event, update_processing_event,
     update_search_events_for_content, get_db
 )
-from services.auth_service import increment_quota, get_user, is_owner
+from services.auth_service import increment_quota, get_user, is_owner, check_quota
 from services.analysis_service import run_videolens_analysis
 from services.workers import (
     run_metadata_worker,
@@ -76,6 +76,9 @@ STAGES = [
 def format_user_error(error: Any) -> str:
     """Format technical exceptions into safe, user-friendly messages."""
     err_str = str(error)
+    clean = err_str.split('\n')[0].strip()
+    if 'insufficient credit' in err_str.lower() or 'credits required' in err_str.lower() or 'quota exceeded' in err_str.lower():
+        return clean[:140]
     if '503' in err_str or 'UNAVAILABLE' in err_str or 'high demand' in err_str.lower():
         return "AI analysis engines are currently experiencing a temporary global demand spike. Please wait a few moments and click 'Try Again'."
     if '429' in err_str or 'RESOURCE_EXHAUSTED' in err_str or 'quota' in err_str.lower():
@@ -180,7 +183,7 @@ class AsyncJobOrchestrator:
                 'progress': db_job.get('progress', 0),
                 'result': db_job.get('result_summary'),
                 'error': db_job.get('error'),
-                'modules': {},
+                'modules': db_job.get('result_summary', {}).get('modules', {}) if isinstance(db_job.get('result_summary'), dict) else {},
                 'is_partial': status_str == 'PARTIAL',
                 'retry_count': db_job.get('retry_count', 0),
                 'started_at': db_job.get('created_at'),
@@ -416,6 +419,22 @@ class AsyncJobOrchestrator:
         """
         simulate_failures = simulate_failures or {}
         proc_event_id = None
+        modules_status = {
+            "metadata": "PENDING",
+            "transcript": "PENDING",
+            "summary": "PENDING",
+            "timeline": "PENDING",
+            "chapters": "PENDING",
+            "claims": "PENDING",
+            "learning": "PENDING",
+            "entities": "PENDING",
+            "knowledge_graph": "PENDING",
+            "verification": "PENDING",
+            "export_pdf": "PENDING"
+        }
+        failed_modules = {}
+        is_partial = False
+
         try:
             # 1. Determine user tier & permissions
             user = get_user(user_id) if user_id else None
@@ -442,13 +461,20 @@ class AsyncJobOrchestrator:
                     plan=user_plan
                 )
                 self.update_stage(job_id, 9)
-                increment_quota(user_id, session_key)
+                from services.usage_service import calculate_credit_cost
+                c_credits = calculate_credit_cost(c_dur, tier=user_plan)
+                increment_quota(user_id, session_key, amount=c_credits)
                 if proc_event_id:
                     update_processing_event(proc_event_id, status="success", duration=c_dur, model_used=c_model)
                 self.complete_job(job_id, cached)
                 return
 
             # 3. Stage 1: Metadata Worker (Essential)
+            if simulate_failures.get("metadata"):
+                modules_status["metadata"] = "FAILED"
+                self.fail_job(job_id, "Simulated metadata failure")
+                return
+
             self.update_stage(job_id, 1, 'Fetching metadata', progress=10)
             meta_res = self.execute_with_retry(
                 lambda: run_metadata_worker(video_id),
@@ -456,6 +482,7 @@ class AsyncJobOrchestrator:
                 job_id=job_id
             )
             if not meta_res["success"]:
+                modules_status["metadata"] = "FAILED"
                 self.fail_job(job_id, meta_res["error"])
                 return
             metadata = meta_res["data"]
@@ -463,6 +490,7 @@ class AsyncJobOrchestrator:
             author_name = metadata["author"]
             thumbnail_url = metadata["thumbnail_url"]
             duration_str = metadata["duration"]
+            modules_status["metadata"] = "COMPLETED"
 
             with self.lock:
                 if job_id in self.jobs:
@@ -479,64 +507,138 @@ class AsyncJobOrchestrator:
                 plan=user_plan
             )
 
-            # 4. Stage 2: Transcript Worker (Essential)
+            # 4. Stage 2: Transcript Worker (Essential with partial recovery)
             self.update_stage(job_id, 2, 'Resolving transcript', progress=25)
-            trans_res = self.execute_with_retry(
-                lambda: run_transcript_worker(video_id, metadata),
-                task_name="transcript",
-                job_id=job_id
-            )
+            if simulate_failures.get("transcript"):
+                trans_res = {"success": False, "error": "Simulated transcript extraction failure"}
+            else:
+                trans_res = self.execute_with_retry(
+                    lambda: run_transcript_worker(video_id, metadata),
+                    task_name="transcript",
+                    job_id=job_id
+                )
+
             if not trans_res["success"]:
+                # Fault isolation: preserve metadata upstream output!
+                modules_status["metadata"] = "COMPLETED"
+                modules_status["transcript"] = "FAILED"
+                trans_err = str(trans_res.get("error", "Transcript extraction failed"))
+                failed_modules["transcript"] = trans_err
+                for m in ["summary", "timeline", "chapters", "claims", "learning", "entities", "knowledge_graph", "verification", "export_pdf"]:
+                    modules_status[m] = "FAILED"
+                    failed_modules[m] = f"Skipped due to upstream transcript failure: {trans_err}"
+                is_partial = True
+
+                from services.analysis_service import _ensure_complete_schema
+                raw_analysis = _ensure_complete_schema({}, duration_str, video_title, author_name)
+                model_name = "None"
+                raw_analysis["_meta"] = {
+                    "video_id": video_id,
+                    "video_url": f"https://www.youtube.com/watch?v={video_id}",
+                    "thumbnail_url": thumbnail_url,
+                    "author": author_name,
+                    "title": video_title,
+                    "duration": duration_str,
+                    "duration_seconds": metadata.get("duration_seconds", 0),
+                    "tier": "Premium Intelligence" if is_paid else "Standard Analysis",
+                    "model_used": model_name,
+                    "is_premium": is_paid
+                }
+                raw_analysis["_transcript_sample"] = []
+                raw_analysis["_module_status"] = modules_status
+                raw_analysis["_partial"] = True
+                raw_analysis["is_partial"] = True
+                raw_analysis["transcript_segments"] = []
+
+                with self.lock:
+                    current_modules = dict(self.jobs.get(job_id, {}).get("modules", {}))
+                raw_analysis["modules"] = current_modules
+                raw_analysis["_error_details"] = failed_modules
+                raw_analysis["failed_modules"] = failed_modules
+
+                save_analysis(video_id, video_title, author_name, duration_str, raw_analysis, user_id, session_key)
+                increment_quota(user_id, session_key, amount=1)
+
                 if proc_event_id:
-                    update_processing_event(proc_event_id, status="failed", error_info=str(trans_res["error"]))
-                self.fail_job(job_id, trans_res["error"])
+                    update_processing_event(proc_event_id, status="failed", error_info=trans_err)
+
+                self.complete_job(job_id, raw_analysis, is_partial=True, failed_modules=failed_modules)
                 return
+
             transcript_data = trans_res["data"]
             segments = transcript_data["segments"]
             duration_str = transcript_data["formatted_duration"]
+            modules_status["transcript"] = "COMPLETED"
 
             with self.lock:
                 if job_id in self.jobs:
                     self.jobs[job_id]["modules"]["transcript"] = segments
 
+            # Mid-pipeline Credit & Quota Check
+            from services.usage_service import calculate_credit_cost
+            exact_credits = calculate_credit_cost(duration_str or transcript_data.get("duration_seconds", 0), tier=user_plan)
+            mid_quota = check_quota(user_id=user_id, session_key=session_key, required_credits=exact_credits)
+            if not mid_quota['allowed']:
+                err_msg = f"Insufficient credits for video duration. Required: {exact_credits}, Available: {mid_quota.get('remaining', 0)}"
+                if proc_event_id:
+                    update_processing_event(proc_event_id, status="failed", error_info=err_msg)
+                self.fail_job(job_id, err_msg)
+                return
+
             # 5. Stage 3 & 4: Normalizing & Temporal Modeling
             self.update_stage(job_id, 3, 'Normalizing timestamps', progress=35)
             self.update_stage(job_id, 4, 'Building temporal model', progress=45)
 
-            # 6. Stage 5: Summary & Core Intelligence (Essential)
+            # 6. Stage 5: Summary & Core Intelligence (Fault-Isolated)
             self.update_stage(job_id, 5, 'Generating core intelligence', progress=60)
-            raw_analysis = run_videolens_analysis(
-                segments,
-                duration_str,
-                video_title,
-                author_name,
-                key_pool,
-                is_paid=is_paid
-            )
+            from services.analysis_service import _ensure_complete_schema
+            raw_analysis = None
+            if simulate_failures.get("summary"):
+                modules_status["summary"] = "FAILED"
+                failed_modules["summary"] = "Simulated summary generation failure"
+                is_partial = True
+                raw_analysis = _ensure_complete_schema({}, duration_str, video_title, author_name)
+            else:
+                try:
+                    raw_analysis = run_videolens_analysis(
+                        segments,
+                        duration_str,
+                        video_title,
+                        author_name,
+                        key_pool,
+                        is_paid=is_paid
+                    )
+                except Exception as e:
+                    logger.warning(f"AI analysis failed for job {job_id}: {e}")
+                    modules_status["summary"] = "FAILED"
+                    failed_modules["summary"] = str(e)
+                    is_partial = True
+                    raw_analysis = _ensure_complete_schema({}, duration_str, video_title, author_name)
 
-            sum_res = self.execute_with_retry(
-                lambda: run_summary_worker(segments, metadata, key_pool=key_pool, is_paid=is_paid, raw_analysis=raw_analysis),
-                task_name="summary",
-                job_id=job_id
-            )
-            if not sum_res["success"]:
-                if proc_event_id:
-                    update_processing_event(proc_event_id, status="failed", error_info=str(sum_res["error"]))
-                self.fail_job(job_id, sum_res["error"])
-                return
-            summary_data = sum_res["data"]
+            try:
+                sum_res = self.execute_with_retry(
+                    lambda: run_summary_worker(segments, metadata, key_pool=key_pool, is_paid=is_paid, raw_analysis=raw_analysis),
+                    task_name="summary",
+                    job_id=job_id
+                )
+            except Exception as e:
+                sum_res = {"success": False, "error": str(e)}
 
-            with self.lock:
-                if job_id in self.jobs:
-                    self.jobs[job_id]["modules"]["summary"] = summary_data["video_overview"]
-
-            modules_status = {
-                "metadata": "COMPLETED",
-                "transcript": "COMPLETED",
-                "summary": "COMPLETED"
-            }
-            failed_modules = {}
-            is_partial = False
+            if sum_res["success"] and not simulate_failures.get("summary"):
+                summary_data = sum_res["data"]
+                modules_status["summary"] = "COMPLETED"
+                with self.lock:
+                    if job_id in self.jobs:
+                        self.jobs[job_id]["modules"]["summary"] = summary_data["video_overview"]
+            else:
+                modules_status["summary"] = "FAILED"
+                if "summary" not in failed_modules:
+                    failed_modules["summary"] = str(sum_res.get("error", "Summary worker failed"))
+                is_partial = True
+                if sum_res.get("data") and "video_overview" in sum_res["data"]:
+                    with self.lock:
+                        if job_id in self.jobs:
+                            self.jobs[job_id]["modules"]["summary"] = sum_res["data"]["video_overview"]
 
             # 7. Stage 6: Chapter Worker (Essential with fallback)
             self.update_stage(job_id, 6, 'Generating research insights', progress=70)
@@ -550,72 +652,119 @@ class AsyncJobOrchestrator:
                 chap_res = {"success": False, "error": str(e)}
 
             if chap_res["success"]:
-                modules_status["chapters"] = "COMPLETED"
-                with self.lock:
-                    if job_id in self.jobs:
-                        self.jobs[job_id]["modules"]["chapters"] = chap_res["data"]["chapters"]
+                chap_data = chap_res["data"]
+                if simulate_failures.get("chapters"):
+                    modules_status["chapters"] = "FAILED"
+                    failed_modules["chapters"] = "Simulated chapter generation failure"
+                    is_partial = True
+                else:
+                    modules_status["chapters"] = "COMPLETED"
+                    with self.lock:
+                        if job_id in self.jobs:
+                            self.jobs[job_id]["modules"]["chapters"] = chap_data.get("chapters", [])
+                    if isinstance(raw_analysis, dict):
+                        raw_analysis["chapters"] = chap_data.get("chapters", [])
+
+                if simulate_failures.get("timeline"):
+                    modules_status["timeline"] = "FAILED"
+                    failed_modules["timeline"] = "Simulated timeline generation failure"
+                    is_partial = True
+                else:
+                    modules_status["timeline"] = "COMPLETED"
+                    with self.lock:
+                        if job_id in self.jobs:
+                            self.jobs[job_id]["modules"]["timeline"] = chap_data.get("timeline", [])
+                    if isinstance(raw_analysis, dict):
+                        raw_analysis["timeline"] = chap_data.get("timeline", [])
+
+                if isinstance(raw_analysis, dict) and "creator_repurposing" in chap_data:
+                    raw_analysis["creator_repurposing"] = chap_data["creator_repurposing"]
             else:
                 modules_status["chapters"] = "FAILED"
+                modules_status["timeline"] = "FAILED"
                 failed_modules["chapters"] = chap_res["error"]
+                failed_modules["timeline"] = chap_res["error"]
                 is_partial = True
 
             # 8. Stage 7: Claims & Learning Workers (Non-essential Auxiliary)
             self.update_stage(job_id, 7, 'Generating learning material', progress=80)
-            try:
-                claim_res = self.execute_with_retry(
-                    lambda: run_claim_worker(segments, metadata, key_pool=key_pool, is_paid=is_paid, raw_analysis=raw_analysis),
-                    task_name="claims",
-                    job_id=job_id
-                )
-            except Exception as e:
-                claim_res = {"success": False, "error": str(e)}
-
-            if claim_res["success"]:
-                modules_status["claims"] = "COMPLETED"
-                with self.lock:
-                    if job_id in self.jobs:
-                        self.jobs[job_id]["modules"]["claims"] = claim_res["data"]["claims"]
-                        if "contradictions" in claim_res["data"]:
-                            self.jobs[job_id]["modules"]["contradictions"] = claim_res["data"]["contradictions"]
-                if isinstance(raw_analysis, dict):
-                    raw_analysis["claims"] = claim_res["data"]["claims"]
-                    raw_analysis["factual_claims"] = claim_res["data"].get("factual_claims", claim_res["data"]["claims"])
-                    if "contradictions" in claim_res["data"]:
-                        raw_analysis["contradictions"] = claim_res["data"]["contradictions"]
-            else:
+            if simulate_failures.get("claims"):
                 modules_status["claims"] = "FAILED"
-                failed_modules["claims"] = claim_res["error"]
+                failed_modules["claims"] = "Simulated claims generation failure"
                 is_partial = True
-
-            try:
-                learn_res = self.execute_with_retry(
-                    lambda: run_learning_worker(segments, metadata, key_pool=key_pool, is_paid=is_paid, raw_analysis=raw_analysis),
-                    task_name="learning",
-                    job_id=job_id
-                )
-            except Exception as e:
-                learn_res = {"success": False, "error": str(e)}
-
-            if learn_res["success"]:
-                modules_status["learning"] = "COMPLETED"
-                with self.lock:
-                    if job_id in self.jobs:
-                        self.jobs[job_id]["modules"]["learning"] = learn_res["data"]["learning"]
-                if isinstance(raw_analysis, dict):
-                    raw_analysis["learning"] = learn_res["data"]["learning"]
-                    if "flashcards" in learn_res["data"]:
-                        raw_analysis["flashcards"] = learn_res["data"]["flashcards"]
-                    if "quizzes" in learn_res["data"]:
-                        raw_analysis["quizzes"] = learn_res["data"]["quizzes"]
             else:
+                try:
+                    claim_res = self.execute_with_retry(
+                        lambda: run_claim_worker(segments, metadata, key_pool=key_pool, is_paid=is_paid, raw_analysis=raw_analysis),
+                        task_name="claims",
+                        job_id=job_id
+                    )
+                except Exception as e:
+                    claim_res = {"success": False, "error": str(e)}
+
+                if claim_res["success"]:
+                    modules_status["claims"] = "COMPLETED"
+                    with self.lock:
+                        if job_id in self.jobs:
+                            self.jobs[job_id]["modules"]["claims"] = claim_res["data"]["claims"]
+                            if "contradictions" in claim_res["data"]:
+                                self.jobs[job_id]["modules"]["contradictions"] = claim_res["data"]["contradictions"]
+                            if "insights" in claim_res["data"]:
+                                self.jobs[job_id]["modules"]["insights"] = claim_res["data"]["insights"]
+                    if isinstance(raw_analysis, dict):
+                        raw_analysis["claims"] = claim_res["data"]["claims"]
+                        raw_analysis["factual_claims"] = claim_res["data"].get("factual_claims", claim_res["data"]["claims"])
+                        if "contradictions" in claim_res["data"]:
+                            raw_analysis["contradictions"] = claim_res["data"]["contradictions"]
+                        if "insights" in claim_res["data"]:
+                            raw_analysis["insights"] = claim_res["data"]["insights"]
+                else:
+                    modules_status["claims"] = "FAILED"
+                    failed_modules["claims"] = claim_res["error"]
+                    is_partial = True
+
+            if simulate_failures.get("learning"):
                 modules_status["learning"] = "FAILED"
-                failed_modules["learning"] = learn_res["error"]
+                failed_modules["learning"] = "Simulated learning material generation failure"
                 is_partial = True
+            else:
+                try:
+                    learn_res = self.execute_with_retry(
+                        lambda: run_learning_worker(segments, metadata, key_pool=key_pool, is_paid=is_paid, raw_analysis=raw_analysis),
+                        task_name="learning",
+                        job_id=job_id
+                    )
+                except Exception as e:
+                    learn_res = {"success": False, "error": str(e)}
+
+                if learn_res["success"]:
+                    modules_status["learning"] = "COMPLETED"
+                    with self.lock:
+                        if job_id in self.jobs:
+                            self.jobs[job_id]["modules"]["learning"] = learn_res["data"]["learning"]
+                    if isinstance(raw_analysis, dict):
+                        raw_analysis["learning"] = learn_res["data"]["learning"]
+                        if "flashcards" in learn_res["data"]:
+                            raw_analysis["flashcards"] = learn_res["data"]["flashcards"]
+                        if "quizzes" in learn_res["data"]:
+                            raw_analysis["quizzes"] = learn_res["data"]["quizzes"]
+                else:
+                    modules_status["learning"] = "FAILED"
+                    failed_modules["learning"] = learn_res["error"]
+                    is_partial = True
 
             # Entity Intelligence & Knowledge Graph
-            if simulate_failures.get("knowledge_graph"):
-                modules_status["knowledge_graph"] = "FAILED"
-                failed_modules["knowledge_graph"] = "Simulated knowledge graph generation failure"
+            if simulate_failures.get("entities") or simulate_failures.get("knowledge_graph"):
+                if simulate_failures.get("entities"):
+                    modules_status["entities"] = "FAILED"
+                    failed_modules["entities"] = "Simulated entity generation failure"
+                else:
+                    modules_status["entities"] = "COMPLETED"
+                if simulate_failures.get("knowledge_graph"):
+                    modules_status["knowledge_graph"] = "FAILED"
+                    failed_modules["knowledge_graph"] = "Simulated knowledge graph generation failure"
+                else:
+                    modules_status["knowledge_graph"] = "COMPLETED"
                 is_partial = True
             else:
                 try:
@@ -635,119 +784,140 @@ class AsyncJobOrchestrator:
                             self.jobs[job_id]["modules"]["entities"] = ent_res["data"]["entities"]
                             self.jobs[job_id]["modules"]["knowledge_graph"] = ent_res["data"]["knowledge_graph"]
                 else:
+                    modules_status["entities"] = "FAILED"
                     modules_status["knowledge_graph"] = "FAILED"
+                    failed_modules["entities"] = ent_res["error"]
                     failed_modules["knowledge_graph"] = ent_res["error"]
                     is_partial = True
 
             # 9. Stage 8: Grounded AI Verification & Guardrails (VALIDATING)
             self.update_stage(job_id, 8, 'Validating evidence & guardrails', progress=90)
-            try:
-                from services.verification_service import (
-                    verify_grounded_claims,
-                    validate_bloom_quiz,
-                    validate_flashcards,
-                    classify_contradictions,
-                )
+            if simulate_failures.get("verification"):
+                modules_status["verification"] = "FAILED"
+                failed_modules["verification"] = "Simulated verification failure"
+                is_partial = True
+            else:
+                try:
+                    from services.verification_service import (
+                        verify_grounded_claims,
+                        verify_grounded_insights,
+                        validate_bloom_quiz,
+                        validate_flashcards,
+                        classify_contradictions,
+                    )
 
-                duration_sec = transcript_data.get("duration_seconds", 7200) if transcript_data else 7200
-                channel_author = metadata.get("author", "") if metadata else ""
+                    duration_sec = transcript_data.get("duration_seconds", 7200) if transcript_data else 7200
+                    channel_author = metadata.get("author", "") if metadata else ""
 
-                # A. Verify Grounded Claims
-                raw_claims = raw_analysis.get("claims", []) if isinstance(raw_analysis, dict) else []
-                if not raw_claims and isinstance(raw_analysis, dict) and "key_takeaways" in raw_analysis:
-                    raw_claims = raw_analysis.get("key_takeaways", [])
+                    # A. Verify Grounded Claims
+                    raw_claims = raw_analysis.get("claims", []) if isinstance(raw_analysis, dict) else []
+                    if not raw_claims and isinstance(raw_analysis, dict) and "key_takeaways" in raw_analysis:
+                        raw_claims = raw_analysis.get("key_takeaways", [])
 
-                verified_claims, claim_stats = verify_grounded_claims(
-                    claims=raw_claims,
-                    transcript_segments=segments or [],
-                    max_duration=duration_sec,
-                    channel_author=channel_author
-                )
-                if isinstance(raw_analysis, dict):
-                    raw_analysis["claims"] = verified_claims
-                    raw_analysis["factual_claims"] = verified_claims
-
-                # Also ground key_takeaways if present and distinct
-                if isinstance(raw_analysis, dict) and "key_takeaways" in raw_analysis and raw_analysis["key_takeaways"] != raw_claims:
-                    grounded_takeaways, _ = verify_grounded_claims(
-                        claims=raw_analysis["key_takeaways"],
+                    verified_claims, claim_stats = verify_grounded_claims(
+                        claims=raw_claims,
                         transcript_segments=segments or [],
                         max_duration=duration_sec,
                         channel_author=channel_author
                     )
-                    raw_analysis["key_takeaways"] = grounded_takeaways
+                    if isinstance(raw_analysis, dict):
+                        raw_analysis["claims"] = verified_claims
+                        raw_analysis["factual_claims"] = verified_claims
 
-                # B. Validate Bloom Quiz & Flashcards
-                raw_learning = raw_analysis.get("learning", {}) if isinstance(raw_analysis, dict) else {}
-                raw_quiz = raw_learning.get("quiz", []) if isinstance(raw_learning, dict) else []
-                raw_flashcards = raw_learning.get("flashcards", []) if isinstance(raw_learning, dict) else []
+                    # Also ground key_takeaways if present and distinct
+                    if isinstance(raw_analysis, dict) and "key_takeaways" in raw_analysis and raw_analysis["key_takeaways"] != raw_claims:
+                        grounded_takeaways, _ = verify_grounded_claims(
+                            claims=raw_analysis["key_takeaways"],
+                            transcript_segments=segments or [],
+                            max_duration=duration_sec,
+                            channel_author=channel_author
+                        )
+                        raw_analysis["key_takeaways"] = grounded_takeaways
 
-                validated_quiz, is_quiz_valid = validate_bloom_quiz(raw_quiz)
-                validated_flashcards, is_fc_valid = validate_flashcards(raw_flashcards)
+                    # Also ground insights if present
+                    raw_insights = raw_analysis.get("insights", []) if isinstance(raw_analysis, dict) else []
+                    if raw_insights:
+                        grounded_insights, _ = verify_grounded_insights(
+                            insights=raw_insights,
+                            transcript_segments=segments or [],
+                            max_duration=duration_sec,
+                            channel_author=channel_author
+                        )
+                        if isinstance(raw_analysis, dict):
+                            raw_analysis["insights"] = grounded_insights
 
-                if isinstance(raw_learning, dict):
-                    raw_learning["quiz"] = validated_quiz
-                    raw_learning["flashcards"] = validated_flashcards
-                if isinstance(raw_analysis, dict):
-                    raw_analysis["learning"] = raw_learning
-                    raw_analysis["quizzes"] = validated_quiz
-                    raw_analysis["flashcards"] = validated_flashcards
+                    # B. Validate Bloom Quiz & Flashcards
+                    raw_learning = raw_analysis.get("learning", {}) if isinstance(raw_analysis, dict) else {}
+                    raw_quiz = raw_learning.get("quiz", []) if isinstance(raw_learning, dict) else []
+                    raw_flashcards = raw_learning.get("flashcards", []) if isinstance(raw_learning, dict) else []
 
-                # C. Classify Contradictions
-                raw_contradictions = raw_analysis.get("contradictions", []) if isinstance(raw_analysis, dict) else []
-                verified_contradictions = classify_contradictions(
-                    contradictions=raw_contradictions,
-                    transcript_segments=segments or []
-                )
-                if isinstance(raw_analysis, dict):
-                    raw_analysis["contradictions"] = verified_contradictions
+                    validated_quiz, is_quiz_valid = validate_bloom_quiz(raw_quiz)
+                    validated_flashcards, is_fc_valid = validate_flashcards(raw_flashcards)
 
-                # D. Attach Verification Metadata
-                claim_rate = claim_stats.get("grounding_rate", 1.0) if claim_stats else 1.0
-                bloom_rate = 1.0 if is_quiz_valid else (round(len(validated_quiz) / max(1, len(raw_quiz)), 2) if raw_quiz else 1.0)
+                    if isinstance(raw_learning, dict):
+                        raw_learning["quiz"] = validated_quiz
+                        raw_learning["flashcards"] = validated_flashcards
+                    if isinstance(raw_analysis, dict):
+                        raw_analysis["learning"] = raw_learning
+                        raw_analysis["quizzes"] = validated_quiz
+                        raw_analysis["flashcards"] = validated_flashcards
 
-                verification_metadata = {
-                    "status": "COMPLETED",
-                    "claim_verification_rate": claim_rate,
-                    "bloom_validity_rate": bloom_rate,
-                    "claims_verified_count": len(verified_claims),
-                    "quiz_questions_validated": len(validated_quiz),
-                    "contradictions_classified_count": len(verified_contradictions),
-                    "verified_contradictions": verified_contradictions,
-                    "contradiction_breakdown": {
-                        "DIRECT_CONTRADICTION": sum(1 for c in verified_contradictions if c.get("classification") == "DIRECT_CONTRADICTION"),
-                        "TEMPORAL_EVOLUTION": sum(1 for c in verified_contradictions if c.get("classification") == "TEMPORAL_EVOLUTION"),
-                        "CONDITIONAL_QUALIFICATION": sum(1 for c in verified_contradictions if c.get("classification") == "CONDITIONAL_QUALIFICATION"),
-                        "PERSPECTIVE_DIVERGENCE": sum(1 for c in verified_contradictions if c.get("classification") == "PERSPECTIVE_DIVERGENCE"),
-                    },
-                    "verified_at": datetime.utcnow().isoformat()
-                }
+                    # C. Classify Contradictions
+                    raw_contradictions = raw_analysis.get("contradictions", []) if isinstance(raw_analysis, dict) else []
+                    verified_contradictions = classify_contradictions(
+                        contradictions=raw_contradictions,
+                        transcript_segments=segments or []
+                    )
+                    if isinstance(raw_analysis, dict):
+                        raw_analysis["contradictions"] = verified_contradictions
 
-                if isinstance(raw_analysis, dict):
-                    raw_analysis["_verification"] = verification_metadata
-                    raw_analysis["claim_verification_rate"] = claim_rate
-                    raw_analysis["bloom_validity_rate"] = bloom_rate
-                    raw_analysis["claims_verified_count"] = len(verified_claims)
-                    raw_analysis["quiz_questions_validated"] = len(validated_quiz)
-                    raw_analysis["contradictions_classified_count"] = len(verified_contradictions)
-                    raw_analysis["contradiction_breakdown"] = verification_metadata["contradiction_breakdown"]
-                    raw_analysis["verified_contradictions"] = verified_contradictions
+                    # D. Attach Verification Metadata
+                    claim_rate = claim_stats.get("grounding_rate", 1.0) if claim_stats else 1.0
+                    bloom_rate = 1.0 if is_quiz_valid else (round(len(validated_quiz) / max(1, len(raw_quiz)), 2) if raw_quiz else 1.0)
 
-                modules_status["verification"] = "COMPLETED"
+                    verification_metadata = {
+                        "status": "COMPLETED",
+                        "claim_verification_rate": claim_rate,
+                        "bloom_validity_rate": bloom_rate,
+                        "claims_verified_count": len(verified_claims),
+                        "quiz_questions_validated": len(validated_quiz),
+                        "contradictions_classified_count": len(verified_contradictions),
+                        "verified_contradictions": verified_contradictions,
+                        "contradiction_breakdown": {
+                            "DIRECT_CONTRADICTION": sum(1 for c in verified_contradictions if c.get("classification") == "DIRECT_CONTRADICTION"),
+                            "TEMPORAL_EVOLUTION": sum(1 for c in verified_contradictions if c.get("classification") == "TEMPORAL_EVOLUTION"),
+                            "CONDITIONAL_QUALIFICATION": sum(1 for c in verified_contradictions if c.get("classification") == "CONDITIONAL_QUALIFICATION"),
+                            "PERSPECTIVE_DIVERGENCE": sum(1 for c in verified_contradictions if c.get("classification") == "PERSPECTIVE_DIVERGENCE"),
+                        },
+                        "verified_at": datetime.utcnow().isoformat()
+                    }
 
-                with self.lock:
-                    if job_id in self.jobs:
-                        self.jobs[job_id]["modules"]["claims"] = verified_claims
-                        self.jobs[job_id]["modules"]["contradictions"] = verified_contradictions
-                        self.jobs[job_id]["modules"]["learning"] = raw_learning
-                        self.jobs[job_id]["modules"]["verification"] = verification_metadata
+                    if isinstance(raw_analysis, dict):
+                        raw_analysis["_verification"] = verification_metadata
+                        raw_analysis["claim_verification_rate"] = claim_rate
+                        raw_analysis["bloom_validity_rate"] = bloom_rate
+                        raw_analysis["claims_verified_count"] = len(verified_claims)
+                        raw_analysis["quiz_questions_validated"] = len(validated_quiz)
+                        raw_analysis["contradictions_classified_count"] = len(verified_contradictions)
+                        raw_analysis["contradiction_breakdown"] = verification_metadata["contradiction_breakdown"]
+                        raw_analysis["verified_contradictions"] = verified_contradictions
 
-            except Exception as e:
-                logger.error(f"Error during validation stage for job {job_id}: {e}")
-                modules_status["verification"] = "FAILED"
-                failed_modules["verification"] = str(e)
-                # Validation error degrades gracefully to PARTIAL without crashing job
-                is_partial = True
+                    modules_status["verification"] = "COMPLETED"
+
+                    with self.lock:
+                        if job_id in self.jobs:
+                            self.jobs[job_id]["modules"]["claims"] = verified_claims
+                            self.jobs[job_id]["modules"]["contradictions"] = verified_contradictions
+                            self.jobs[job_id]["modules"]["learning"] = raw_learning
+                            self.jobs[job_id]["modules"]["verification"] = verification_metadata
+                            if raw_insights and isinstance(raw_analysis, dict) and "insights" in raw_analysis:
+                                self.jobs[job_id]["modules"]["insights"] = raw_analysis["insights"]
+
+                except Exception as e:
+                    logger.error(f"Error during validation stage for job {job_id}: {e}")
+                    modules_status["verification"] = "FAILED"
+                    failed_modules["verification"] = str(e)
+                    is_partial = True
 
             # 10. Stage 9: Export Worker (Non-essential Auxiliary)
             self.update_stage(job_id, 9, 'Preparing dashboard', progress=95)
@@ -800,7 +970,7 @@ class AsyncJobOrchestrator:
                 raw_analysis["failed_modules"] = failed_modules
 
             save_analysis(video_id, video_title, author_name, duration_str, raw_analysis, user_id, session_key)
-            increment_quota(user_id, session_key)
+            increment_quota(user_id, session_key, amount=exact_credits)
 
             if proc_event_id:
                 update_processing_event(proc_event_id, status="success", duration=duration_str, model_used=model_name)

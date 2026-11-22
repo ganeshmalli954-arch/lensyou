@@ -1,6 +1,6 @@
 import time
 from typing import Any, Dict, Optional
-from services.transcript_service import get_transcript_data
+from services.transcript_service import get_transcript_data, normalize_transcript_segments
 from utils.time_utils import format_seconds, prepare_ui_transcript_sample
 
 def run_transcript_worker(video_id: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -65,16 +65,25 @@ def run_transcript_worker(video_id: str, metadata: Optional[Dict[str, Any]] = No
         new_segments = []
         for idx in range(num_phases):
             t_start = idx * step
+            t_dur = float(step)
+            t_end = round(float(t_start + t_dur), 2)
             label = phase_labels[idx % len(phase_labels)]
+            seg_id = f"seg_{video_id}_{idx}"
             new_segments.append({
+                "id": seg_id,
+                "segment_id": seg_id,
                 "text": f"[{format_seconds(t_start)}] {label}",
                 "start": float(t_start),
-                "duration": float(step),
+                "duration": t_dur,
+                "end": t_end,
                 "timestamp": format_seconds(t_start),
                 "speaker": ""
             })
         transcript_res["segments"] = new_segments
         segments = new_segments
+
+    segments = normalize_transcript_segments(segments, video_id)
+    transcript_res["segments"] = segments
 
     ui_sample = prepare_ui_transcript_sample(segments, max_snippets=2500)
 

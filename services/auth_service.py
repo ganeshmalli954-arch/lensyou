@@ -22,32 +22,81 @@ def is_owner(email: str) -> bool:
     if not email: return False
     return email.strip().lower() in get_owner_emails()
 
-def check_quota(user_id=None, session_key=None) -> dict:
+def check_quota(user_id=None, session_key=None, required_credits: int = 1) -> dict:
+    if required_credits is None or required_credits < 1:
+        required_credits = 1
+
     if user_id:
         user = get_user(user_id)
-        if not user: return {'allowed': False, 'reason': 'User not found'}
+        if not user:
+            return {'allowed': False, 'reason': 'User not found', 'remaining': 0, 'required_credits': required_credits}
         
         # Check if owner email
         user_email = (user.get('email') or '').lower()
         if user_email and is_owner(user_email):
             if user.get('plan') != 'unlimited' or user.get('quota_limit') != -1:
                 update_user_plan(user_id, 'unlimited', -1)
-            return {'allowed': True, 'used': user.get('quota_used', 0), 'limit': -1, 'plan': 'unlimited (owner)'}
+            return {
+                'allowed': True,
+                'used': user.get('quota_used', 0),
+                'quota_used': user.get('quota_used', 0),
+                'limit': -1,
+                'quota_limit': -1,
+                'remaining': 999999,
+                'required_credits': required_credits,
+                'plan': 'unlimited (owner)'
+            }
 
-        if user['plan'] == 'unlimited': 
-            return {'allowed': True, 'used': user['quota_used'], 'limit': -1, 'plan': 'unlimited'}
-        allowed = user['quota_used'] < user['quota_limit']
-        return {'allowed': allowed, 'used': user['quota_used'], 'limit': user['quota_limit'], 'plan': user['plan']}
+        if user['plan'] == 'unlimited' or user.get('quota_limit') == -1: 
+            return {
+                'allowed': True,
+                'used': user['quota_used'],
+                'quota_used': user['quota_used'],
+                'limit': -1,
+                'quota_limit': -1,
+                'remaining': 999999,
+                'required_credits': required_credits,
+                'plan': user.get('plan', 'unlimited')
+            }
+
+        quota_limit = user['quota_limit']
+        quota_used = user['quota_used']
+        remaining = max(0, quota_limit - quota_used)
+        allowed = remaining >= required_credits
+        return {
+            'allowed': allowed,
+            'used': quota_used,
+            'quota_used': quota_used,
+            'limit': quota_limit,
+            'quota_limit': quota_limit,
+            'remaining': remaining,
+            'required_credits': required_credits,
+            'plan': user['plan']
+        }
     else:
         session = get_anon_session(session_key)
-        allowed = session['quota_used'] < QUOTA_ANONYMOUS
-        return {'allowed': allowed, 'used': session['quota_used'], 'limit': QUOTA_ANONYMOUS, 'plan': 'anonymous'}
+        quota_used = session['quota_used']
+        quota_limit = QUOTA_ANONYMOUS
+        remaining = max(0, quota_limit - quota_used)
+        allowed = remaining >= required_credits
+        return {
+            'allowed': allowed,
+            'used': quota_used,
+            'quota_used': quota_used,
+            'limit': quota_limit,
+            'quota_limit': quota_limit,
+            'remaining': remaining,
+            'required_credits': required_credits,
+            'plan': 'anonymous'
+        }
 
-def increment_quota(user_id=None, session_key=None):
+def increment_quota(user_id=None, session_key=None, amount: int = 1):
+    if amount is None or amount < 1:
+        amount = 1
     if user_id:
-        update_user_quota(user_id)
+        update_user_quota(user_id, increment=amount)
     elif session_key:
-        increment_anon_quota(session_key)
+        increment_anon_quota(session_key, amount=amount)
 
 def get_or_create_user(provider, provider_id, email, name, avatar_url) -> dict:
     existing = get_user_by_provider(provider, provider_id, email=email, name=name, avatar_url=avatar_url)

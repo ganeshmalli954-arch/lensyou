@@ -105,12 +105,12 @@ TEMPORAL_SYNTAX_PATTERNS = [
 # =============================================================================
 
 def extract_claim_text(claim: Any) -> str:
-    """Extract clean string text from polymorphic claim representations."""
+    """Extract clean string text from polymorphic claim/insight representations."""
     if isinstance(claim, str):
         return claim.strip()
     if not isinstance(claim, dict):
         return str(claim).strip()
-    for key in ("statement", "claim", "title", "summary", "text", "description", "takeaway"):
+    for key in ("statement", "claim", "title", "summary", "text", "description", "takeaway", "insight", "explanation", "point"):
         val = claim.get(key)
         if isinstance(val, str) and val.strip():
             return val.strip()
@@ -227,21 +227,29 @@ def attribute_speaker_to_claim(
 # Feature F10: Automated Citation & Timestamp Grounding Engine
 # =============================================================================
 
-def verify_grounded_claims(
-    claims: List[Dict[str, Any]],
+def validate_evidence_citations(
+    statements: List[Dict[str, Any]],
     transcript_segments: List[Dict[str, Any]],
-    max_duration: int = 7200,
-    channel_author: str = ""
+    max_duration: float = 7200.0,
+    channel_author: str = "",
+    reject_ungrounded: bool = False
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """
-    Feature F10: Automated Citation & Timestamp Grounding Engine.
-    Feature F11: Dynamic Speaker Attribution.
-    Guarantees 100% of claims link to valid transcript segments within 0 <= seconds <= max_duration.
+    Validates statements (claims, insights, takeaways) against transcript segments.
+    Dual-mode:
+      - reject_ungrounded=False: flags ungrounded statements with flagged=True, verified=False, grounding_status="UNGROUNDED"
+      - reject_ungrounded=True: excludes ungrounded statements from the primary output
+    Populates:
+      seconds, start_seconds, end_seconds, start_timestamp, end_timestamp,
+      transcript_segment_id, matched_segment_id, transcript_excerpt, source_excerpt,
+      confidence_score, verified, flagged, grounding_status.
     """
-    if not claims:
+    if not statements:
         return [], {
             "total_claims": 0,
+            "total_statements": 0,
             "verified_count": 0,
+            "rejected_count": 0,
             "high_confidence_count": 0,
             "average_confidence": 1.0,
             "grounding_rate": 1.0,
@@ -253,24 +261,25 @@ def verify_grounded_claims(
     # Normalize max_duration
     if max_duration <= 0:
         if transcript_segments:
-            max_duration = int(max(
+            max_duration = float(max(
                 (float(s.get("start", 0)) + float(s.get("duration", 0)) for s in transcript_segments),
-                default=7200
+                default=7200.0
             ))
         else:
-            max_duration = 7200
+            max_duration = 7200.0
 
     n_segs = len(transcript_segments)
-    grounded_claims: List[Dict[str, Any]] = []
+    grounded_statements: List[Dict[str, Any]] = []
+    rejected_statements: List[Dict[str, Any]] = []
     total_conf = 0.0
     high_conf_count = 0
     verified_count = 0
 
-    for idx, raw_claim in enumerate(claims):
-        claim = dict(raw_claim) if isinstance(raw_claim, dict) else {"claim": str(raw_claim)}
-        claim_text = extract_claim_text(claim)
-        claim_words = tokenize_keywords(claim_text)
-        hint_sec = parse_claim_seconds(claim)
+    for idx, raw_stmt in enumerate(statements):
+        stmt = dict(raw_stmt) if isinstance(raw_stmt, dict) else {"statement": str(raw_stmt)}
+        stmt_text = extract_claim_text(stmt)
+        words = tokenize_keywords(stmt_text)
+        hint_sec = parse_claim_seconds(stmt)
 
         best_score = -1.0
         best_seg_idx = -1
@@ -283,19 +292,18 @@ def verify_grounded_claims(
                 if s_start > max_duration:
                     continue
 
-                # 1. Evaluate segment i alone
                 seg_text = str(seg.get("text", "")).lower()
-                if claim_words:
-                    overlap_count = sum(1 for w in claim_words if w in seg_text)
-                    s_token = overlap_count / len(claim_words)
+                if words:
+                    overlap_count = sum(1 for w in words if w in seg_text)
+                    s_token = overlap_count / len(words)
                 else:
                     s_token = 0.5
                     overlap_count = 0
 
                 s_phrase = 0.0
-                if len(claim_words) >= 2:
-                    for k in range(len(claim_words) - 1):
-                        bigram = f"{claim_words[k]} {claim_words[k+1]}"
+                if len(words) >= 2:
+                    for k in range(len(words) - 1):
+                        bigram = f"{words[k]} {words[k+1]}"
                         if bigram in seg_text:
                             s_phrase = 0.20
                             break
@@ -309,29 +317,28 @@ def verify_grounded_claims(
                 score = min(1.0, 0.65 * s_token + 0.20 * s_phrase + 0.15 * p_decay)
                 chosen_candidate = seg
 
-                # 2. Check 2-segment window [i, i+1] for cross-segment phrases
+                # 2-segment window [i, i+1] for cross-segment phrases
                 if i + 1 < n_segs and (float(transcript_segments[i + 1].get("start", 0.0)) - s_start) <= 25.0:
                     next_seg = transcript_segments[i + 1]
                     next_text = str(next_seg.get("text", "")).lower()
                     win_text = f"{seg_text} {next_text}"
 
-                    if claim_words:
-                        win_overlap = sum(1 for w in claim_words if w in win_text)
-                        win_token = win_overlap / len(claim_words)
-                        next_overlap = sum(1 for w in claim_words if w in next_text)
+                    if words:
+                        win_overlap = sum(1 for w in words if w in win_text)
+                        win_token = win_overlap / len(words)
+                        next_overlap = sum(1 for w in words if w in next_text)
                     else:
                         win_token = 0.5
                         next_overlap = 0
 
                     win_phrase = 0.0
-                    if len(claim_words) >= 2:
-                        for k in range(len(claim_words) - 1):
-                            bigram = f"{claim_words[k]} {claim_words[k+1]}"
+                    if len(words) >= 2:
+                        for k in range(len(words) - 1):
+                            bigram = f"{words[k]} {words[k+1]}"
                             if bigram in win_text:
                                 win_phrase = 0.20
                                 break
 
-                    # Choose the specific segment within the window that contains more keywords
                     win_chosen = next_seg if next_overlap > overlap_count else seg
                     win_start = float(win_chosen.get("start", s_start))
 
@@ -352,67 +359,225 @@ def verify_grounded_claims(
                     best_seg = chosen_candidate
 
         # Determine aligned seconds and matched segment
-        if best_seg is not None and best_score >= 0.20:
-            matched_start = float(best_seg.get("start", 0.0))
-            matched_id = best_seg.get("id") or f"seg_{best_seg_idx}"
-            conf = best_score
-            is_verified = True
-        elif hint_sec is not None:
-            # Fall back to hint seconds clamped within bounds
-            matched_start = max(0.0, min(float(hint_sec), float(max_duration)))
-            conf = 0.50
-            is_verified = True
-            if n_segs > 0:
-                best_seg = min(transcript_segments, key=lambda s: abs(float(s.get("start", 0.0)) - matched_start))
-                matched_id = best_seg.get("id") or "seg_near"
-            else:
-                matched_id = "seg_fallback"
-        else:
-            # Fall back to start of video
-            matched_start = 0.0
+        matched_dur = 0.0
+        seg_text = ""
+        if hint_sec is not None and float(hint_sec) > max_duration:
+            # Out-of-bounds timestamp: do NOT mark verified even if accidental token overlap
+            matched_start = max(0.0, float(max_duration))
+            matched_dur = 0.0
             matched_id = "seg_0" if n_segs > 0 else "seg_fallback"
             best_seg = transcript_segments[0] if n_segs > 0 else None
+            seg_text = best_seg.get("text", "") if best_seg else ""
+            conf = 0.10
+            is_verified = False
+        elif best_seg is not None and best_score >= 0.20:
+            matched_start = float(best_seg.get("start", 0.0))
+            matched_dur = float(best_seg.get("duration", 0.0))
+            matched_id = best_seg.get("segment_id") or best_seg.get("id") or f"seg_{best_seg_idx}"
+            conf = best_score
+            is_verified = True
+            seg_text = best_seg.get("text", "")
+        elif hint_sec is not None and 0 <= float(hint_sec) <= max_duration:
+            # In-bounds timestamp but best_score < 0.20 (lacks matching transcript evidence)
+            matched_start = max(0.0, min(float(hint_sec), float(max_duration)))
+            conf = 0.30
+            is_verified = False
+            if n_segs > 0:
+                best_seg = min(transcript_segments, key=lambda s: abs(float(s.get("start", 0.0)) - matched_start))
+                matched_id = best_seg.get("segment_id") or best_seg.get("id") or "seg_near"
+                matched_dur = float(best_seg.get("duration", 15.0))
+                seg_text = best_seg.get("text", "")
+            else:
+                matched_id = "seg_fallback"
+                matched_dur = 15.0
+                seg_text = ""
+        else:
+            # Ungrounded statement (no hint and best_score < 0.20)
+            matched_start = 0.0
+            matched_dur = 0.0
+            matched_id = "seg_0" if n_segs > 0 else "seg_fallback"
+            best_seg = transcript_segments[0] if n_segs > 0 else None
+            seg_text = best_seg.get("text", "") if best_seg else ""
             conf = 0.30
             is_verified = False
 
-        # Enforce strict 100% boundary check: 0 <= seconds <= max_duration
         clamped_sec = max(0.0, min(float(matched_start), float(max_duration)))
+        end_sec = max(clamped_sec, min(float(max_duration), clamped_sec + max(0.0, matched_dur)))
         formatted_ts = format_seconds(clamped_sec)
+        end_ts = format_seconds(end_sec)
 
         # Dynamic speaker attribution
-        speaker, spk_verified = attribute_speaker_to_claim(claim, best_seg, channel_author=channel_author)
+        speaker, spk_verified = attribute_speaker_to_claim(stmt, best_seg, channel_author=channel_author)
 
-        claim["seconds"] = round(clamped_sec, 2)
-        claim["timestamp"] = formatted_ts
-        claim["confidence_score"] = round(conf, 3)
-        claim["matched_segment_id"] = matched_id
-        claim["verified"] = is_verified
-        claim["speaker"] = speaker
-        claim["speaker_verified"] = spk_verified
-        claim["verification_note"] = (
+        stmt["seconds"] = round(clamped_sec, 2)
+        stmt["start_seconds"] = round(clamped_sec, 2)
+        stmt["end_seconds"] = round(end_sec, 2)
+        stmt["start_timestamp"] = formatted_ts
+        stmt["end_timestamp"] = end_ts
+        stmt["timestamp"] = formatted_ts
+        stmt["transcript_segment_id"] = matched_id
+        stmt["matched_segment_id"] = matched_id
+        stmt["transcript_excerpt"] = seg_text
+        stmt["source_excerpt"] = seg_text
+        stmt["confidence_score"] = round(conf, 3)
+        stmt["verified"] = is_verified
+        stmt["flagged"] = not is_verified
+        stmt["grounding_status"] = "VERIFIED" if is_verified else "UNGROUNDED"
+        stmt["speaker"] = speaker
+        stmt["speaker_verified"] = spk_verified
+        stmt["verification_note"] = (
             f"Evidence verified at {formatted_ts} (evidence score: {int(conf * 100)}%)"
-            if is_verified else f"Grounding approximate; aligned to {formatted_ts}"
+            if is_verified else f"Statement lacks matching transcript reference; ungrounded at {formatted_ts}"
         )
 
-        grounded_claims.append(claim)
         total_conf += conf
         if conf >= 0.70:
             high_conf_count += 1
         if is_verified:
             verified_count += 1
 
+        if reject_ungrounded and not is_verified:
+            rejected_statements.append(stmt)
+        else:
+            grounded_statements.append(stmt)
+
+    total_count = len(statements)
     stats = {
-        "total_claims": len(grounded_claims),
+        "total_claims": len(grounded_statements),
+        "total_statements": total_count,
         "verified_count": verified_count,
+        "rejected_count": len(rejected_statements),
         "high_confidence_count": high_conf_count,
-        "average_confidence": round(total_conf / max(1, len(grounded_claims)), 3),
-        "grounding_rate": round(verified_count / max(1, len(grounded_claims)), 3),
-        "verification_rate": round(verified_count / max(1, len(grounded_claims)), 3),
-        "claim_verification_rate": round(verified_count / max(1, len(grounded_claims)), 3),
+        "average_confidence": round(total_conf / max(1, total_count), 3),
+        "grounding_rate": round(verified_count / max(1, total_count), 3),
+        "verification_rate": round(verified_count / max(1, total_count), 3),
+        "claim_verification_rate": round(verified_count / max(1, total_count), 3),
         "max_duration_sec": max_duration
     }
 
-    return grounded_claims, stats
+    return grounded_statements, stats
+
+def verify_grounded_insights(
+    insights: List[Dict[str, Any]],
+    transcript_segments: List[Dict[str, Any]],
+    max_duration: float = 7200.0,
+    channel_author: str = "",
+    reject_ungrounded: bool = False
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Grounds high-leverage insights against transcript segments.
+    Assigns segment IDs, duration-bounded start/end timestamps, and source excerpts.
+    """
+    return validate_evidence_citations(
+        statements=insights,
+        transcript_segments=transcript_segments,
+        max_duration=float(max_duration),
+        channel_author=channel_author,
+        reject_ungrounded=reject_ungrounded
+    )
+
+def ground_copilot_response(
+    answer_text: str,
+    transcript_segments: List[Dict[str, Any]],
+    max_duration: float = 7200.0
+) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Parses timestamp citations in Copilot answers (e.g. [MM:SS] or [HH:MM:SS]),
+    validates timestamps against video duration, matches against transcript segments,
+    and returns (answer_text, citations, grounding_summary).
+    """
+    if not isinstance(answer_text, str):
+        answer_text = str(answer_text or "")
+
+    max_duration = float(max_duration) if max_duration and max_duration > 0 else 7200.0
+    segments = transcript_segments or []
+
+    # Find citations like [12:34] or [1:23:45]
+    pattern = re.compile(r'\[(\d{1,2}:\d{2}(?::\d{2})?)\]')
+    matches = list(pattern.finditer(answer_text))
+
+    citations = []
+    for match in matches:
+        time_str = match.group(1)
+        sec = parse_duration_string(time_str)
+        is_valid = 0 <= sec <= max_duration
+
+        matched_seg = None
+        matched_id = None
+        excerpt = ""
+
+        if is_valid and segments:
+            # Match segment: prioritize exact segment start, or half-open interval start <= sec < end (<= end for last segment)
+            exact_match = [s for s in segments if float(s.get("start", 0.0)) == float(sec)]
+            if exact_match:
+                matched_seg = exact_match[0]
+            else:
+                covering = []
+                for idx, s in enumerate(segments):
+                    s_start = float(s.get("start", 0.0))
+                    s_end = float(s.get("end", s_start + float(s.get("duration", 0.0))))
+                    is_last = (idx == len(segments) - 1)
+                    if (s_start <= sec <= s_end) if is_last else (s_start <= sec < s_end):
+                        covering.append(s)
+                if covering:
+                    matched_seg = covering[0]
+                else:
+                    matched_seg = min(segments, key=lambda s: abs(float(s.get("start", 0.0)) - sec))
+
+            if matched_seg:
+                matched_id = matched_seg.get("segment_id") or matched_seg.get("id") or f"seg_{segments.index(matched_seg)}"
+                excerpt = matched_seg.get("text", "")
+
+        citation = {
+            "citation_text": match.group(0),
+            "timestamp": time_str,
+            "seconds": float(sec),
+            "valid": is_valid,
+            "flagged": not is_valid,
+            "grounding_status": "VERIFIED" if is_valid else "INVALID_TIMESTAMP",
+            "transcript_segment_id": matched_id,
+            "matched_segment_id": matched_id,
+            "transcript_excerpt": excerpt,
+            "source_excerpt": excerpt
+        }
+        if not is_valid:
+            citation["error"] = f"Timestamp {time_str} ({sec}s) exceeds video duration ({int(max_duration)}s)"
+        citations.append(citation)
+
+    total_citations = len(citations)
+    valid_citations = sum(1 for c in citations if c.get("valid"))
+    grounding_confidence = round(valid_citations / max(1, total_citations), 2) if total_citations > 0 else 1.0
+
+    grounding_summary = {
+        "total_citations": total_citations,
+        "valid_citations": valid_citations,
+        "invalid_citations": total_citations - valid_citations,
+        "grounding_confidence": grounding_confidence,
+        "max_duration_sec": max_duration
+    }
+
+    return answer_text, citations, grounding_summary
+
+def verify_grounded_claims(
+    claims: List[Dict[str, Any]],
+    transcript_segments: List[Dict[str, Any]],
+    max_duration: int = 7200,
+    channel_author: str = "",
+    reject_ungrounded: bool = False
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Feature F10: Automated Citation & Timestamp Grounding Engine.
+    Feature F11: Dynamic Speaker Attribution.
+    Guarantees 100% of claims link to valid transcript segments within 0 <= seconds <= max_duration.
+    Supports reject_ungrounded mode to exclude unverified statements.
+    """
+    return validate_evidence_citations(
+        statements=claims,
+        transcript_segments=transcript_segments,
+        max_duration=float(max_duration),
+        channel_author=channel_author,
+        reject_ungrounded=reject_ungrounded
+    )
 
 
 # =============================================================================

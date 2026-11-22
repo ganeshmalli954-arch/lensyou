@@ -20,6 +20,7 @@ def run_claim_worker(
         claims = []
         factual_claims = []
         contradictions = []
+        insights = []
 
         if raw_analysis and isinstance(raw_analysis, dict):
             claims = raw_analysis.get("claims", [])
@@ -27,6 +28,7 @@ def run_claim_worker(
                 claims = raw_analysis.get("key_takeaways", [])
             factual_claims = raw_analysis.get("factual_claims") or claims
             contradictions = raw_analysis.get("contradictions", [])
+            insights = raw_analysis.get("insights", [])
 
         dur_sec = 7200
         author = ""
@@ -34,7 +36,7 @@ def run_claim_worker(
             dur_sec = metadata.get("duration_seconds", 7200)
             author = metadata.get("author", "")
 
-        from services.verification_service import verify_grounded_claims, classify_contradictions
+        from services.verification_service import verify_grounded_claims, verify_grounded_insights, classify_contradictions
 
         grounded_claims, v_stats = verify_grounded_claims(
             claims=claims,
@@ -42,6 +44,15 @@ def run_claim_worker(
             max_duration=dur_sec,
             channel_author=author
         )
+
+        grounded_insights = []
+        if insights:
+            grounded_insights, _ = verify_grounded_insights(
+                insights=insights,
+                transcript_segments=segments or [],
+                max_duration=dur_sec,
+                channel_author=author
+            )
 
         classified_contradictions = classify_contradictions(
             contradictions=contradictions,
@@ -51,6 +62,7 @@ def run_claim_worker(
         data = {
             "claims": grounded_claims,
             "factual_claims": grounded_claims,
+            "insights": grounded_insights,
             "contradictions": classified_contradictions,
             "verification_stats": v_stats
         }

@@ -750,7 +750,10 @@ def get_modular_analysis(video_id: str) -> dict | None:
             if seg_rows:
                 segments = []
                 for sr in seg_rows:
+                    seg_id = sr['id'] if 'id' in sr.keys() else f"seg_{video_id}_{sr.get('segment_index', 0)}"
                     segments.append({
+                        'id': seg_id,
+                        'segment_id': seg_id,
                         'text': sr['text'],
                         'start': sr['start_seconds'],
                         'duration': sr['duration'],
@@ -1190,10 +1193,10 @@ def get_anon_session(session_key) -> dict:
         conn.commit()
         return {'session_key': session_key, 'quota_used': 0, 'created_at': datetime.utcnow().isoformat()}
 
-def increment_anon_quota(session_key):
+def increment_anon_quota(session_key, amount=1):
     with get_db() as conn:
         c = conn.cursor()
-        c.execute('UPDATE anon_sessions SET quota_used = quota_used + 1 WHERE session_key = ?', (session_key,))
+        c.execute('UPDATE anon_sessions SET quota_used = quota_used + ? WHERE session_key = ?', (amount, session_key))
         conn.commit()
 
 def get_redemption_code(code) -> dict:

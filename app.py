@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 import secrets
 import hashlib
 import threading
@@ -622,17 +623,25 @@ def api_analyze():
     user_id = session.get('user_id')
     session_key = session.get('session_key')
     
-    quota = check_quota(user_id=user_id, session_key=session_key)
-    if not quota['allowed']:
-        return jsonify({"error": "Quota exceeded", "quota_info": quota}), 402
-        
+    user = get_user(user_id) if user_id else None
+    user_plan = user.get('plan', 'free') if user else 'anonymous'
+
     cached = get_cached_analysis(video_id)
+    est_duration = None
+    if cached:
+        cached_meta = cached.get('_meta') or {}
+        est_duration = cached_meta.get('duration') or cached_meta.get('duration_seconds')
+
+    from services.usage_service import calculate_credit_cost
+    required_credits = calculate_credit_cost(est_duration, tier=user_plan) if est_duration else 1
+
+    quota = check_quota(user_id=user_id, session_key=session_key, required_credits=required_credits)
+    if not quota['allowed']:
+        return jsonify({"error": "Quota exceeded", "required_credits": required_credits, "quota_info": quota}), 402
+        
     key_pool = get_key_pool()
     if not cached and not key_pool:
          return jsonify({"error": "Gemini API keys not configured"}), 500
-
-    user = get_user(user_id) if user_id else None
-    user_plan = user.get('plan', 'free') if user else 'anonymous'
 
     # If cached, serve title immediately with 0 YouTube network requests
     if cached:
@@ -869,10 +878,23 @@ CRITICAL ACCURACY GUIDELINES:
         ans_text = res.text.strip()
         # Normalize any #### or deeper markdown headers to ### and clean raw hash prefixes
         ans_text = re.sub(r'^\s*#{4,6}\s*', '### ', ans_text, flags=re.MULTILINE)
+
+        from services.verification_service import ground_copilot_response
+        from services.usage_service import parse_duration_seconds
+        dur_secs = parse_duration_seconds(duration) or 7200.0
+
+        ans_text, citations, grounding_summary = ground_copilot_response(
+            ans_text,
+            raw_snippets if isinstance(raw_snippets, list) else [],
+            max_duration=dur_secs
+        )
+
         return jsonify({
             "answer": ans_text,
             "video_id": video_id,
-            "title": title
+            "title": title,
+            "citations": citations,
+            "grounding_summary": grounding_summary
         })
     except Exception as e:
         return jsonify({"error": f"Copilot error: {str(e)}"}), 500

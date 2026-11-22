@@ -6,6 +6,29 @@ import subprocess
 from youtube_transcript_api import YouTubeTranscriptApi
 from utils.time_utils import format_seconds
 
+def normalize_transcript_segments(segments: list, video_id: str = "") -> list:
+    """Ensures in-memory segments include id, segment_id, start, duration, end, and timestamp."""
+    if not isinstance(segments, list):
+        return []
+    normalized = []
+    for idx, s in enumerate(segments):
+        if not isinstance(s, dict):
+            continue
+        start = float(s.get("start", 0.0))
+        dur = float(s.get("duration", 0.0))
+        end = float(s.get("end", start + dur))
+        seg_id = s.get("id") or s.get("segment_id") or (f"seg_{video_id}_{idx}" if video_id else f"seg_{idx}")
+        ts = s.get("timestamp") or format_seconds(start)
+        seg_dict = dict(s)
+        seg_dict["id"] = seg_id
+        seg_dict["segment_id"] = seg_id
+        seg_dict["start"] = start
+        seg_dict["duration"] = dur
+        seg_dict["end"] = round(end, 2)
+        seg_dict["timestamp"] = ts
+        normalized.append(seg_dict)
+    return normalized
+
 def get_transcript_tier1(video_id: str) -> dict:
     try:
         ytt_api = YouTubeTranscriptApi()
@@ -72,6 +95,7 @@ def get_transcript_tier1(video_id: str) -> dict:
 
         full_text = " ".join([s["text"] for s in segments])
         duration_seconds = max((s["start"] + s["duration"] for s in segments), default=0)
+        segments = normalize_transcript_segments(segments, video_id)
 
         return {
             "text": full_text,
@@ -174,6 +198,7 @@ def get_transcript_tier2(video_id: str) -> dict:
             
         full_text = " ".join([s["text"] for s in segments])
         duration_seconds = max((s["start"] + s["duration"] for s in segments), default=0)
+        segments = normalize_transcript_segments(segments, video_id)
 
         return {
             "text": full_text,
@@ -237,6 +262,7 @@ def get_transcript_tier3(video_id: str) -> dict:
              
         full_text = " ".join([s["text"] for s in segments])
         duration_seconds = max((s["start"] + s["duration"] for s in segments), default=0)
+        segments = normalize_transcript_segments(segments, video_id)
 
         return {
             "text": full_text,
@@ -372,6 +398,7 @@ def get_transcript_tier4_metadata(video_id: str) -> dict:
         full_text = " ".join([s["text"] for s in segments])
         if desc:
             full_text += f"\n\nVideo Overview & Description:\n{desc[:3000]}"
+        segments = normalize_transcript_segments(segments, video_id)
 
         return {
             "text": full_text,
@@ -389,6 +416,7 @@ def get_transcript_data(video_id: str) -> dict:
     res1 = get_transcript_tier1(video_id)
     if "error" not in res1:
         print("  [Transcript] Tier 1 Success!", flush=True)
+        res1["segments"] = normalize_transcript_segments(res1.get("segments", []), video_id)
         return res1
     print(f"  [Transcript] Tier 1 Failed: {res1['error']}", flush=True)
     
@@ -396,6 +424,7 @@ def get_transcript_data(video_id: str) -> dict:
     res2 = get_transcript_tier2(video_id)
     if "error" not in res2:
         print("  [Transcript] Tier 2 Success!", flush=True)
+        res2["segments"] = normalize_transcript_segments(res2.get("segments", []), video_id)
         return res2
     print(f"  [Transcript] Tier 2 Failed: {res2['error']}", flush=True)
     
@@ -403,6 +432,7 @@ def get_transcript_data(video_id: str) -> dict:
     res3 = get_transcript_tier3(video_id)
     if "error" not in res3:
         print("  [Transcript] Tier 3 Success!", flush=True)
+        res3["segments"] = normalize_transcript_segments(res3.get("segments", []), video_id)
         return res3
     print(f"  [Transcript] Tier 3 Failed: {res3['error']}", flush=True)
 
@@ -410,6 +440,7 @@ def get_transcript_data(video_id: str) -> dict:
     res4 = get_transcript_tier4_metadata(video_id)
     if "error" not in res4 and res4.get("segments"):
         print("  [Transcript] Tier 4 Success (Synthesized Metadata)!", flush=True)
+        res4["segments"] = normalize_transcript_segments(res4.get("segments", []), video_id)
         return res4
     print(f"  [Transcript] Tier 4 Failed: {res4.get('error', 'No segments')}", flush=True)
     

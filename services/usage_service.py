@@ -8,6 +8,7 @@ import time
 import json
 import re
 import os
+import math
 import functools
 import threading
 from datetime import datetime, timedelta
@@ -68,6 +69,67 @@ def parse_duration_seconds(duration) -> int:
     except Exception:
         pass
     return 0
+
+def calculate_credit_cost(duration=None, tier: str = "standard", complexity: str = "standard") -> int:
+    """
+    Calculates duration-weighted and complexity-weighted credit consumption.
+    Base unit: 15-minute blocks (900 seconds).
+    ceil(duration_seconds / 900) * tier_multiplier * complexity_multiplier.
+    Minimum cost is 1 credit.
+    Standard short videos (<= 15 min, e.g. 14:20) cost exactly 1 credit.
+    """
+    # Preserve floating-point seconds if passed directly or as a float string
+    if isinstance(duration, float):
+        duration_seconds = max(0.0, duration)
+    elif isinstance(duration, str):
+        try:
+            duration_seconds = max(0.0, float(duration.strip()))
+        except ValueError:
+            duration_seconds = float(parse_duration_seconds(duration))
+    else:
+        duration_seconds = float(parse_duration_seconds(duration))
+
+    if duration_seconds <= 0:
+        duration_blocks = 1
+    else:
+        duration_blocks = max(1, math.ceil(duration_seconds / 900.0))
+
+    clean_tier = str(tier or "standard").lower().strip()
+    clean_comp = str(complexity or "standard").lower().strip()
+
+    tier_multipliers = {
+        'standard': 1.0,
+        'free': 1.0,
+        'anonymous': 1.0,
+        'guest': 1.0,
+        'pack10': 1.0,
+        'pack50': 1.0,
+        'unlimited': 1.0,
+        'pro': 1.5,
+        'deep': 1.5,
+        'research': 1.5,
+        'academic': 1.5,
+        'premium': 2.0,
+        'priority': 2.0
+    }
+
+    complexity_multipliers = {
+        'standard': 1.0,
+        'basic': 1.0,
+        'default': 1.0,
+        'deep': 1.5,
+        'research': 1.5,
+        'academic': 1.5,
+        'premium': 2.0,
+        'priority': 2.0
+    }
+
+    tier_mult = tier_multipliers.get(clean_tier, 1.0)
+    comp_mult = complexity_multipliers.get(clean_comp, 1.0)
+    total_mult = max(1.0, tier_mult * comp_mult)
+
+    total_credits = max(1, math.ceil(duration_blocks * total_mult))
+    return int(total_credits)
 
 def get_tier_duration_limit(plan: str = 'anonymous') -> int | None:
     """Returns the maximum video duration in seconds allowed for a plan tier, or None if unlimited."""
